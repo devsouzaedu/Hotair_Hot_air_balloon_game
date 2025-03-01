@@ -27,7 +27,7 @@ const rooms = {};
 function generateTarget(previousTarget) {
     const mapSize = 2600;
     const centralArea = mapSize / 4; // Área central para alvos
-    const minDistance = 1000; // Distância mínima entre alvos
+    const minDistance = 1000;
     let newTarget;
     do {
         newTarget = { 
@@ -40,7 +40,7 @@ function generateTarget(previousTarget) {
 }
 
 function initializeTargets() {
-    worldState.targets = [generateTarget(null)]; // Primeiro alvo
+    worldState.targets = [generateTarget(null)];
 }
 
 initializeTargets();

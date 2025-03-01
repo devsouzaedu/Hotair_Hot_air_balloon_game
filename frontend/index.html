@@ -25,7 +25,7 @@
             z-index: 1000;
             color: white;
         }
-        #loseScreen {
+        #loseScreen, #modeScreen, #colorScreen, #roomScreen, #lobbyScreen, #gameScreen {
             display: none;
         }
         #nameScreen h1, #modeScreen h1, #colorScreen h1, #roomScreen h1, #lobbyScreen h1, #startScreen h1, #loseScreen h1 {
@@ -180,8 +180,6 @@
             bottom: 5px;
             right: 5px;
             z-index: 100;
-            display: flex;
-            flex-direction: column;
         }
         .mobileButton {
             width: 60px;
@@ -192,9 +190,6 @@
             border-radius: 50%;
             font-size: 1.5em;
             cursor: pointer;
-            touch-action: manipulation;
-            user-select: none;
-            -webkit-user-select: none;
         }
         .mobileButton:active {
             background: rgba(200, 200, 200, 0.8);
@@ -236,14 +231,14 @@
             <button id="nameButton">OK</button>
         </div>
     </div>
-    <div id="modeScreen" style="display: none;">
+    <div id="modeScreen">
         <h1>Escolha o Modo</h1>
         <div id="modeForm">
             <button id="playNowButton">Jogue Agora</button>
             <button id="roomModeButton">Entrar ou Criar Sala</button>
         </div>
     </div>
-    <div id="colorScreen" style="display: none;">
+    <div id="colorScreen">
         <h1>Escolha a Cor do Balão</h1>
         <div id="colorForm">
             <button class="colorButton" style="background: #FF4500" onclick="selectColor('#FF4500')">Vermelho</button>
@@ -253,7 +248,7 @@
             <button id="okButton">OK</button>
         </div>
     </div>
-    <div id="roomScreen" style="display: none;">
+    <div id="roomScreen">
         <h1>Salas</h1>
         <div id="roomForm">
             <input type="text" id="roomName" placeholder="Nome da sala">
@@ -261,14 +256,14 @@
             <button id="joinRoomButton">Entrar em Sala</button>
         </div>
     </div>
-    <div id="lobbyScreen" style="display: none;">
+    <div id="lobbyScreen">
         <h1>Aguardando Jogadores</h1>
         <div id="lobbyForm">
             <div id="playersList"></div>
             <button id="startRoomButton" style="display: none;">Começar Agora</button>
         </div>
     </div>
-    <div id="gameScreen" style="display: none;">
+    <div id="gameScreen">
         <div id="info">
             <h2>Jogo de Balão</h2>
             <p>Piloto: <span id="playerNameDisplay">Aventureiro</span></p>
@@ -351,52 +346,55 @@
         if (isMobile) {
             document.getElementById('mobileControls').style.display = 'flex';
             document.getElementById('controlsInfo').textContent = 'Use os botões para jogar';
-        } else {
-            document.getElementById('mobileControls').style.display = 'none';
         }
 
         initThreeJS();
 
         document.getElementById('nameButton').addEventListener('click', () => {
             playerName = document.getElementById('playerName').value.trim();
+            console.log('nameButton clicked, playerName:', playerName);
             if (playerName) {
-                console.log(`Nome inserido: ${playerName}`);
                 document.getElementById('nameScreen').style.display = 'none';
                 document.getElementById('modeScreen').style.display = 'flex';
+                console.log('Transitioning to modeScreen');
             } else {
                 alert("Digite seu nome!");
             }
         });
 
         document.getElementById('playNowButton').addEventListener('click', () => {
-            console.log('Jogue Agora clicado');
+            console.log('playNowButton clicked');
             mode = 'world';
             document.getElementById('modeScreen').style.display = 'none';
             document.getElementById('colorScreen').style.display = 'flex';
+            console.log('Transitioning to colorScreen');
         });
 
         document.getElementById('roomModeButton').addEventListener('click', () => {
-            console.log('Entrar ou Criar Sala clicado');
+            console.log('roomModeButton clicked');
             mode = 'room';
             document.getElementById('modeScreen').style.display = 'none';
             document.getElementById('roomScreen').style.display = 'flex';
+            console.log('Transitioning to roomScreen');
         });
 
         function selectColor(color) {
             balloonColor = color;
-            console.log(`Cor selecionada: ${color}`);
+            console.log('Color selected:', color);
         }
 
         document.getElementById('okButton').addEventListener('click', () => {
+            console.log('okButton clicked, balloonColor:', balloonColor);
             if (balloonColor) {
-                console.log('OK clicado, iniciando jogo');
                 document.getElementById('colorScreen').style.display = 'none';
                 if (mode === 'world') {
+                    console.log('Emitting joinNow with name:', playerName, 'and color:', balloonColor);
                     socket.emit('joinNow', { name: playerName, color: balloonColor });
-                } else if (roomName) {
+                } else if (mode === 'room' && roomName) {
+                    console.log('Setting color and joining room:', roomName);
                     socket.emit('setColor', { roomName, color: balloonColor });
-                    document.getElementById('lobbyScreen').style.display = 'flex';
                     socket.emit('joinRoom', { roomName, playerData: { name: playerName, color: balloonColor } });
+                    document.getElementById('lobbyScreen').style.display = 'flex';
                 }
             } else {
                 alert("Escolha uma cor!");
@@ -405,29 +403,20 @@
 
         document.getElementById('createRoomButton').addEventListener('click', () => {
             const inputRoomName = document.getElementById('roomName').value.trim();
+            console.log('createRoomButton clicked, roomName:', inputRoomName);
             if (inputRoomName) {
                 roomName = inputRoomName;
-                console.log(`Criando sala: ${roomName}`);
                 socket.emit('createRoom', { name: roomName });
             } else {
                 alert("Digite o nome da sala!");
             }
         });
 
-        socket.on('roomCreated', ({ roomName, creator }) => {
-            roomName = roomName;
-            isCreator = (creator === socket.id);
-            console.log(`Sala criada com nome: ${roomName}, Criador: ${isCreator}`);
-            document.getElementById('roomScreen').style.display = 'none';
-            document.getElementById('colorScreen').style.display = 'flex';
-            socket.emit('setColor', { roomName, color: null });
-        });
-
         document.getElementById('joinRoomButton').addEventListener('click', () => {
             const inputRoomName = document.getElementById('roomName').value.trim();
+            console.log('joinRoomButton clicked, roomName:', inputRoomName);
             if (inputRoomName) {
                 roomName = inputRoomName;
-                console.log(`Tentando entrar na sala: ${roomName}`);
                 socket.emit('joinRoom', { roomName, playerData: { name: playerName, color: null } });
                 document.getElementById('roomScreen').style.display = 'none';
                 document.getElementById('colorScreen').style.display = 'flex';
@@ -436,15 +425,24 @@
             }
         });
 
+        socket.on('roomCreated', ({ roomName, creator }) => {
+            console.log('roomCreated received, roomName:', roomName, 'creator:', creator);
+            roomName = roomName;
+            isCreator = (creator === socket.id);
+            document.getElementById('roomScreen').style.display = 'none';
+            document.getElementById('colorScreen').style.display = 'flex';
+            socket.emit('setColor', { roomName, color: null });
+        });
+
         socket.on('roomError', (msg) => {
-            console.log(`Erro na sala: ${msg}`);
+            console.log('roomError received:', msg);
             alert(msg);
             document.getElementById('colorScreen').style.display = 'none';
             document.getElementById('roomScreen').style.display = 'flex';
         });
 
         socket.on('playerJoined', ({ players, creator }) => {
-            console.log('Novo jogador entrou:', players);
+            console.log('playerJoined received:', players);
             const playersList = document.getElementById('playersList');
             playersList.innerHTML = '';
             let playerCount = 0;
@@ -463,7 +461,7 @@
         });
 
         socket.on('playerLeft', (id) => {
-            console.log(`Jogador ${id} saiu`);
+            console.log('playerLeft received, id:', id);
             if (otherPlayers[id]) {
                 scene.remove(otherPlayers[id]);
                 delete otherPlayers[id];
@@ -471,7 +469,7 @@
         });
 
         socket.on('roomClosed', () => {
-            console.log('Sala fechada');
+            console.log('roomClosed received');
             alert('O criador da sala saiu. A sala foi fechada.');
             document.getElementById('lobbyScreen').style.display = 'none';
             document.getElementById('nameScreen').style.display = 'flex';
@@ -479,18 +477,18 @@
 
         document.getElementById('startRoomButton').addEventListener('click', () => {
             if (isCreator) {
-                console.log(`Iniciando sala: ${roomName}`);
+                console.log('startRoomButton clicked, starting room:', roomName);
                 socket.emit('startRoom', { roomName });
             }
         });
 
         socket.on('countdown', (count) => {
-            console.log(`Contagem regressiva: ${count}`);
+            console.log('countdown received:', count);
             document.getElementById('countdown').textContent = count > 0 ? count : 'GO!';
         });
 
         socket.on('startGame', ({ state }) => {
-            console.log('Jogo iniciado!', state);
+            console.log('startGame received:', state);
             document.getElementById('lobbyScreen').style.display = 'none';
             document.getElementById('gameScreen').style.display = 'block';
             document.getElementById('countdown').textContent = '';
@@ -514,13 +512,13 @@
         });
 
         socket.on('gameUpdate', ({ state, timeLeft, nextTargetTime }) => {
-            console.log('Atualização do jogo recebida:', state);
+            console.log('gameUpdate received:', state);
             const currentState = mode === 'world' ? state : state;
 
             for (const id in currentState.players) {
                 if (id !== socket.id) {
                     if (!otherPlayers[id] && currentState.players[id].color) {
-                        console.log(`Criando balão para jogador ${id}:`, currentState.players[id]);
+                        console.log(`Creating balloon for player ${id}:`, currentState.players[id]);
                         const otherBalloon = createBalloon(currentState.players[id].color, currentState.players[id].name);
                         otherBalloon.position.set(
                             currentState.players[id].x,
@@ -541,7 +539,7 @@
 
             for (const id in otherPlayers) {
                 if (!currentState.players[id]) {
-                    console.log(`Removendo balão do jogador ${id}`);
+                    console.log(`Removing balloon for player ${id}`);
                     scene.remove(otherPlayers[id]);
                     delete otherPlayers[id];
                 }
@@ -562,7 +560,7 @@
                 let existingTail = markers.find(m => m.tail.userData.markerId === markerId)?.tail;
 
                 if (!existingMarker) {
-                    console.log(`Criando marcador ${markerId} do jogador ${markerData.playerId}`);
+                    console.log(`Creating marker ${markerId} for player ${markerData.playerId}`);
                     existingMarker = new THREE.Mesh(
                         new THREE.SphereGeometry(4.5, 16, 16),
                         new THREE.MeshLambertMaterial({ color: 0x0000FF })
@@ -604,7 +602,7 @@
         });
 
         socket.on('markerDropped', ({ playerId, x, y, z, markers, score, markerId }) => {
-            console.log(`Marcador lançado por ${playerId}: ${markers} restantes, ${score} pontos`);
+            console.log(`Marker dropped by ${playerId}: ${markers} left, ${score} points`);
             if (playerId === socket.id) {
                 document.getElementById('markersLeft').textContent = markers;
                 document.getElementById('points').textContent = score;
@@ -613,6 +611,7 @@
         });
 
         socket.on('targetHitUpdate', ({ targetIndex }) => {
+            console.log('Target hit update received:', targetIndex);
             if (targetIndex < 5) {
                 scene.remove(scene.children.find(obj => 
                     obj instanceof THREE.Group && 
@@ -620,7 +619,7 @@
                     obj.position.z === targets[0].z
                 ));
                 targets.shift();
-                if (targets.length < 5) {
+                if (targets.length < 5 && worldState.targets[targets.length]) {
                     const nextTarget = worldState.targets[targets.length];
                     targets.push(nextTarget);
                     const targetMesh = createTarget(nextTarget.x, nextTarget.z);
@@ -630,7 +629,7 @@
         });
 
         socket.on('gameOver', (winner) => {
-            console.log('Fim de jogo recebido');
+            console.log('Game over received, winner:', winner);
             gameOver = true;
             alert(`Fim de jogo! Vencedor: ${winner.name} com ${winner.score} pontos`);
             document.getElementById('gameScreen').style.display = 'none';
@@ -647,7 +646,7 @@
         });
 
         socket.on('gameEnd', ({ players }) => {
-            console.log('Fim de jogo com placar recebido');
+            console.log('Game end received, players:', players);
             gameOver = true;
             let leaderboard = 'Placar Final:\n';
             const sortedPlayers = Object.values(players).sort((a, b) => b.score - a.score);
@@ -669,17 +668,19 @@
         });
 
         socket.on('gameState', ({ mode: gameMode, state }) => {
-            console.log(`Estado do jogo recebido: ${gameMode}`, state);
+            console.log('Game state received:', gameMode, state);
             if (gameMode === 'world') {
                 worldState = state;
-                targets = [state.targets[0]];
-                const targetMesh = createTarget(targets[0].x, targets[0].z);
-                scene.add(targetMesh);
+                targets = state.targets;
+                targets.forEach(target => {
+                    const targetMesh = createTarget(target.x, target.z);
+                    scene.add(targetMesh);
+                });
                 balloon = createBalloon(balloonColor, playerName);
                 scene.add(balloon);
+                document.getElementById('playerNameDisplay').textContent = playerName;
                 document.getElementById('colorScreen').style.display = 'none';
                 document.getElementById('gameScreen').style.display = 'block';
-                document.getElementById('playerNameDisplay').textContent = playerName;
                 for (const id in state.players) {
                     if (id !== socket.id && state.players[id].color) {
                         const otherBalloon = createBalloon(state.players[id].color, state.players[id].name);
@@ -729,7 +730,8 @@
             });
         }
 
-        function createBalloon(color, name, isPromo = false) {
+        function createBalloon(color, name) {
+            console.log('Creating balloon for:', name, 'with color:', color);
             const group = new THREE.Group();
             const basketGeometry = new THREE.BoxGeometry(15, 12, 15);
             const basketMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
@@ -774,6 +776,7 @@
         }
 
         function createTarget(x, z) {
+            console.log('Creating target at:', x, z);
             const targetMesh = new THREE.Group();
             const material = new THREE.LineBasicMaterial({ color: 0xFF0000, linewidth: 5 });
             const line1Geometry = new THREE.BufferGeometry().setFromPoints([
@@ -806,7 +809,7 @@
         }
 
         function initThreeJS() {
-            console.log('Inicializando Three.js...');
+            console.log('Initializing Three.js...');
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x87CEEB);
 
@@ -852,7 +855,7 @@
         }
 
         function createGround() {
-            console.log('Criando o chão...');
+            console.log('Creating ground...');
             const mapSize = 2600;
             const groundGeometry = new THREE.PlaneGeometry(mapSize, mapSize, 50, 50);
             const groundMaterial = new THREE.MeshLambertMaterial({ color: 0x7CFC00 });
@@ -945,6 +948,7 @@
         }
 
         function dropMarker() {
+            console.log('Dropping marker');
             socket.emit('dropMarker', { x: balloon.position.x, y: balloon.position.y - 10, z: balloon.position.z, mode, roomName });
             markerDropped = true;
         }
@@ -991,7 +995,7 @@
         }
 
         function restartGame() {
-            console.log('Reiniciando jogo');
+            console.log('Restarting game');
             gameOver = false;
             hasLiftedOff = false;
             altitude = 100;
