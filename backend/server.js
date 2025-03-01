@@ -15,12 +15,12 @@ const PORT = process.env.PORT || 3000;
 
 let worldState = { 
     players: {}, 
-    targets: [], 
+    targets: [], // Garantir que seja um array vazio inicialmente
     startTime: Date.now(), 
     currentTargetIndex: 0,
     markers: {},
     lastTargetChange: Date.now(),
-    targetCount: 0 // Contador de alvos criados no jogo
+    targetCount: 0
 };
 const rooms = {};
 
@@ -39,7 +39,8 @@ function initializeTargets() {
     worldState.targets = [generateTarget(null)]; // Primeiro alvo
 }
 
-worldState.targets = initializeTargets();
+// Inicializar alvos imediatamente
+initializeTargets();
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/index.html'));
@@ -94,7 +95,7 @@ function updateBots() {
     for (const id in worldState.players) {
         if (worldState.players[id].isBot) {
             const bot = worldState.players[id];
-            const target = worldState.targets[0];
+            const target = worldState.targets.length > 0 ? worldState.targets[0] : { x: 0, z: 0 }; // Fallback
             const speed = 0.8;
 
             // Repulsão entre bots
@@ -187,7 +188,7 @@ io.on('connection', (socket) => {
         rooms[roomName] = {
             name: roomName,
             players: {},
-            targets: generateTargets(),
+            targets: [generateTarget(null)], // Inicializar com um alvo
             started: false,
             startTime: null,
             creator: socket.id,
@@ -345,9 +346,9 @@ setInterval(() => {
     updateMarkersGravity(worldState);
     updateBots();
 
-    if (elapsedSinceTargetChange >= 60 && worldState.targetCount < 5) { // Novo alvo a cada 60 segundos, até 5 alvos
+    if (elapsedSinceTargetChange >= 60 && worldState.targetCount < 5) {
         const previousTarget = worldState.targets[0];
-        worldState.targets = [generateTarget(previousTarget)]; // Novo alvo mais distante
+        worldState.targets = [generateTarget(previousTarget)];
         worldState.lastTargetChange = Date.now();
         worldState.targetCount++;
         console.log(`Novo alvo criado (${worldState.targetCount}/5)`);
@@ -355,18 +356,19 @@ setInterval(() => {
 
     io.to('world').emit('gameUpdate', { state: worldState, timeLeft, nextTargetTime: worldState.targetCount < 5 ? 60 - elapsedSinceTargetChange : 0 });
 
-    if (elapsedWorld > 300 || worldState.targetCount >= 5) { // Fim do jogo após 5 alvos ou 5 minutos
+    if (elapsedWorld > 300 || worldState.targetCount >= 5) {
         const winner = calculateWinner(worldState.players);
         io.to('world').emit('gameOver', winner);
         worldState = { 
             players: {}, 
-            targets: generateTargets(), 
+            targets: [], 
             startTime: Date.now(), 
             currentTargetIndex: 0, 
             markers: {},
             lastTargetChange: Date.now(),
             targetCount: 0
         };
+        initializeTargets(); // Garantir que os alvos sejam criados
         addBots();
         console.log('Novo jogo iniciado no mundo aberto');
     }
