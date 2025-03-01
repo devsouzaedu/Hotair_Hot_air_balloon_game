@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jogo de Balão de Ar Quente</title>
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            font-family: Arial, sans-serif;
+            background: #87CEEB;
+        }
+        #nameScreen, #modeScreen, #colorScreen, #roomScreen, #lobbyScreen, #gameScreen, #startScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            color: white;
+        }
+        #nameScreen h1, #modeScreen h1, #colorScreen h1, #roomScreen h1, #lobbyScreen h1, #startScreen h1 {
+            font-size: 2em;
+            color: #ffdd00;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+        #nameForm, #modeForm, #colorForm, #roomForm, #lobbyForm {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            max-width: 400px;
+            width: 70%;
+        }
+        #playerName, #roomName {
+            padding: 8px;
+            font-size: 1em;
+            width: 80%;
+            border-radius: 4px;
+            border: none;
+            margin: 15px 0;
+        }
+        #nameButton, #playNowButton, #roomModeButton, .colorButton, #createRoomButton, #joinRoomButton, #okButton, #startRoomButton {
+            padding: 8px 20px;
+            font-size: 1em;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin: 5px;
+        }
+        #nameButton:hover, #playNowButton:hover, #roomModeButton:hover, .colorButton:hover, #createRoomButton:hover, #joinRoomButton:hover, #okButton:hover, #startRoomButton:hover {
+            background: #c0392b;
+        }
+        #info {
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 5px;
+            border-radius: 3px;
+            z-index: 100;
+            font-size: 0.8em;
+            max-width: 150px;
+        }
+        #score {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 5px;
+            border-radius: 3px;
+            z-index: 100;
+            font-size: 0.8em;
+        }
+        #fps {
+            position: absolute;
+            top: 70px;
+            right: 5px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 3px;
+            border-radius: 3px;
+            z-index: 100;
+            font-size: 0.7em;
+        }
+        #windIndicator {
+            position: absolute;
+            top: 5px;
+            right: 80px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 5px;
+            border-radius: 3px;
+            z-index: 100;
+            font-size: 0.9em;
+        }
+        #timerDisplay {
+            position: absolute;
+            top: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 5px;
+            border-radius: 3px;
+            z-index: 100;
+            font-size: 1em;
+        }
+        #layerIndicator {
+            position: absolute;
+            right: 5px;
+            bottom: 170px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 5px;
+            border-radius: 3px;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            font-size: 0.7em;
+        }
+        .layer {
+            margin: 3px 0;
+            padding: 3px;
+            width: 100px;
+            text-align: center;
+            border-radius: 2px;
+        }
+        .active {
+            font-weight: bold;
+            box-shadow: 0 0 3px white;
+        }
+        #gps {
+            position: absolute;
+            bottom: 5px;
+            left: 5px;
+            width: 150px;
+            height: 165px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 3px;
+            z-index: 100;
+            text-align: center;
+            color: white;
+            font-size: 0.8em;
+        }
+        #gpsCanvas {
+            width: 150px;
+            height: 140px;
+        }
+        #mobileControls {
+            display: none;
+            position: absolute;
+            bottom: 5px;
+            right: 5px;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+        }
+        .mobileButton {
+            width: 60px;
+            height: 60px;
+            margin: 5px;
+            background: rgba(255, 255, 255, 0.8);
+            border: none;
+            border-radius: 50%;
+            font-size: 1.5em;
+            cursor: pointer;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .mobileButton:active {
+            background: rgba(200, 200, 200, 0.8);
+        }
+        #countdown {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 3em;
+            color: white;
+            z-index: 101;
+        }
+        #playersList {
+            margin-top: 10px;
+            font-size: 1em;
+        }
+    </style>
+</head>
+<body>
+    <div id="nameScreen">
+        <h1>Jogo de Balão de Ar Quente</h1>
+        <div id="nameForm">
+            <h2>Digite seu nome</h2>
+            <input type="text" id="playerName" placeholder="Seu nome aqui" required>
+            <button id="nameButton">OK</button>
+        </div>
+    </div>
+    <div id="modeScreen" style="display: none;">
+        <h1>Escolha o Modo</h1>
+        <div id="modeForm">
+            <button id="playNowButton">Jogue Agora</button>
+            <button id="roomModeButton">Entrar ou Criar Sala</button>
+        </div>
+    </div>
+    <div id="colorScreen" style="display: none;">
+        <h1>Escolha a Cor do Balão</h1>
+        <div id="colorForm">
+            <button class="colorButton" style="background: #FF4500" onclick="selectColor('#FF4500')">Vermelho</button>
+            <button class="colorButton" style="background: #3498db" onclick="selectColor('#3498db')">Azul</button>
+            <button class="colorButton" style="background: #2ecc71" onclick="selectColor('#2ecc71')">Verde</button>
+            <button class="colorButton" style="background: #f1c40f" onclick="selectColor('#f1c40f')">Amarelo</button>
+            <button id="okButton">OK</button>
+        </div>
+    </div>
+    <div id="roomScreen" style="display: none;">
+        <h1>Salas</h1>
+        <div id="roomForm">
+            <input type="text" id="roomName" placeholder="Nome da sala">
+            <button id="createRoomButton">Criar Sala</button>
+            <button id="joinRoomButton">Entrar em Sala</button>
+        </div>
+    </div>
+    <div id="lobbyScreen" style="display: none;">
+        <h1>Aguardando Jogadores</h1>
+        <div id="lobbyForm">
+            <div id="playersList"></div>
+            <button id="startRoomButton" style="display: none;">Começar Agora</button>
+        </div>
+    </div>
+    <div id="gameScreen" style="display: none;">
+        <div id="info">
+            <h2>Jogo de Balão</h2>
+            <p>Piloto: <span id="playerNameDisplay">Aventureiro</span></p>
+            <p>Alt: <span id="altitude">0m</span></p>
+            <p>Vento: <span id="windDirection">Nenhum</span> (<span id="windSpeed">0</span> m/s)</p>
+            <p>Dist: <span id="distanceToTarget">0m</span></p>
+            <p>Markers: <span id="markersLeft">3</span></p>
+            <p id="controlsInfo">W/U - Subir | S - Descer | A/D - Esquerda/Direita | Shift - Soltar</p>
+        </div>
+        <div id="score">
+            <h3>Pontos: <span id="points">0</span></h3>
+            <p>Melhor: <span id="bestScore">0</span></p>
+        </div>
+        <div id="fps">
+            FPS: <span id="fpsCount">0</span>
+        </div>
+        <div id="timerDisplay">Tempo Restante: 5:00</div>
+        <div id="windIndicator">Vento: -</div>
+        <div id="layerIndicator">
+            <div class="layer" id="layer5" style="background-color: #3498db;">Camada 5 - Norte</div>
+            <div class="layer" id="layer4" style="background-color: #2ecc71;">Camada 4 - Oeste</div>
+            <div class="layer" id="layer3" style="background-color: #f1c40f;">Camada 3 - Sul</div>
+            <div class="layer" id="layer2" style="background-color: #e67e22;">Camada 2 - Leste</div>
+            <div class="layer" id="layer1" style="background-color: #e74c3c;">Camada 1 - Nenhum</div>
+        </div>
+        <div id="gps">
+            <canvas id="gpsCanvas"></canvas>
+            <p id="gpsDirection">Direção: -</p>
+        </div>
+        <div id="mobileControls">
+            <button id="upButton" class="mobileButton">⬆️</button>
+            <button id="turboButton" class="mobileButton">🔥</button>
+            <button id="downButton" class="mobileButton">⬇️</button>
+            <button id="dropButton" class="mobileButton">🎯</button>
+        </div>
+        <div id="countdown"></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        let scene, camera, renderer, balloon, marker, tail, targets = [];
+        let altitude = 100;
+        let markerDropped = false;
+        let points = 0;
+        let bestScore = localStorage.getItem('bestScore') || 0;
+        let playerName = "";
+        let gameStarted = false;
+        let hasLiftedOff = false;
+        let gameOver = false;
+        let lastTime = performance.now();
+        let frameCount = 0;
+        let fps = 0;
+        let isMobile = false;
+        let balloonColor = null;
+        let mode = null;
+        let roomName = null;
+        let isCreator = false;
+        let socket = io('http://localhost:3000');
+        let otherPlayers = {};
+        let worldState = { targets: [] };
+        let markers = []; // Armazenar marcadores ativos
+
+        document.getElementById('bestScore').textContent = bestScore;
+
+        function detectMobile() {
+            const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+            return /android|iPhone|iPad|iPod|windows phone/i.test(userAgent);
+        }
+
+        isMobile = detectMobile();
+        if (isMobile) {
+            document.getElementById('mobileControls').style.display = 'flex';
+            document.getElementById('controlsInfo').textContent = 'Use os botões para jogar';
+        } else {
+            document.getElementById('mobileControls').style.display = 'none';
+        }
+
+        initThreeJS();
+
+        document.getElementById('nameButton').addEventListener('click', () => {
+            playerName = document.getElementById('playerName').value.trim();
+            if (playerName) {
+                document.getElementById('nameScreen').style.display = 'none';
+                document.getElementById('modeScreen').style.display = 'flex';
+            } else {
+                alert("Digite seu nome!");
+            }
+        });
+
+        document.getElementById('playNowButton').addEventListener('click', () => {
+            mode = 'world';
+            document.getElementById('modeScreen').style.display = 'none';
+            document.getElementById('colorScreen').style.display = 'flex';
+        });
+
+        document.getElementById('roomModeButton').addEventListener('click', () => {
+            mode = 'room';
+            document.getElementById('modeScreen').style.display = 'none';
+            document.getElementById('roomScreen').style.display = 'flex';
+        });
+
+        function selectColor(color) {
+            balloonColor = color;
+            console.log(`Cor selecionada: ${color}`);
+        }
+
+        document.getElementById('okButton').addEventListener('click', () => {
+            if (balloonColor) {
+                document.getElementById('colorScreen').style.display = 'none';
+                if (mode === 'world') {
+                    socket.emit('joinNow', { name: playerName, color: balloonColor });
+                    balloon = createBalloon(balloonColor);
+                    scene.add(balloon);
+                    document.getElementById('playerNameDisplay').textContent = playerName;
+                    document.getElementById('gameScreen').style.display = 'block';
+                    gameStarted = true;
+                } else if (roomName) {
+                    socket.emit('setColor', { roomName, color: balloonColor });
+                    document.getElementById('lobbyScreen').style.display = 'flex';
+                    socket.emit('joinRoom', { roomName, playerData: { name: playerName, color: balloonColor } });
+                }
+            } else {
+                alert("Escolha uma cor!");
+            }
+        });
+
+        document.getElementById('createRoomButton').addEventListener('click', () => {
+            const inputRoomName = document.getElementById('roomName').value.trim();
+            if (inputRoomName) {
+                roomName = inputRoomName;
+                socket.emit('createRoom', { name: roomName });
+            } else {
+                alert("Digite o nome da sala!");
+            }
+        });
+
+        socket.on('roomCreated', ({ roomName, creator }) => {
+            roomName = roomName;
+            isCreator = (creator === socket.id);
+            console.log(`Sala criada com nome: ${roomName}, Criador: ${isCreator}`);
+            document.getElementById('roomScreen').style.display = 'none';
+            document.getElementById('colorScreen').style.display = 'flex';
+            socket.emit('setColor', { roomName, color: null });
+        });
+
+        document.getElementById('joinRoomButton').addEventListener('click', () => {
+            const inputRoomName = document.getElementById('roomName').value.trim();
+            if (inputRoomName) {
+                roomName = inputRoomName;
+                socket.emit('joinRoom', { roomName, playerData: { name: playerName, color: null } });
+                console.log(`Tentando entrar na sala: ${roomName}`);
+                document.getElementById('roomScreen').style.display = 'none';
+                document.getElementById('colorScreen').style.display = 'flex';
+            } else {
+                alert("Digite o nome da sala!");
+            }
+        });
+
+        socket.on('roomError', (msg) => {
+            alert(msg);
+            console.log(`Erro na sala: ${msg}`);
+            document.getElementById('colorScreen').style.display = 'none';
+            document.getElementById('roomScreen').style.display = 'flex';
+        });
+
+        socket.on('playerJoined', ({ players, creator }) => {
+            console.log('Novo jogador entrou:', players);
+            const playersList = document.getElementById('playersList');
+            playersList.innerHTML = '';
+            let playerCount = 0;
+            for (const id in players) {
+                const playerDiv = document.createElement('div');
+                playerDiv.textContent = `${players[id].name} - ${players[id].color || 'Escolhendo cor'}`;
+                playersList.appendChild(playerDiv);
+                playerCount++;
+            }
+            if (creator === socket.id) {
+                isCreator = true;
+                document.getElementById('startRoomButton').style.display = playerCount >= 2 ? 'block' : 'none';
+            } else {
+                document.getElementById('startRoomButton').style.display = 'none';
+            }
+        });
+
+        socket.on('playerLeft', (id) => {
+            console.log(`Jogador ${id} saiu`);
+            if (otherPlayers[id]) {
+                scene.remove(otherPlayers[id]);
+                delete otherPlayers[id];
+            }
+        });
+
+        socket.on('roomClosed', () => {
+            alert('O criador da sala saiu. A sala foi fechada.');
+            document.getElementById('lobbyScreen').style.display = 'none';
+            document.getElementById('nameScreen').style.display = 'flex';
+        });
+
+        document.getElementById('startRoomButton').addEventListener('click', () => {
+            if (isCreator) {
+                socket.emit('startRoom', { roomName });
+            }
+        });
+
+        socket.on('countdown', (count) => {
+            console.log(`Contagem regressiva: ${count}`);
+            document.getElementById('countdown').textContent = count > 0 ? count : 'GO!';
+        });
+
+        socket.on('startGame', ({ state }) => {
+            console.log('Jogo iniciado!');
+            document.getElementById('lobbyScreen').style.display = 'none';
+            document.getElementById('gameScreen').style.display = 'block';
+            document.getElementById('countdown').textContent = '';
+            targets = state.targets;
+            targets.forEach(target => {
+                const targetMesh = createTarget(target.x, target.z);
+                scene.add(targetMesh);
+            });
+            balloon = createBalloon(balloonColor);
+            scene.add(balloon);
+            document.getElementById('playerNameDisplay').textContent = playerName;
+            for (const id in state.players) {
+                if (id !== socket.id && state.players[id].color) {
+                    const otherBalloon = createBalloon(state.players[id].color);
+                    otherBalloon.position.set(state.players[id].x, state.players[id].y, state.players[id].z);
+                    otherPlayers[id] = otherBalloon;
+                    scene.add(otherBalloon);
+                }
+            }
+            gameStarted = true;
+        });
+
+        socket.on('gameUpdate', ({ state, timeLeft }) => {
+            console.log('Atualização do jogo recebida:', state);
+            const currentState = mode === 'world' ? state : state;
+
+            for (const id in currentState.players) {
+                if (id !== socket.id) {
+                    if (!otherPlayers[id] && currentState.players[id].color) {
+                        const otherBalloon = createBalloon(currentState.players[id].color);
+                        otherBalloon.position.set(
+                            currentState.players[id].x,
+                            currentState.players[id].y,
+                            currentState.players[id].z
+                        );
+                        otherPlayers[id] = otherBalloon;
+                        scene.add(otherBalloon);
+                        console.log(`Novo balão criado para jogador ${id}`);
+                    } else if (otherPlayers[id]) {
+                        otherPlayers[id].position.set(
+                            currentState.players[id].x,
+                            currentState.players[id].y,
+                            currentState.players[id].z
+                        );
+                    }
+                }
+            }
+
+            for (const id in otherPlayers) {
+                if (!currentState.players[id]) {
+                    scene.remove(otherPlayers[id]);
+                    delete otherPlayers[id];
+                    console.log(`Balão removido para jogador ${id}`);
+                }
+            }
+
+            // Atualizar marcadores
+            for (const markerId in currentState.markers) {
+                const markerData = currentState.markers[markerId];
+                let existingMarker = scene.children.find(obj => 
+                    obj instanceof THREE.Mesh && obj.userData.markerId === markerId
+                );
+                let existingTail = scene.children.find(obj => 
+                    obj instanceof THREE.Line && obj.userData.markerId === markerId
+                );
+
+                if (!existingMarker) {
+                    existingMarker = new THREE.Mesh(
+                        new THREE.SphereGeometry(3, 16, 16),
+                        new THREE.MeshLambertMaterial({ color: 0x0000FF })
+                    );
+                    existingTail = new THREE.Line(
+                        new THREE.BufferGeometry().setFromPoints([
+                            new THREE.Vector3(0, 0, 0),
+                            new THREE.Vector3(0, -30, 0)
+                        ]),
+                        new THREE.LineBasicMaterial({ color: 0xFFFFFF })
+                    );
+                    existingMarker.userData = { playerId: markerData.playerId, type: 'marker', markerId };
+                    existingTail.userData = { playerId: markerData.playerId, type: 'tail', markerId };
+                    scene.add(existingMarker);
+                    scene.add(existingTail);
+                    markers.push({ marker: existingMarker, tail: existingTail, playerId: markerData.playerId });
+                }
+
+                existingMarker.position.set(markerData.x, markerData.y, markerData.z);
+                existingTail.position.set(markerData.x, markerData.y, markerData.z);
+
+                if (markerData.y === 0 && markerData.playerId === socket.id) {
+                    markerDropped = false;
+                    const totalMarkersLeft = parseInt(document.getElementById('markersLeft').textContent);
+                    if (totalMarkersLeft === 0) {
+                        setTimeout(() => socket.emit('checkGameEnd', { mode, roomName }), 2000);
+                    }
+                }
+            }
+
+            document.getElementById('markersLeft').textContent = currentState.players[socket.id]?.markers || 3;
+            document.getElementById('points').textContent = currentState.players[socket.id]?.score || 0;
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = Math.floor(timeLeft % 60);
+            document.getElementById('timerDisplay').textContent = `Tempo Restante: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+        });
+
+        socket.on('markerDropped', ({ playerId, x, y, z, markers, score, markerId }) => {
+            console.log(`Marcador lançado por ${playerId}: ${markers} restantes, ${score} pontos`);
+            const newMarker = new THREE.Mesh(
+                new THREE.SphereGeometry(3, 16, 16),
+                new THREE.MeshLambertMaterial({ color: 0x0000FF })
+            );
+            const newTail = new THREE.Line(
+                new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(0, 0, 0),
+                    new THREE.Vector3(0, -30, 0)
+                ]),
+                new THREE.LineBasicMaterial({ color: 0xFFFFFF })
+            );
+            newMarker.position.set(x, y, z);
+            newTail.position.set(x, y, z);
+            newMarker.visible = true;
+            newTail.visible = true;
+            newMarker.userData = { playerId, type: 'marker', markerId };
+            newTail.userData = { playerId, type: 'tail', markerId };
+            scene.add(newMarker);
+            scene.add(newTail);
+            markers.push({ marker: newMarker, tail: newTail, playerId });
+
+            if (playerId === socket.id) {
+                marker = newMarker;
+                tail = newTail;
+                document.getElementById('markersLeft').textContent = markers;
+                document.getElementById('points').textContent = score;
+                markerDropped = true;
+            }
+        });
+
+        socket.on('targetHitUpdate', ({ targetIndex }) => {
+            if (targetIndex < 3) {
+                scene.remove(scene.children.find(obj => 
+                    obj instanceof THREE.Group && 
+                    obj.position.x === targets[0].x && 
+                    obj.position.z === targets[0].z
+                ));
+                targets.shift();
+                if (targets.length < 3) {
+                    const nextTarget = worldState.targets[targets.length];
+                    targets.push(nextTarget);
+                    const targetMesh = createTarget(nextTarget.x, nextTarget.z);
+                    scene.add(targetMesh);
+                }
+            }
+        });
+
+        socket.on('gameOver', (winner) => {
+            gameOver = true;
+            alert(`Fim de jogo! Vencedor: ${winner.name} com ${winner.score} pontos`);
+            document.getElementById('gameScreen').style.display = 'none';
+            document.getElementById('nameScreen').style.display = 'flex';
+            gameStarted = false;
+            markerDropped = false;
+            balloon = null;
+            targets = [];
+            markers = [];
+            for (const id in otherPlayers) {
+                scene.remove(otherPlayers[id]);
+            }
+            otherPlayers = {};
+        });
+
+        socket.on('gameEnd', ({ players }) => {
+            gameOver = true;
+            let leaderboard = 'Placar Final:\n';
+            const sortedPlayers = Object.values(players).sort((a, b) => b.score - a.score);
+            sortedPlayers.forEach((player, index) => {
+                leaderboard += `${index + 1}. ${player.name} - ${player.score} pontos\n`;
+            });
+            alert(leaderboard);
+            document.getElementById('gameScreen').style.display = 'none';
+            document.getElementById('nameScreen').style.display = 'flex';
+            gameStarted = false;
+            markerDropped = false;
+            balloon = null;
+            targets = [];
+            markers = [];
+            for (const id in otherPlayers) {
+                scene.remove(otherPlayers[id]);
+            }
+            otherPlayers = {};
+        });
+
+        socket.on('gameState', ({ mode: gameMode, state }) => {
+            console.log(`Estado do jogo recebido: ${gameMode}`, state);
+            if (gameMode === 'world') {
+                worldState = state;
+                targets = [state.targets[0]];
+                const targetMesh = createTarget(targets[0].x, targets[0].z);
+                scene.add(targetMesh);
+            }
+        });
+
+        const windLayers = [
+            { minAlt: 0, maxAlt: 100, direction: { x: 0, z: 0 }, speed: 0, name: "Nenhum" },
+            { minAlt: 100, maxAlt: 200, direction: { x: 1, z: 0 }, speed: 0.3, name: "Leste" },
+            { minAlt: 200, maxAlt: 300, direction: { x: 0, z: 1 }, speed: 0.3, name: "Sul" },
+            { minAlt: 300, maxAlt: 400, direction: { x: -1, z: 0 }, speed: 0.4, name: "Oeste" },
+            { minAlt: 400, maxAlt: 500, direction: { x: 0, z: -1 }, speed: 0.5, name: "Norte" }
+        ];
+
+        const keys = {
+            W: false,
+            S: false,
+            A: false,
+            D: false,
+            U: false,
+            SHIFT_RIGHT: false
+        };
+
+        if (isMobile) {
+            const upButton = document.getElementById('upButton');
+            const turboButton = document.getElementById('turboButton');
+            const downButton = document.getElementById('downButton');
+            const dropButton = document.getElementById('dropButton');
+
+            upButton.addEventListener('touchstart', () => keys.W = true);
+            upButton.addEventListener('touchend', () => keys.W = false);
+            turboButton.addEventListener('touchstart', () => keys.U = true);
+            turboButton.addEventListener('touchend', () => keys.U = false);
+            downButton.addEventListener('touchstart', () => keys.S = true);
+            downButton.addEventListener('touchend', () => keys.S = false);
+            dropButton.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                if (!markerDropped) {
+                    dropMarker();
+                }
+            });
+        }
+
+        function createBalloon(color) {
+            const group = new THREE.Group();
+            const basketGeometry = new THREE.BoxGeometry(10, 8, 10);
+            const basketMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
+            const basket = new THREE.Mesh(basketGeometry, basketMaterial);
+            basket.position.y = -10;
+            group.add(basket);
+
+            const balloonGeometry = new THREE.SphereGeometry(20, 32, 32);
+            const balloonMaterial = new THREE.MeshLambertMaterial({ color });
+            const balloonMesh = new THREE.Mesh(balloonGeometry, balloonMaterial);
+            balloonMesh.scale.y = 1.2;
+            balloonMesh.position.y = 20;
+            group.add(balloonMesh);
+
+            const ropeMaterial = new THREE.LineBasicMaterial({ color: 0x000000 });
+            for (let i = 0; i < 4; i++) {
+                const x = (i % 2 === 0) ? -5 : 5;
+                const z = (i < 2) ? -5 : 5;
+                const ropeGeometry = new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(x, -6, z),
+                    new THREE.Vector3(x, 20, z)
+                ]);
+                const rope = new THREE.Line(ropeGeometry, ropeMaterial);
+                group.add(rope);
+            }
+
+            const loader = new THREE.FontLoader();
+            loader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', function(font) {
+                const textGeometry = new THREE.TextGeometry(playerName, {
+                    font: font,
+                    size: 5,
+                    height: 1,
+                });
+                const textMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+                const textMesh = new THREE.Mesh(textGeometry, textMaterial);
+                textMesh.position.set(-10, 20, 10);
+                group.add(textMesh);
+            });
+
+            group.position.set(0, altitude, 0);
+            return group;
+        }
+
+        function createTarget(x, z) {
+            const targetMesh = new THREE.Group();
+            const material = new THREE.LineBasicMaterial({ color: 0xFF0000, linewidth: 5 });
+            const line1Geometry = new THREE.BufferGeometry().setFromPoints([
+                new THREE.Vector3(-30, 0, -30),
+                new THREE.Vector3(30, 0, 30)
+            ]);
+            const line1 = new THREE.Line(line1Geometry, material);
+            targetMesh.add(line1);
+
+            const line2Geometry = new THREE.BufferGeometry().setFromPoints([
+                new THREE.Vector3(30, 0, -30),
+                new THREE.Vector3(-30, 0, 30)
+            ]);
+            const line2 = new THREE.Line(line2Geometry, material);
+            targetMesh.add(line2);
+
+            const circleGeometry = new THREE.CircleGeometry(40, 32);
+            const circleMaterial = new THREE.MeshBasicMaterial({ 
+                color: 0xFF0000, 
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: 0.3
+            });
+            const circle = new THREE.Mesh(circleGeometry, circleMaterial);
+            circle.rotation.x = -Math.PI / 2;
+            targetMesh.add(circle);
+
+            targetMesh.position.set(x, 0.1, z);
+            return targetMesh;
+        }
+
+        function initThreeJS() {
+            console.log('Inicializando Three.js...');
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87CEEB);
+
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
+            camera.position.set(0, 300, 300);
+            camera.lookAt(0, 100, 0);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.getElementById('gameScreen').appendChild(renderer.domElement);
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(100, 300, 50);
+            scene.add(directionalLight);
+
+            createGround();
+
+            const markerGeometry = new THREE.SphereGeometry(3, 16, 16);
+            const markerMaterial = new THREE.MeshLambertMaterial({ color: 0x0000FF });
+            marker = new THREE.Mesh(markerGeometry, markerMaterial);
+            marker.visible = false;
+            scene.add(marker);
+
+            const tailGeometry = new THREE.BufferGeometry().setFromPoints([
+                new THREE.Vector3(0, 0, 0),
+                new THREE.Vector3(0, -30, 0)
+            ]);
+            const tailMaterial = new THREE.LineBasicMaterial({ color: 0xFFFFFF });
+            tail = new THREE.Line(tailGeometry, tailMaterial);
+            tail.visible = false;
+            scene.add(tail);
+
+            window.addEventListener('keydown', handleKeyDown);
+            window.addEventListener('keyup', handleKeyUp);
+            window.addEventListener('resize', onWindowResize);
+
+            animate();
+        }
+
+        function createGround() {
+            console.log('Criando o chão...');
+            const groundGeometry = new THREE.PlaneGeometry(2000, 2000, 50, 50);
+            const groundMaterial = new THREE.MeshLambertMaterial({ color: 0x7CFC00 });
+            const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+            ground.rotation.x = -Math.PI / 2;
+            ground.position.y = 0;
+            scene.add(ground);
+
+            const gridHelper = new THREE.GridHelper(2000, 20, 0x000000, 0x000000);
+            gridHelper.position.y = 0.1;
+            gridHelper.material.opacity = 0.2;
+            gridHelper.material.transparent = true;
+            scene.add(gridHelper);
+
+            for (let i = 0; i < 10; i++) {
+                const houseGeometry = new THREE.BoxGeometry(10, 10, 10);
+                const houseMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
+                const house = new THREE.Mesh(houseGeometry, houseMaterial);
+                house.position.set(Math.random() * 1000 - 500, 5, Math.random() * 1000 - 500);
+                scene.add(house);
+            }
+
+            for (let i = 0; i < 15; i++) {
+                const cowGeometry = new THREE.SphereGeometry(3, 16, 16);
+                const cowMaterial = new THREE.MeshLambertMaterial({ color: 0xFFFFFF });
+                const cow = new THREE.Mesh(cowGeometry, cowMaterial);
+                cow.position.set(Math.random() * 1000 - 500, 1.5, Math.random() * 1000 - 500);
+                scene.add(cow);
+            }
+
+            const roadMaterial = new THREE.LineBasicMaterial({ color: 0x808080 });
+            for (let i = 0; i < 5; i++) {
+                const roadGeometry = new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(Math.random() * 1000 - 500, 0.2, Math.random() * 1000 - 500),
+                    new THREE.Vector3(Math.random() * 1000 - 500, 0.2, Math.random() * 1000 - 500)
+                ]);
+                const road = new THREE.Line(roadGeometry, roadMaterial);
+                scene.add(road);
+            }
+
+            for (let i = 0; i < 3; i++) {
+                const lakeGeometry = new THREE.CircleGeometry(20, 32);
+                const lakeMaterial = new THREE.MeshLambertMaterial({ color: 0x00BFFF, side: THREE.DoubleSide });
+                const lake = new THREE.Mesh(lakeGeometry, lakeMaterial);
+                lake.rotation.x = -Math.PI / 2;
+                lake.position.set(Math.random() * 1000 - 500, 0.1, Math.random() * 1000 - 500);
+                scene.add(lake);
+            }
+        }
+
+        function handleKeyDown(event) {
+            if (!gameStarted || gameOver) return;
+            switch(event.code) {
+                case 'KeyW': keys.W = true; break;
+                case 'KeyS': keys.S = true; break;
+                case 'KeyA': keys.A = true; break;
+                case 'KeyD': keys.D = true; break;
+                case 'KeyU': keys.U = true; break;
+                case 'ShiftRight': 
+                    if (!markerDropped) {
+                        dropMarker();
+                    }
+                    break;
+            }
+        }
+
+        function handleKeyUp(event) {
+            switch(event.code) {
+                case 'KeyW': keys.W = false; break;
+                case 'KeyS': keys.S = false; break;
+                case 'KeyA': keys.A = false; break;
+                case 'KeyD': keys.D = false; break;
+                case 'KeyU': keys.U = false; break;
+            }
+        }
+
+        function dropMarker() {
+            socket.emit('dropMarker', { x: balloon.position.x, y: balloon.position.y - 10, z: balloon.position.z, mode, roomName });
+            markerDropped = true;
+        }
+
+        function getCurrentWindLayer() {
+            for (let i = 0; i < windLayers.length; i++) {
+                if (altitude >= windLayers[i].minAlt && altitude < windLayers[i].maxAlt) {
+                    return i;
+                }
+            }
+            return 0;
+        }
+
+        function getWindDirectionText(layerIndex) {
+            return windLayers[layerIndex].name;
+        }
+
+        function updateLayerIndicator(currentLayer) {
+            for (let i = 1; i <= 5; i++) {
+                const element = document.getElementById(`layer${i}`);
+                if (i === currentLayer + 1) {
+                    element.classList.add('active');
+                } else {
+                    element.classList.remove('active');
+                }
+            }
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function getDirectionToTarget(balloonX, balloonZ, targetX, targetZ) {
+            const dx = targetX - balloonX;
+            const dz = targetZ - balloonZ;
+            const angle = Math.atan2(dx, dz) * (180 / Math.PI);
+            if (angle >= -45 && angle < 45) return "N";
+            if (angle >= 45 && angle < 135) return "L";
+            if (angle >= 135 || angle < -135) return "S";
+            if (angle >= -135 && angle < -45) return "O";
+            return "-";
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const currentTime = performance.now();
+            frameCount++;
+            if (currentTime - lastTime >= 1000) {
+                fps = frameCount;
+                frameCount = 0;
+                lastTime = currentTime;
+                document.getElementById('fpsCount').textContent = fps;
+            }
+
+            if (!gameStarted || gameOver || !balloon) {
+                if (gameOver) {
+                    document.getElementById('gameScreen').style.display = 'none';
+                }
+                if (renderer) renderer.render(scene, camera);
+                return;
+            }
+
+            if (keys.W) {
+                altitude += 1;
+                hasLiftedOff = true;
+            }
+            if (keys.U) {
+                altitude += 5;
+                hasLiftedOff = true;
+            }
+            if (keys.S) altitude = Math.max(20, altitude - 1);
+
+            if (altitude <= 20 && hasLiftedOff) {
+                gameOver = true;
+            }
+
+            altitude = Math.min(altitude, 500);
+            balloon.position.y = altitude;
+
+            const currentLayerIndex = getCurrentWindLayer();
+            const currentLayer = windLayers[currentLayerIndex];
+
+            balloon.position.x += currentLayer.direction.x * currentLayer.speed;
+            balloon.position.z += currentLayer.direction.z * currentLayer.speed;
+
+            if (keys.A) balloon.position.x -= 0.5;
+            if (keys.D) balloon.position.x += 0.5;
+
+            balloon.rotation.y += 0.001;
+
+            socket.emit('updatePosition', { x: balloon.position.x, y: balloon.position.y, z: balloon.position.z, mode, roomName });
+
+            document.getElementById('altitude').textContent = `${Math.floor(altitude)}m`;
+            const dx = balloon.position.x - (targets[0]?.x || 0);
+            const dz = balloon.position.z - (targets[0]?.z || 0);
+            const distance = Math.sqrt(dx * dx + dz * dz);
+            document.getElementById('distanceToTarget').textContent = `${Math.floor(distance)}m`;
+            document.getElementById('windDirection').textContent = getWindDirectionText(currentLayerIndex);
+            document.getElementById('windSpeed').textContent = currentLayer.speed.toFixed(1);
+            document.getElementById('windIndicator').textContent = `Vento: ${currentLayer.name.charAt(0)}`;
+
+            updateLayerIndicator(currentLayerIndex);
+
+            camera.position.x = balloon.position.x;
+            camera.position.z = balloon.position.z + 200;
+            camera.position.y = balloon.position.y + 200;
+            camera.lookAt(balloon.position.x, balloon.position.y, balloon.position.z - 100);
+
+            const gpsCanvas = document.getElementById('gpsCanvas');
+            const gpsContext = gpsCanvas.getContext('2d');
+            gpsContext.clearRect(0, 0, gpsCanvas.width, gpsCanvas.height);
+            gpsContext.fillStyle = 'rgba(255, 255, 255, 0.2)';
+            gpsContext.fillRect(0, 0, gpsCanvas.width, gpsCanvas.height);
+
+            const mapSize = 2000;
+            const gpsScale = gpsCanvas.width / mapSize;
+            const centerX = gpsCanvas.width / 2;
+            const centerZ = gpsCanvas.height / 2;
+
+            const balloonX = centerX + (balloon.position.x * gpsScale);
+            const balloonZ = centerZ - (balloon.position.z * gpsScale);
+
+            gpsContext.fillStyle = balloonColor;
+            gpsContext.beginPath();
+            gpsContext.arc(balloonX, balloonZ, 5, 0, Math.PI * 2);
+            gpsContext.fill();
+
+            targets.forEach(target => {
+                const targetX = centerX + (target.x * gpsScale);
+                const targetZ = centerZ - (target.z * gpsScale);
+                gpsContext.fillStyle = '#FF0000';
+                gpsContext.fillRect(targetX - 5, targetZ - 5, 10, 10);
+            });
+
+            const direction = getDirectionToTarget(balloonX, balloonZ, 
+                centerX + (targets[0]?.x * gpsScale) || centerX, 
+                centerZ - (targets[0]?.z * gpsScale) || centerZ);
+            document.getElementById('gpsDirection').textContent = `Direção: ${direction}`;
+
+            renderer.render(scene, camera);
+        }
+    </script>
+</body>
+</html>
