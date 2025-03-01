@@ -120,18 +120,6 @@
             z-index: 100;
             font-size: 1em;
         }
-        #targetTimer {
-            position: absolute;
-            top: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.7);
-            color: white;
-            padding: 5px;
-            border-radius: 3px;
-            z-index: 100;
-            font-size: 1em;
-        }
         #layerIndicator {
             position: absolute;
             right: 5px;
@@ -281,7 +269,6 @@
             FPS: <span id="fpsCount">0</span>
         </div>
         <div id="timerDisplay">Tempo Restante: 5:00</div>
-        <div id="targetTimer">Próximo Alvo em: 1:00</div>
         <div id="windIndicator">Vento: -</div>
         <div id="layerIndicator">
             <div class="layer" id="layer5" style="background-color: #3498db;">Camada 5 - Norte</div>
@@ -511,7 +498,7 @@
             gameStarted = true;
         });
 
-        socket.on('gameUpdate', ({ state, timeLeft, nextTargetTime }) => {
+        socket.on('gameUpdate', ({ state, timeLeft }) => {
             console.log('gameUpdate received:', state);
             const currentState = mode === 'world' ? state : state;
 
@@ -543,15 +530,6 @@
                     scene.remove(otherPlayers[id]);
                     delete otherPlayers[id];
                 }
-            }
-
-            if (targets[0].x !== currentState.targets[0].x || targets[0].z !== currentState.targets[0].z) {
-                scene.children.filter(obj => obj instanceof THREE.Group && obj.position.y === 0.1).forEach(obj => scene.remove(obj));
-                targets = currentState.targets;
-                targets.forEach(target => {
-                    const targetMesh = createTarget(target.x, target.z);
-                    scene.add(targetMesh);
-                });
             }
 
             for (const markerId in currentState.markers) {
@@ -596,9 +574,6 @@
             const minutes = Math.floor(timeLeft / 60);
             const seconds = Math.floor(timeLeft % 60);
             document.getElementById('timerDisplay').textContent = `Tempo Restante: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
-            const targetMinutes = Math.floor(nextTargetTime / 60);
-            const targetSeconds = Math.floor(nextTargetTime % 60);
-            document.getElementById('targetTimer').textContent = `Próximo Alvo em: ${targetMinutes}:${targetSeconds < 10 ? '0' : ''}${targetSeconds}`;
         });
 
         socket.on('markerDropped', ({ playerId, x, y, z, markers, score, markerId }) => {
@@ -612,19 +587,13 @@
 
         socket.on('targetHitUpdate', ({ targetIndex }) => {
             console.log('Target hit update received:', targetIndex);
-            if (targetIndex < 5) {
+            if (targetIndex < 1) {
                 scene.remove(scene.children.find(obj => 
                     obj instanceof THREE.Group && 
                     obj.position.x === targets[0].x && 
                     obj.position.z === targets[0].z
                 ));
                 targets.shift();
-                if (targets.length < 5 && worldState.targets[targets.length]) {
-                    const nextTarget = worldState.targets[targets.length];
-                    targets.push(nextTarget);
-                    const targetMesh = createTarget(nextTarget.x, nextTarget.z);
-                    scene.add(targetMesh);
-                }
             }
         });
 
@@ -634,15 +603,7 @@
             alert(`Fim de jogo! Vencedor: ${winner.name} com ${winner.score} pontos`);
             document.getElementById('gameScreen').style.display = 'none';
             document.getElementById('nameScreen').style.display = 'flex';
-            gameStarted = false;
-            markerDropped = false;
-            balloon = null;
-            targets = [];
-            markers = [];
-            for (const id in otherPlayers) {
-                scene.remove(otherPlayers[id]);
-            }
-            otherPlayers = {};
+            resetGameState();
         });
 
         socket.on('gameEnd', ({ players }) => {
@@ -656,15 +617,7 @@
             alert(leaderboard);
             document.getElementById('gameScreen').style.display = 'none';
             document.getElementById('nameScreen').style.display = 'flex';
-            gameStarted = false;
-            markerDropped = false;
-            balloon = null;
-            targets = [];
-            markers = [];
-            for (const id in otherPlayers) {
-                scene.remove(otherPlayers[id]);
-            }
-            otherPlayers = {};
+            resetGameState();
         });
 
         socket.on('gameState', ({ mode: gameMode, state }) => {
@@ -692,6 +645,23 @@
                 gameStarted = true;
             }
         });
+
+        function resetGameState() {
+            console.log('Resetting game state');
+            gameStarted = false;
+            markerDropped = false;
+            balloon = null;
+            targets = [];
+            markers = [];
+            for (const id in otherPlayers) {
+                scene.remove(otherPlayers[id]);
+            }
+            otherPlayers = {};
+            altitude = 100;
+            hasLiftedOff = false;
+            gameOver = false;
+            points = 0;
+        }
 
         const windLayers = [
             { minAlt: 0, maxAlt: 100, direction: { x: 0, z: 0 }, speed: 0, name: "Nenhum" },

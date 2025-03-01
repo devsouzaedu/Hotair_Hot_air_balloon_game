@@ -18,29 +18,21 @@ let worldState = {
     targets: [], 
     startTime: Date.now(), 
     currentTargetIndex: 0,
-    markers: {},
-    lastTargetChange: Date.now(),
-    targetCount: 0
+    markers: {}
 };
 const rooms = {};
 
-function generateTarget(previousTarget) {
+function generateTarget() {
     const mapSize = 2600;
-    const centralArea = mapSize / 4; // Área central para alvos
-    const minDistance = 1000;
-    let newTarget;
-    do {
-        newTarget = { 
-            x: Math.random() * centralArea - centralArea / 2, 
-            z: Math.random() * centralArea - centralArea / 2 
-        };
-    } while (previousTarget && 
-             Math.sqrt(Math.pow(newTarget.x - previousTarget.x, 2) + Math.pow(newTarget.z - previousTarget.z, 2)) < minDistance);
-    return newTarget;
+    const centralArea = mapSize / 4; // Área central
+    return { 
+        x: Math.random() * centralArea - centralArea / 2, 
+        z: Math.random() * centralArea - centralArea / 2 
+    };
 }
 
 function initializeTargets() {
-    worldState.targets = [generateTarget(null)];
+    worldState.targets = [generateTarget()];
 }
 
 initializeTargets();
@@ -98,7 +90,7 @@ function updateBots() {
     for (const id in worldState.players) {
         if (worldState.players[id].isBot) {
             const bot = worldState.players[id];
-            const target = worldState.targets.length > 0 ? worldState.targets[0] : { x: 0, z: 0 };
+            const target = worldState.targets[0];
             const speed = 0.8;
 
             for (const otherId in worldState.players) {
@@ -190,7 +182,7 @@ io.on('connection', (socket) => {
         rooms[roomName] = {
             name: roomName,
             players: {},
-            targets: [generateTarget(null)],
+            targets: [generateTarget()],
             started: false,
             startTime: null,
             creator: socket.id,
@@ -343,22 +335,13 @@ io.on('connection', (socket) => {
 setInterval(() => {
     const elapsedWorld = (Date.now() - worldState.startTime) / 1000;
     const timeLeft = Math.max(300 - elapsedWorld, 0);
-    const elapsedSinceTargetChange = (Date.now() - worldState.lastTargetChange) / 1000;
 
     updateMarkersGravity(worldState);
     updateBots();
 
-    if (elapsedSinceTargetChange >= 60 && worldState.targetCount < 5) {
-        const previousTarget = worldState.targets[0];
-        worldState.targets = [generateTarget(previousTarget)];
-        worldState.lastTargetChange = Date.now();
-        worldState.targetCount++;
-        console.log(`Novo alvo criado (${worldState.targetCount}/5)`);
-    }
+    io.to('world').emit('gameUpdate', { state: worldState, timeLeft });
 
-    io.to('world').emit('gameUpdate', { state: worldState, timeLeft, nextTargetTime: worldState.targetCount < 5 ? 60 - elapsedSinceTargetChange : 0 });
-
-    if (elapsedWorld > 300 || worldState.targetCount >= 5) {
+    if (elapsedWorld > 300) {
         const winner = calculateWinner(worldState.players);
         io.to('world').emit('gameOver', winner);
         worldState = { 
@@ -366,9 +349,7 @@ setInterval(() => {
             targets: [], 
             startTime: Date.now(), 
             currentTargetIndex: 0, 
-            markers: {},
-            lastTargetChange: Date.now(),
-            targetCount: 0
+            markers: {}
         };
         initializeTargets();
         addBots();
