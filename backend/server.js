@@ -57,6 +57,50 @@ function updateMarkersGravity(state, roomName = null) {
     }
 }
 
+function addBots() {
+    const botColors = ["#FF4500", "#3498db", "#2ecc71", "#f1c40f"];
+    const botCount = 5;
+    for (let i = 0; i < botCount; i++) {
+        const botId = `bot_${i}`;
+        if (!worldState.players[botId]) {
+            worldState.players[botId] = {
+                id: botId,
+                name: i === 0 ? "PromoBot" : `Bot ${i}`, // Bot 0 é o promocional
+                color: i === 0 ? "#FFFFFF" : botColors[i % botColors.length],
+                x: Math.random() * 500 - 250,
+                z: Math.random() * 500 - 250,
+                y: 100 + Math.random() * 400,
+                markers: 0, // Bots não soltam marcadores
+                score: 0,
+                isBot: true
+            };
+        }
+    }
+}
+
+function updateBots() {
+    for (const id in worldState.players) {
+        if (worldState.players[id].isBot) {
+            const bot = worldState.players[id];
+            const target = worldState.targets[0];
+            const dx = target.x - bot.x;
+            const dz = target.z - bot.z;
+            const distance = Math.sqrt(dx * dx + dz * dz);
+            const speed = 0.5;
+
+            if (distance > 50) {
+                bot.x += (dx / distance) * speed;
+                bot.z += (dz / distance) * speed;
+            }
+
+            const altitudeTarget = 200 + Math.sin(Date.now() * 0.001 + id.charCodeAt(4)) * 100;
+            if (bot.y < altitudeTarget) bot.y += 0.5;
+            if (bot.y > altitudeTarget) bot.y -= 0.5;
+            bot.y = Math.max(20, Math.min(500, bot.y));
+        }
+    }
+}
+
 io.on('connection', (socket) => {
     console.log(`Novo jogador conectado: ${socket.id}`);
 
@@ -69,7 +113,8 @@ io.on('connection', (socket) => {
             z: 0,
             y: 100,
             markers: 3,
-            score: 0
+            score: 0,
+            isBot: false
         };
         socket.join('world');
         socket.emit('gameState', { mode: 'world', state: worldState });
@@ -100,7 +145,8 @@ io.on('connection', (socket) => {
             z: 0,
             y: 100,
             markers: 3,
-            score: 0
+            score: 0,
+            isBot: false
         };
         socket.emit('roomCreated', { roomName, creator: socket.id });
         console.log(`Sala ${roomName} criada pelo jogador ${socket.id}`);
@@ -116,7 +162,8 @@ io.on('connection', (socket) => {
                 z: 0,
                 y: 100,
                 markers: 3,
-                score: 0
+                score: 0,
+                isBot: false
             };
             socket.join(roomName);
             io.to(roomName).emit('playerJoined', { players: rooms[roomName].players, creator: rooms[roomName].creator });
@@ -166,7 +213,7 @@ io.on('connection', (socket) => {
 
     socket.on('dropMarker', ({ x, y, z, mode, roomName }) => {
         const player = mode === 'world' ? worldState.players[socket.id] : rooms[roomName]?.players[socket.id];
-        if (player && player.markers > 0) {
+        if (player && player.markers > 0 && !player.isBot) { // Bots não soltam marcadores
             player.markers--;
             const markerId = `${socket.id}-${Date.now()}`;
             const targets = mode === 'world' ? worldState.targets : rooms[roomName].targets;
@@ -194,7 +241,7 @@ io.on('connection', (socket) => {
         let allMarkersUsed = true;
         if (mode === 'world') {
             for (const id in worldState.players) {
-                if (worldState.players[id].markers > 0) {
+                if (!worldState.players[id].isBot && worldState.players[id].markers > 0) {
                     allMarkersUsed = false;
                     break;
                 }
@@ -204,7 +251,7 @@ io.on('connection', (socket) => {
             }
         } else if (rooms[roomName]) {
             for (const id in rooms[roomName].players) {
-                if (rooms[roomName].players[id].markers > 0) {
+                if (!rooms[roomName].players[id].isBot && rooms[roomName].players[id].markers > 0) {
                     allMarkersUsed = false;
                     break;
                 }
@@ -229,18 +276,22 @@ io.on('connection', (socket) => {
         }
         console.log(`Jogador ${socket.id} desconectado`);
     });
+
+    addBots(); // Adicionar bots ao conectar o primeiro jogador
 });
 
 setInterval(() => {
     const elapsedWorld = (Date.now() - worldState.startTime) / 1000;
     const timeLeft = Math.max(300 - elapsedWorld, 0);
     updateMarkersGravity(worldState);
+    updateBots(); // Atualizar posições dos bots
     io.to('world').emit('gameUpdate', { state: worldState, timeLeft });
 
     if (elapsedWorld > 300) {
         const winner = calculateWinner(worldState.players);
         io.to('world').emit('gameOver', winner);
         worldState = { players: {}, targets: generateTargets(), startTime: Date.now(), currentTargetIndex: 0, markers: {} };
+        addBots(); // Re-adicionar bots ao reiniciar
         console.log('Novo jogo iniciado no mundo aberto');
     }
 

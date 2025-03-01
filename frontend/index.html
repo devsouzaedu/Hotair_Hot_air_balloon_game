@@ -11,7 +11,7 @@
             font-family: Arial, sans-serif;
             background: #87CEEB;
         }
-        #nameScreen, #modeScreen, #colorScreen, #roomScreen, #lobbyScreen, #gameScreen, #startScreen {
+        #nameScreen, #modeScreen, #colorScreen, #roomScreen, #lobbyScreen, #gameScreen, #startScreen, #loseScreen {
             position: fixed;
             top: 0;
             left: 0;
@@ -25,12 +25,15 @@
             z-index: 1000;
             color: white;
         }
-        #nameScreen h1, #modeScreen h1, #colorScreen h1, #roomScreen h1, #lobbyScreen h1, #startScreen h1 {
+        #loseScreen {
+            display: none;
+        }
+        #nameScreen h1, #modeScreen h1, #colorScreen h1, #roomScreen h1, #lobbyScreen h1, #startScreen h1, #loseScreen h1 {
             font-size: 2em;
             color: #ffdd00;
             text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
         }
-        #nameForm, #modeForm, #colorForm, #roomForm, #lobbyForm {
+        #nameForm, #modeForm, #colorForm, #roomForm, #lobbyForm, #loseForm {
             background: rgba(255, 255, 255, 0.1);
             padding: 15px;
             border-radius: 8px;
@@ -46,7 +49,7 @@
             border: none;
             margin: 15px 0;
         }
-        #nameButton, #playNowButton, #roomModeButton, .colorButton, #createRoomButton, #joinRoomButton, #okButton, #startRoomButton {
+        #nameButton, #playNowButton, #roomModeButton, .colorButton, #createRoomButton, #joinRoomButton, #okButton, #startRoomButton, #restartButton {
             padding: 8px 20px;
             font-size: 1em;
             background: #e74c3c;
@@ -57,7 +60,7 @@
             transition: background 0.3s;
             margin: 5px;
         }
-        #nameButton:hover, #playNowButton:hover, #roomModeButton:hover, .colorButton:hover, #createRoomButton:hover, #joinRoomButton:hover, #okButton:hover, #startRoomButton:hover {
+        #nameButton:hover, #playNowButton:hover, #roomModeButton:hover, .colorButton:hover, #createRoomButton:hover, #joinRoomButton:hover, #okButton:hover, #startRoomButton:hover, #restartButton:hover {
             background: #c0392b;
         }
         #info {
@@ -292,6 +295,12 @@
         <div id="countdown"></div>
         <div id="promoText">Jogo de Balão de Ar Quente - Desenvolvido por Eduardo Souza | Para mais jogos, visite nosso site!</div>
     </div>
+    <div id="loseScreen">
+        <h1>Você Tocou no Chão, Perdeu!</h1>
+        <div id="loseForm">
+            <button id="restartButton">Começar Novamente</button>
+        </div>
+    </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://hotair-backend.onrender.com/socket.io/socket.io.js"></script>
@@ -367,7 +376,7 @@
                 document.getElementById('colorScreen').style.display = 'none';
                 if (mode === 'world') {
                     socket.emit('joinNow', { name: playerName, color: balloonColor });
-                    balloon = createBalloon(balloonColor, playerName); // Passar o nome do jogador
+                    balloon = createBalloon(balloonColor, playerName);
                     scene.add(balloon);
                     document.getElementById('playerNameDisplay').textContent = playerName;
                     document.getElementById('gameScreen').style.display = 'block';
@@ -480,7 +489,7 @@
             document.getElementById('playerNameDisplay').textContent = playerName;
             for (const id in state.players) {
                 if (id !== socket.id && state.players[id].color) {
-                    const otherBalloon = createBalloon(state.players[id].color, state.players[id].name); // Passar o nome do outro jogador
+                    const otherBalloon = createBalloon(state.players[id].color, state.players[id].name);
                     otherBalloon.position.set(state.players[id].x, state.players[id].y, state.players[id].z);
                     otherPlayers[id] = otherBalloon;
                     scene.add(otherBalloon);
@@ -497,7 +506,9 @@
                 if (id !== socket.id) {
                     if (!otherPlayers[id] && currentState.players[id].color) {
                         console.log(`Criando balão para jogador ${id}:`, currentState.players[id]);
-                        const otherBalloon = createBalloon(currentState.players[id].color, currentState.players[id].name); // Passar o nome do jogador
+                        const otherBalloon = currentState.players[id].name === "PromoBot" ? 
+                            createBalloon("#FFFFFF", "Divulgue Aqui", true) : 
+                            createBalloon(currentState.players[id].color, currentState.players[id].name);
                         otherBalloon.position.set(
                             currentState.players[id].x,
                             currentState.players[id].y,
@@ -523,7 +534,6 @@
                 }
             }
 
-            // Atualizar marcadores
             for (const markerId in currentState.markers) {
                 const markerData = currentState.markers[markerId];
                 let existingMarker = markers.find(m => m.marker.userData.markerId === markerId)?.marker;
@@ -678,44 +688,43 @@
             });
         }
 
-        function createBalloon(color, name) { // Adicionar parâmetro name
+        function createBalloon(color, name, isPromo = false) {
             const group = new THREE.Group();
-            const basketGeometry = new THREE.BoxGeometry(10, 8, 10);
+            const basketGeometry = new THREE.BoxGeometry(15, 12, 15); // Maior
             const basketMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
             const basket = new THREE.Mesh(basketGeometry, basketMaterial);
-            basket.position.y = -10;
+            basket.position.y = -15;
             group.add(basket);
 
-            const balloonGeometry = new THREE.SphereGeometry(20, 32, 32);
+            const balloonGeometry = new THREE.SphereGeometry(30, 32, 32); // Maior
             const balloonMaterial = new THREE.MeshLambertMaterial({ color });
             const balloonMesh = new THREE.Mesh(balloonGeometry, balloonMaterial);
             balloonMesh.scale.y = 1.2;
-            balloonMesh.position.y = 20;
+            balloonMesh.position.y = 30;
             group.add(balloonMesh);
 
             const ropeMaterial = new THREE.LineBasicMaterial({ color: 0x000000 });
             for (let i = 0; i < 4; i++) {
-                const x = (i % 2 === 0) ? -5 : 5;
-                const z = (i < 2) ? -5 : 5;
+                const x = (i % 2 === 0) ? -7.5 : 7.5;
+                const z = (i < 2) ? -7.5 : 7.5;
                 const ropeGeometry = new THREE.BufferGeometry().setFromPoints([
-                    new THREE.Vector3(x, -6, z),
-                    new THREE.Vector3(x, 20, z)
+                    new THREE.Vector3(x, -10, z),
+                    new THREE.Vector3(x, 30, z)
                 ]);
                 const rope = new THREE.Line(ropeGeometry, ropeMaterial);
                 group.add(rope);
             }
 
-            // Adicionar nome do jogador ao balão
             const loader = new THREE.FontLoader();
             loader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', function(font) {
-                const textGeometry = new THREE.TextGeometry(name, {
+                const textGeometry = new THREE.TextGeometry(isPromo ? "Divulgue Aqui" : name, {
                     font: font,
-                    size: 5,
+                    size: 7,
                     height: 1,
                 });
                 const textMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
                 const textMesh = new THREE.Mesh(textGeometry, textMaterial);
-                textMesh.position.set(-10, 30, 0); // Posicionar acima do balão
+                textMesh.position.set(-15, 45, 0);
                 group.add(textMesh);
             });
 
@@ -727,20 +736,20 @@
             const targetMesh = new THREE.Group();
             const material = new THREE.LineBasicMaterial({ color: 0xFF0000, linewidth: 5 });
             const line1Geometry = new THREE.BufferGeometry().setFromPoints([
-                new THREE.Vector3(-30, 0, -30),
-                new THREE.Vector3(30, 0, 30)
+                new THREE.Vector3(-45, 0, -45),
+                new THREE.Vector3(45, 0, 45)
             ]);
             const line1 = new THREE.Line(line1Geometry, material);
             targetMesh.add(line1);
 
             const line2Geometry = new THREE.BufferGeometry().setFromPoints([
-                new THREE.Vector3(30, 0, -30),
-                new THREE.Vector3(-30, 0, 30)
+                new THREE.Vector3(45, 0, -45),
+                new THREE.Vector3(-45, 0, 45)
             ]);
             const line2 = new THREE.Line(line2Geometry, material);
             targetMesh.add(line2);
 
-            const circleGeometry = new THREE.CircleGeometry(40, 32);
+            const circleGeometry = new THREE.CircleGeometry(60, 32); // Maior
             const circleMaterial = new THREE.MeshBasicMaterial({ 
                 color: 0xFF0000, 
                 side: THREE.DoubleSide,
@@ -777,7 +786,7 @@
 
             createGround();
 
-            const markerGeometry = new THREE.SphereGeometry(3, 16, 16);
+            const markerGeometry = new THREE.SphereGeometry(4.5, 16, 16); // Maior
             const markerMaterial = new THREE.MeshLambertMaterial({ color: 0x0000FF });
             marker = new THREE.Mesh(markerGeometry, markerMaterial);
             marker.visible = false;
@@ -785,7 +794,7 @@
 
             const tailGeometry = new THREE.BufferGeometry().setFromPoints([
                 new THREE.Vector3(0, 0, 0),
-                new THREE.Vector3(0, -30, 0)
+                new THREE.Vector3(0, -45, 0)
             ]);
             const tailMaterial = new THREE.LineBasicMaterial({ color: 0xFFFFFF });
             tail = new THREE.Line(tailGeometry, tailMaterial);
@@ -796,12 +805,14 @@
             window.addEventListener('keyup', handleKeyUp);
             window.addEventListener('resize', onWindowResize);
 
+            document.getElementById('restartButton').addEventListener('click', restartGame);
+
             animate();
         }
 
         function createGround() {
             console.log('Criando o chão...');
-            const mapSize = 2600; // Aumentado de 2000 para 2600 (30% maior)
+            const mapSize = 2600;
             const groundGeometry = new THREE.PlaneGeometry(mapSize, mapSize, 50, 50);
             const groundMaterial = new THREE.MeshLambertMaterial({ color: 0x7CFC00 });
             const ground = new THREE.Mesh(groundGeometry, groundMaterial);
@@ -809,44 +820,41 @@
             ground.position.y = 0;
             scene.add(ground);
 
-            const gridHelper = new THREE.GridHelper(mapSize, 26, 0x000000, 0x000000); // Ajustado para o novo tamanho
+            const gridHelper = new THREE.GridHelper(mapSize, 26, 0x000000, 0x000000);
             gridHelper.position.y = 0.1;
             gridHelper.material.opacity = 0.2;
             gridHelper.material.transparent = true;
             scene.add(gridHelper);
 
-            // Mais casas (de 10 para 20)
-            for (let i = 0; i < 20; i++) {
-                const houseGeometry = new THREE.BoxGeometry(10, 10, 10);
+            for (let i = 0; i < 30; i++) { // Mais casas
+                const houseGeometry = new THREE.BoxGeometry(15, 15, 15); // Maior
                 const houseMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
                 const house = new THREE.Mesh(houseGeometry, houseMaterial);
-                house.position.set(Math.random() * mapSize - mapSize / 2, 5, Math.random() * mapSize - mapSize / 2);
+                house.position.set(Math.random() * mapSize - mapSize / 2, 7.5, Math.random() * mapSize - mapSize / 2);
                 scene.add(house);
             }
 
-            // Mais vacas (de 15 para 30)
-            for (let i = 0; i < 30; i++) {
-                const cowGeometry = new THREE.SphereGeometry(3, 16, 16);
+            for (let i = 0; i < 45; i++) { // Mais vacas
+                const cowGeometry = new THREE.SphereGeometry(4.5, 16, 16); // Maior
                 const cowMaterial = new THREE.MeshLambertMaterial({ color: 0xFFFFFF });
                 const cow = new THREE.Mesh(cowGeometry, cowMaterial);
-                cow.position.set(Math.random() * mapSize - mapSize / 2, 1.5, Math.random() * mapSize - mapSize / 2);
+                cow.position.set(Math.random() * mapSize - mapSize / 2, 2.25, Math.random() * mapSize - mapSize / 2);
                 scene.add(cow);
             }
 
-            // Mais rodovias (de 5 para 10)
             const roadMaterial = new THREE.LineBasicMaterial({ color: 0x808080 });
-            for (let i = 0; i < 10; i++) {
+            for (let i = 0; i < 15; i++) { // Mais rodovias
                 const roadGeometry = new THREE.BufferGeometry().setFromPoints([
                     new THREE.Vector3(Math.random() * mapSize - mapSize / 2, 0.2, Math.random() * mapSize - mapSize / 2),
                     new THREE.Vector3(Math.random() * mapSize - mapSize / 2, 0.2, Math.random() * mapSize - mapSize / 2)
                 ]);
                 const road = new THREE.Line(roadGeometry, roadMaterial);
+                road.scale.set(1.5, 1, 1.5); // Maior
                 scene.add(road);
             }
 
-            // Mais lagos (de 3 para 6)
-            for (let i = 0; i < 6; i++) {
-                const lakeGeometry = new THREE.CircleGeometry(20, 32);
+            for (let i = 0; i < 10; i++) { // Mais lagos
+                const lakeGeometry = new THREE.CircleGeometry(30, 32); // Maior
                 const lakeMaterial = new THREE.MeshLambertMaterial({ color: 0x00BFFF, side: THREE.DoubleSide });
                 const lake = new THREE.Mesh(lakeGeometry, lakeMaterial);
                 lake.rotation.x = -Math.PI / 2;
@@ -927,6 +935,21 @@
             return "-";
         }
 
+        function restartGame() {
+            gameOver = false;
+            hasLiftedOff = false;
+            altitude = 100;
+            markerDropped = false;
+            points = 0;
+            document.getElementById('loseScreen').style.display = 'none';
+            document.getElementById('gameScreen').style.display = 'block';
+            scene.remove(balloon);
+            balloon = createBalloon(balloonColor, playerName);
+            balloon.position.set(0, altitude, 0);
+            scene.add(balloon);
+            socket.emit('updatePosition', { x: balloon.position.x, y: balloon.position.y, z: balloon.position.z, mode, roomName });
+        }
+
         function animate() {
             requestAnimationFrame(animate);
 
@@ -942,6 +965,7 @@
             if (!gameStarted || gameOver || !balloon) {
                 if (gameOver) {
                     document.getElementById('gameScreen').style.display = 'none';
+                    document.getElementById('loseScreen').style.display = 'flex';
                 }
                 if (renderer) renderer.render(scene, camera);
                 return;
@@ -999,7 +1023,7 @@
             gpsContext.fillStyle = 'rgba(255, 255, 255, 0.2)';
             gpsContext.fillRect(0, 0, gpsCanvas.width, gpsCanvas.height);
 
-            const mapSize = 2600; // Ajustado para o novo tamanho do mapa
+            const mapSize = 2600;
             const gpsScale = gpsCanvas.width / mapSize;
             const centerX = gpsCanvas.width / 2;
             const centerZ = gpsCanvas.height / 2;
