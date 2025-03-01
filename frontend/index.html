@@ -491,7 +491,7 @@
             console.log('Jogo iniciado!');
             document.getElementById('lobbyScreen').style.display = 'none';
             document.getElementById('gameScreen').style.display = 'block';
-            document.getElementById('countdown').textContent = '';
+            document.getElementById('countdown').style.display = 'none';
             targets = state.targets;
             targets.forEach(target => {
                 const targetMesh = createTarget(target.x, target.z);
@@ -749,7 +749,7 @@
                 });
                 const textMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
                 const textMesh = new THREE.Mesh(textGeometry, textMaterial);
-                textMesh.position.set(-15, 60, 0); // Aumentado para 60
+                textMesh.position.set(-15, 80, 0);
                 group.add(textMesh);
             });
 

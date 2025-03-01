@@ -15,7 +15,7 @@ const PORT = process.env.PORT || 3000;
 
 let worldState = { 
     players: {}, 
-    targets: [], // Garantir que seja um array vazio inicialmente
+    targets: [], 
     startTime: Date.now(), 
     currentTargetIndex: 0,
     markers: {},
@@ -26,10 +26,15 @@ const rooms = {};
 
 function generateTarget(previousTarget) {
     const mapSize = 2600;
+    const centralArea = mapSize / 4; // Limitar a área central (metade do mapa em cada direção)
     const minDistance = 1000; // Distância mínima entre alvos
     let newTarget;
     do {
-        newTarget = { x: Math.random() * mapSize - mapSize / 2, z: Math.random() * mapSize - mapSize / 2 };
+        // Gerar alvo mais próximo do centro
+        newTarget = { 
+            x: Math.random() * centralArea - centralArea / 2, 
+            z: Math.random() * centralArea - centralArea / 2 
+        };
     } while (previousTarget && 
              Math.sqrt(Math.pow(newTarget.x - previousTarget.x, 2) + Math.pow(newTarget.z - previousTarget.z, 2)) < minDistance);
     return newTarget;
@@ -95,10 +100,9 @@ function updateBots() {
     for (const id in worldState.players) {
         if (worldState.players[id].isBot) {
             const bot = worldState.players[id];
-            const target = worldState.targets.length > 0 ? worldState.targets[0] : { x: 0, z: 0 }; // Fallback
+            const target = worldState.targets.length > 0 ? worldState.targets[0] : { x: 0, z: 0 };
             const speed = 0.8;
 
-            // Repulsão entre bots
             for (const otherId in worldState.players) {
                 if (otherId !== id && worldState.players[otherId].isBot) {
                     const otherBot = worldState.players[otherId];
@@ -188,7 +192,7 @@ io.on('connection', (socket) => {
         rooms[roomName] = {
             name: roomName,
             players: {},
-            targets: [generateTarget(null)], // Inicializar com um alvo
+            targets: [generateTarget(null)],
             started: false,
             startTime: null,
             creator: socket.id,
@@ -368,7 +372,7 @@ setInterval(() => {
             lastTargetChange: Date.now(),
             targetCount: 0
         };
-        initializeTargets(); // Garantir que os alvos sejam criados
+        initializeTargets();
         addBots();
         console.log('Novo jogo iniciado no mundo aberto');
     }
