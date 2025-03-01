@@ -286,7 +286,7 @@
             FPS: <span id="fpsCount">0</span>
         </div>
         <div id="timerDisplay">Tempo Restante: 5:00</div>
-        <div id="targetTimer">Próximo Alvo em: 5:00</div>
+        <div id="targetTimer">Próximo Alvo em: 1:00</div>
         <div id="windIndicator">Vento: -</div>
         <div id="layerIndicator">
             <div class="layer" id="layer5" style="background-color: #3498db;">Camada 5 - Norte</div>
@@ -547,7 +547,6 @@
                 }
             }
 
-            // Atualizar alvos
             if (targets[0].x !== currentState.targets[0].x || targets[0].z !== currentState.targets[0].z) {
                 scene.children.filter(obj => obj instanceof THREE.Group && obj.position.y === 0.1).forEach(obj => scene.remove(obj));
                 targets = currentState.targets;
@@ -614,14 +613,14 @@
         });
 
         socket.on('targetHitUpdate', ({ targetIndex }) => {
-            if (targetIndex < 3) {
+            if (targetIndex < 5) {
                 scene.remove(scene.children.find(obj => 
                     obj instanceof THREE.Group && 
                     obj.position.x === targets[0].x && 
                     obj.position.z === targets[0].z
                 ));
                 targets.shift();
-                if (targets.length < 3) {
+                if (targets.length < 5) {
                     const nextTarget = worldState.targets[targets.length];
                     targets.push(nextTarget);
                     const targetMesh = createTarget(nextTarget.x, nextTarget.z);
@@ -750,7 +749,7 @@
                 });
                 const textMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
                 const textMesh = new THREE.Mesh(textGeometry, textMaterial);
-                textMesh.position.set(-15, 45, 0);
+                textMesh.position.set(-15, 60, 0); // Aumentado para 60
                 group.add(textMesh);
             });
 

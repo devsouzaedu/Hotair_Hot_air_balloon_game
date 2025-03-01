@@ -19,26 +19,27 @@ let worldState = {
     startTime: Date.now(), 
     currentTargetIndex: 0,
     markers: {},
-    lastTargetChange: Date.now()
+    lastTargetChange: Date.now(),
+    targetCount: 0 // Contador de alvos criados no jogo
 };
 const rooms = {};
 
-function generateTargets() {
+function generateTarget(previousTarget) {
     const mapSize = 2600;
     const minDistance = 1000; // Distância mínima entre alvos
     let newTarget;
     do {
         newTarget = { x: Math.random() * mapSize - mapSize / 2, z: Math.random() * mapSize - mapSize / 2 };
-    } while (worldState.targets.length > 0 && 
-             Math.sqrt(Math.pow(newTarget.x - worldState.targets[0].x, 2) + Math.pow(newTarget.z - worldState.targets[0].z, 2)) < minDistance);
-    return [
-        newTarget,
-        { x: Math.random() * mapSize - mapSize / 2, z: Math.random() * mapSize - mapSize / 2 },
-        { x: Math.random() * mapSize - mapSize / 2, z: Math.random() * mapSize - mapSize / 2 }
-    ];
+    } while (previousTarget && 
+             Math.sqrt(Math.pow(newTarget.x - previousTarget.x, 2) + Math.pow(newTarget.z - previousTarget.z, 2)) < minDistance);
+    return newTarget;
 }
 
-worldState.targets = generateTargets();
+function initializeTargets() {
+    worldState.targets = [generateTarget(null)]; // Primeiro alvo
+}
+
+worldState.targets = initializeTargets();
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/index.html'));
@@ -94,7 +95,7 @@ function updateBots() {
         if (worldState.players[id].isBot) {
             const bot = worldState.players[id];
             const target = worldState.targets[0];
-            const speed = 0.8; // Aumentado para mais movimento
+            const speed = 0.8;
 
             // Repulsão entre bots
             for (const otherId in worldState.players) {
@@ -103,7 +104,7 @@ function updateBots() {
                     const dx = bot.x - otherBot.x;
                     const dz = bot.z - otherBot.z;
                     const distance = Math.sqrt(dx * dx + dz * dz);
-                    if (distance < 100) { // Distância mínima entre bots
+                    if (distance < 100) {
                         const repulsion = 1 / distance;
                         bot.x += dx * repulsion * speed;
                         bot.z += dz * repulsion * speed;
@@ -121,22 +122,22 @@ function updateBots() {
                         bot.z += (dz / distance) * speed;
                     } else {
                         bot.state = 'climbNorth';
-                        bot.targetAltitude = 500; // Subir até o topo do vento norte
+                        bot.targetAltitude = 500;
                     }
                     break;
 
                 case 'climbNorth':
                     if (bot.y < bot.targetAltitude) {
-                        bot.y += 2; // Subida mais rápida
+                        bot.y += 2;
                     } else {
                         bot.state = 'rideSouth';
-                        bot.targetAltitude = 200; // Descer até o vento sul
+                        bot.targetAltitude = 200;
                     }
                     break;
 
                 case 'rideSouth':
                     if (bot.y > bot.targetAltitude) {
-                        bot.y -= 2; // Descida mais rápida
+                        bot.y -= 2;
                     } else {
                         bot.state = 'randomize';
                     }
@@ -146,7 +147,7 @@ function updateBots() {
                     bot.x = Math.random() * mapSize - mapSize / 2;
                     bot.z = Math.random() * mapSize - mapSize / 2;
                     bot.state = 'approachTarget';
-                    bot.targetAltitude = 100 + Math.random() * 200; // Altitude inicial variada
+                    bot.targetAltitude = 100 + Math.random() * 200;
                     break;
             }
 
@@ -344,15 +345,17 @@ setInterval(() => {
     updateMarkersGravity(worldState);
     updateBots();
 
-    if (elapsedSinceTargetChange >= 300) { // Mudar alvo a cada 5 minutos
-        worldState.targets = generateTargets();
+    if (elapsedSinceTargetChange >= 60 && worldState.targetCount < 5) { // Novo alvo a cada 60 segundos, até 5 alvos
+        const previousTarget = worldState.targets[0];
+        worldState.targets = [generateTarget(previousTarget)]; // Novo alvo mais distante
         worldState.lastTargetChange = Date.now();
-        console.log('Alvo mudou de localização');
+        worldState.targetCount++;
+        console.log(`Novo alvo criado (${worldState.targetCount}/5)`);
     }
 
-    io.to('world').emit('gameUpdate', { state: worldState, timeLeft, nextTargetTime: 300 - elapsedSinceTargetChange });
+    io.to('world').emit('gameUpdate', { state: worldState, timeLeft, nextTargetTime: worldState.targetCount < 5 ? 60 - elapsedSinceTargetChange : 0 });
 
-    if (elapsedWorld > 300) {
+    if (elapsedWorld > 300 || worldState.targetCount >= 5) { // Fim do jogo após 5 alvos ou 5 minutos
         const winner = calculateWinner(worldState.players);
         io.to('world').emit('gameOver', winner);
         worldState = { 
@@ -361,7 +364,8 @@ setInterval(() => {
             startTime: Date.now(), 
             currentTargetIndex: 0, 
             markers: {},
-            lastTargetChange: Date.now()
+            lastTargetChange: Date.now(),
+            targetCount: 0
         };
         addBots();
         console.log('Novo jogo iniciado no mundo aberto');
