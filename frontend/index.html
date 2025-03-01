@@ -489,7 +489,9 @@
             document.getElementById('playerNameDisplay').textContent = playerName;
             for (const id in state.players) {
                 if (id !== socket.id && state.players[id].color) {
-                    const otherBalloon = createBalloon(state.players[id].color, state.players[id].name);
+                    const otherBalloon = state.players[id].name === "PromoBot" ? 
+                        createBalloon("#FFFFFF", "Divulgue Aqui", true) : 
+                        createBalloon(state.players[id].color, state.players[id].name);
                     otherBalloon.position.set(state.players[id].x, state.players[id].y, state.players[id].z);
                     otherPlayers[id] = otherBalloon;
                     scene.add(otherBalloon);
@@ -542,13 +544,13 @@
                 if (!existingMarker) {
                     console.log(`Criando marcador ${markerId} do jogador ${markerData.playerId}`);
                     existingMarker = new THREE.Mesh(
-                        new THREE.SphereGeometry(3, 16, 16),
+                        new THREE.SphereGeometry(4.5, 16, 16),
                         new THREE.MeshLambertMaterial({ color: 0x0000FF })
                     );
                     existingTail = new THREE.Line(
                         new THREE.BufferGeometry().setFromPoints([
                             new THREE.Vector3(0, 0, 0),
-                            new THREE.Vector3(0, -30, 0)
+                            new THREE.Vector3(0, -45, 0)
                         ]),
                         new THREE.LineBasicMaterial({ color: 0xFFFFFF })
                     );
@@ -690,13 +692,13 @@
 
         function createBalloon(color, name, isPromo = false) {
             const group = new THREE.Group();
-            const basketGeometry = new THREE.BoxGeometry(15, 12, 15); // Maior
+            const basketGeometry = new THREE.BoxGeometry(15, 12, 15);
             const basketMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
             const basket = new THREE.Mesh(basketGeometry, basketMaterial);
             basket.position.y = -15;
             group.add(basket);
 
-            const balloonGeometry = new THREE.SphereGeometry(30, 32, 32); // Maior
+            const balloonGeometry = new THREE.SphereGeometry(30, 32, 32);
             const balloonMaterial = new THREE.MeshLambertMaterial({ color });
             const balloonMesh = new THREE.Mesh(balloonGeometry, balloonMaterial);
             balloonMesh.scale.y = 1.2;
@@ -749,7 +751,7 @@
             const line2 = new THREE.Line(line2Geometry, material);
             targetMesh.add(line2);
 
-            const circleGeometry = new THREE.CircleGeometry(60, 32); // Maior
+            const circleGeometry = new THREE.CircleGeometry(60, 32);
             const circleMaterial = new THREE.MeshBasicMaterial({ 
                 color: 0xFF0000, 
                 side: THREE.DoubleSide,
@@ -786,7 +788,7 @@
 
             createGround();
 
-            const markerGeometry = new THREE.SphereGeometry(4.5, 16, 16); // Maior
+            const markerGeometry = new THREE.SphereGeometry(4.5, 16, 16);
             const markerMaterial = new THREE.MeshLambertMaterial({ color: 0x0000FF });
             marker = new THREE.Mesh(markerGeometry, markerMaterial);
             marker.visible = false;
@@ -826,16 +828,16 @@
             gridHelper.material.transparent = true;
             scene.add(gridHelper);
 
-            for (let i = 0; i < 30; i++) { // Mais casas
-                const houseGeometry = new THREE.BoxGeometry(15, 15, 15); // Maior
+            for (let i = 0; i < 30; i++) {
+                const houseGeometry = new THREE.BoxGeometry(15, 15, 15);
                 const houseMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
                 const house = new THREE.Mesh(houseGeometry, houseMaterial);
                 house.position.set(Math.random() * mapSize - mapSize / 2, 7.5, Math.random() * mapSize - mapSize / 2);
                 scene.add(house);
             }
 
-            for (let i = 0; i < 45; i++) { // Mais vacas
-                const cowGeometry = new THREE.SphereGeometry(4.5, 16, 16); // Maior
+            for (let i = 0; i < 45; i++) {
+                const cowGeometry = new THREE.SphereGeometry(4.5, 16, 16);
                 const cowMaterial = new THREE.MeshLambertMaterial({ color: 0xFFFFFF });
                 const cow = new THREE.Mesh(cowGeometry, cowMaterial);
                 cow.position.set(Math.random() * mapSize - mapSize / 2, 2.25, Math.random() * mapSize - mapSize / 2);
@@ -843,24 +845,39 @@
             }
 
             const roadMaterial = new THREE.LineBasicMaterial({ color: 0x808080 });
-            for (let i = 0; i < 15; i++) { // Mais rodovias
+            for (let i = 0; i < 15; i++) {
                 const roadGeometry = new THREE.BufferGeometry().setFromPoints([
                     new THREE.Vector3(Math.random() * mapSize - mapSize / 2, 0.2, Math.random() * mapSize - mapSize / 2),
                     new THREE.Vector3(Math.random() * mapSize - mapSize / 2, 0.2, Math.random() * mapSize - mapSize / 2)
                 ]);
                 const road = new THREE.Line(roadGeometry, roadMaterial);
-                road.scale.set(1.5, 1, 1.5); // Maior
+                road.scale.set(1.5, 1, 1.5);
                 scene.add(road);
             }
 
-            for (let i = 0; i < 10; i++) { // Mais lagos
-                const lakeGeometry = new THREE.CircleGeometry(30, 32); // Maior
+            for (let i = 0; i < 10; i++) {
+                const lakeGeometry = new THREE.CircleGeometry(30, 32);
                 const lakeMaterial = new THREE.MeshLambertMaterial({ color: 0x00BFFF, side: THREE.DoubleSide });
                 const lake = new THREE.Mesh(lakeGeometry, lakeMaterial);
                 lake.rotation.x = -Math.PI / 2;
                 lake.position.set(Math.random() * mapSize - mapSize / 2, 0.1, Math.random() * mapSize - mapSize / 2);
                 scene.add(lake);
             }
+
+            // Adicionar texto "ESPAÇOS PARA DIVULGAÇÃO" no chão
+            const loader = new THREE.FontLoader();
+            loader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', function(font) {
+                const textGeometry = new THREE.TextGeometry("ESPAÇOS PARA DIVULGAÇÃO", {
+                    font: font,
+                    size: 50,
+                    height: 1,
+                });
+                const textMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+                const textMesh = new THREE.Mesh(textGeometry, textMaterial);
+                textMesh.rotation.x = -Math.PI / 2;
+                textMesh.position.set(-400, 0.2, 0);
+                scene.add(textMesh);
+            });
         }
 
         function handleKeyDown(event) {
