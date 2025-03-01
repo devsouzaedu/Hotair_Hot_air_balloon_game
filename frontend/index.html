@@ -120,6 +120,18 @@
             z-index: 100;
             font-size: 1em;
         }
+        #targetTimer {
+            position: absolute;
+            top: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 5px;
+            border-radius: 3px;
+            z-index: 100;
+            font-size: 1em;
+        }
         #layerIndicator {
             position: absolute;
             right: 5px;
@@ -274,6 +286,7 @@
             FPS: <span id="fpsCount">0</span>
         </div>
         <div id="timerDisplay">Tempo Restante: 5:00</div>
+        <div id="targetTimer">Próximo Alvo em: 5:00</div>
         <div id="windIndicator">Vento: -</div>
         <div id="layerIndicator">
             <div class="layer" id="layer5" style="background-color: #3498db;">Camada 5 - Norte</div>
@@ -489,9 +502,7 @@
             document.getElementById('playerNameDisplay').textContent = playerName;
             for (const id in state.players) {
                 if (id !== socket.id && state.players[id].color) {
-                    const otherBalloon = state.players[id].name === "PromoBot" ? 
-                        createBalloon("#FFFFFF", "Divulgue Aqui", true) : 
-                        createBalloon(state.players[id].color, state.players[id].name);
+                    const otherBalloon = createBalloon(state.players[id].color, state.players[id].name);
                     otherBalloon.position.set(state.players[id].x, state.players[id].y, state.players[id].z);
                     otherPlayers[id] = otherBalloon;
                     scene.add(otherBalloon);
@@ -500,7 +511,7 @@
             gameStarted = true;
         });
 
-        socket.on('gameUpdate', ({ state, timeLeft }) => {
+        socket.on('gameUpdate', ({ state, timeLeft, nextTargetTime }) => {
             console.log('Atualização do jogo recebida:', state);
             const currentState = mode === 'world' ? state : state;
 
@@ -534,6 +545,16 @@
                     scene.remove(otherPlayers[id]);
                     delete otherPlayers[id];
                 }
+            }
+
+            // Atualizar alvos
+            if (targets[0].x !== currentState.targets[0].x || targets[0].z !== currentState.targets[0].z) {
+                scene.children.filter(obj => obj instanceof THREE.Group && obj.position.y === 0.1).forEach(obj => scene.remove(obj));
+                targets = currentState.targets;
+                targets.forEach(target => {
+                    const targetMesh = createTarget(target.x, target.z);
+                    scene.add(targetMesh);
+                });
             }
 
             for (const markerId in currentState.markers) {
@@ -578,6 +599,9 @@
             const minutes = Math.floor(timeLeft / 60);
             const seconds = Math.floor(timeLeft % 60);
             document.getElementById('timerDisplay').textContent = `Tempo Restante: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+            const targetMinutes = Math.floor(nextTargetTime / 60);
+            const targetSeconds = Math.floor(nextTargetTime % 60);
+            document.getElementById('targetTimer').textContent = `Próximo Alvo em: ${targetMinutes}:${targetSeconds < 10 ? '0' : ''}${targetSeconds}`;
         });
 
         socket.on('markerDropped', ({ playerId, x, y, z, markers, score, markerId }) => {
@@ -864,7 +888,6 @@
                 scene.add(lake);
             }
 
-            // Adicionar texto "ESPAÇOS PARA DIVULGAÇÃO" no chão
             const loader = new THREE.FontLoader();
             loader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', function(font) {
                 const textGeometry = new THREE.TextGeometry("ESPAÇOS PARA DIVULGAÇÃO", {

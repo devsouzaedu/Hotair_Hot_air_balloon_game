@@ -18,15 +18,23 @@ let worldState = {
     targets: [], 
     startTime: Date.now(), 
     currentTargetIndex: 0,
-    markers: {}
+    markers: {},
+    lastTargetChange: Date.now()
 };
 const rooms = {};
 
 function generateTargets() {
+    const mapSize = 2600;
+    const minDistance = 1000; // Distância mínima entre alvos
+    let newTarget;
+    do {
+        newTarget = { x: Math.random() * mapSize - mapSize / 2, z: Math.random() * mapSize - mapSize / 2 };
+    } while (worldState.targets.length > 0 && 
+             Math.sqrt(Math.pow(newTarget.x - worldState.targets[0].x, 2) + Math.pow(newTarget.z - worldState.targets[0].z, 2)) < minDistance);
     return [
-        { x: Math.random() * 500 - 250, z: Math.random() * 500 - 250 },
-        { x: Math.random() * 500 - 250, z: Math.random() * 500 - 250 },
-        { x: Math.random() * 500 - 250, z: Math.random() * 500 - 250 }
+        newTarget,
+        { x: Math.random() * mapSize - mapSize / 2, z: Math.random() * mapSize - mapSize / 2 },
+        { x: Math.random() * mapSize - mapSize / 2, z: Math.random() * mapSize - mapSize / 2 }
     ];
 }
 
@@ -58,22 +66,22 @@ function updateMarkersGravity(state, roomName = null) {
 }
 
 function addBots() {
-    const botColors = ["#FF4500", "#3498db", "#2ecc71", "#f1c40f"];
-    const botCount = 5;
-    for (let i = 0; i < botCount; i++) {
+    const botNames = ["Aloisio Silvestro", "Santes Raim", "Lional Brutus", "Volodomyr Taveira III", "Eduardes Euro"];
+    const botColors = ["#FF4500", "#3498db", "#2ecc71", "#f1c40f", "#FFFFFF"];
+    for (let i = 0; i < 5; i++) {
         const botId = `bot_${i}`;
         if (!worldState.players[botId]) {
             worldState.players[botId] = {
                 id: botId,
-                name: i === 0 ? "PromoBot" : `Bot ${i}`,
-                color: i === 0 ? "#FFFFFF" : botColors[i % botColors.length],
-                x: Math.random() * 500 - 250,
-                z: Math.random() * 500 - 250,
+                name: botNames[i],
+                color: botColors[i],
+                x: Math.random() * 2600 - 1300,
+                z: Math.random() * 2600 - 1300,
                 y: 100 + Math.random() * 400,
                 markers: 0,
                 score: 0,
                 isBot: true,
-                state: 'approachTarget', // Estado inicial
+                state: 'approachTarget',
                 targetAltitude: 100
             };
         }
@@ -81,11 +89,27 @@ function addBots() {
 }
 
 function updateBots() {
+    const mapSize = 2600;
     for (const id in worldState.players) {
         if (worldState.players[id].isBot) {
             const bot = worldState.players[id];
             const target = worldState.targets[0];
-            const speed = 0.5;
+            const speed = 0.8; // Aumentado para mais movimento
+
+            // Repulsão entre bots
+            for (const otherId in worldState.players) {
+                if (otherId !== id && worldState.players[otherId].isBot) {
+                    const otherBot = worldState.players[otherId];
+                    const dx = bot.x - otherBot.x;
+                    const dz = bot.z - otherBot.z;
+                    const distance = Math.sqrt(dx * dx + dz * dz);
+                    if (distance < 100) { // Distância mínima entre bots
+                        const repulsion = 1 / distance;
+                        bot.x += dx * repulsion * speed;
+                        bot.z += dz * repulsion * speed;
+                    }
+                }
+            }
 
             switch (bot.state) {
                 case 'approachTarget':
@@ -97,36 +121,38 @@ function updateBots() {
                         bot.z += (dz / distance) * speed;
                     } else {
                         bot.state = 'climbNorth';
-                        bot.targetAltitude = 450; // Subir até o vento norte
+                        bot.targetAltitude = 500; // Subir até o topo do vento norte
                     }
                     break;
 
                 case 'climbNorth':
                     if (bot.y < bot.targetAltitude) {
-                        bot.y += 1;
+                        bot.y += 2; // Subida mais rápida
                     } else {
                         bot.state = 'rideSouth';
-                        bot.targetAltitude = 250; // Descer até o vento sul
+                        bot.targetAltitude = 200; // Descer até o vento sul
                     }
                     break;
 
                 case 'rideSouth':
                     if (bot.y > bot.targetAltitude) {
-                        bot.y -= 1;
+                        bot.y -= 2; // Descida mais rápida
                     } else {
                         bot.state = 'randomize';
                     }
                     break;
 
                 case 'randomize':
-                    bot.x = Math.random() * 500 - 250;
-                    bot.z = Math.random() * 500 - 250;
+                    bot.x = Math.random() * mapSize - mapSize / 2;
+                    bot.z = Math.random() * mapSize - mapSize / 2;
                     bot.state = 'approachTarget';
-                    bot.targetAltitude = 100;
+                    bot.targetAltitude = 100 + Math.random() * 200; // Altitude inicial variada
                     break;
             }
 
-            bot.y = Math.max(20, Math.min(500, bot.y)); // Limitar altitude
+            bot.y = Math.max(20, Math.min(500, bot.y));
+            bot.x = Math.max(-mapSize / 2, Math.min(mapSize / 2, bot.x));
+            bot.z = Math.max(-mapSize / 2, Math.min(mapSize / 2, bot.z));
         }
     }
 }
@@ -313,14 +339,30 @@ io.on('connection', (socket) => {
 setInterval(() => {
     const elapsedWorld = (Date.now() - worldState.startTime) / 1000;
     const timeLeft = Math.max(300 - elapsedWorld, 0);
+    const elapsedSinceTargetChange = (Date.now() - worldState.lastTargetChange) / 1000;
+
     updateMarkersGravity(worldState);
     updateBots();
-    io.to('world').emit('gameUpdate', { state: worldState, timeLeft });
+
+    if (elapsedSinceTargetChange >= 300) { // Mudar alvo a cada 5 minutos
+        worldState.targets = generateTargets();
+        worldState.lastTargetChange = Date.now();
+        console.log('Alvo mudou de localização');
+    }
+
+    io.to('world').emit('gameUpdate', { state: worldState, timeLeft, nextTargetTime: 300 - elapsedSinceTargetChange });
 
     if (elapsedWorld > 300) {
         const winner = calculateWinner(worldState.players);
         io.to('world').emit('gameOver', winner);
-        worldState = { players: {}, targets: generateTargets(), startTime: Date.now(), currentTargetIndex: 0, markers: {} };
+        worldState = { 
+            players: {}, 
+            targets: generateTargets(), 
+            startTime: Date.now(), 
+            currentTargetIndex: 0, 
+            markers: {},
+            lastTargetChange: Date.now()
+        };
         addBots();
         console.log('Novo jogo iniciado no mundo aberto');
     }
