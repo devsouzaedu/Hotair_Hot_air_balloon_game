@@ -360,6 +360,7 @@
         document.getElementById('nameButton').addEventListener('click', () => {
             playerName = document.getElementById('playerName').value.trim();
             if (playerName) {
+                console.log(`Nome inserido: ${playerName}`);
                 document.getElementById('nameScreen').style.display = 'none';
                 document.getElementById('modeScreen').style.display = 'flex';
             } else {
@@ -368,12 +369,14 @@
         });
 
         document.getElementById('playNowButton').addEventListener('click', () => {
+            console.log('Jogue Agora clicado');
             mode = 'world';
             document.getElementById('modeScreen').style.display = 'none';
             document.getElementById('colorScreen').style.display = 'flex';
         });
 
         document.getElementById('roomModeButton').addEventListener('click', () => {
+            console.log('Entrar ou Criar Sala clicado');
             mode = 'room';
             document.getElementById('modeScreen').style.display = 'none';
             document.getElementById('roomScreen').style.display = 'flex';
@@ -386,14 +389,10 @@
 
         document.getElementById('okButton').addEventListener('click', () => {
             if (balloonColor) {
+                console.log('OK clicado, iniciando jogo');
                 document.getElementById('colorScreen').style.display = 'none';
                 if (mode === 'world') {
                     socket.emit('joinNow', { name: playerName, color: balloonColor });
-                    balloon = createBalloon(balloonColor, playerName);
-                    scene.add(balloon);
-                    document.getElementById('playerNameDisplay').textContent = playerName;
-                    document.getElementById('gameScreen').style.display = 'block';
-                    gameStarted = true;
                 } else if (roomName) {
                     socket.emit('setColor', { roomName, color: balloonColor });
                     document.getElementById('lobbyScreen').style.display = 'flex';
@@ -408,6 +407,7 @@
             const inputRoomName = document.getElementById('roomName').value.trim();
             if (inputRoomName) {
                 roomName = inputRoomName;
+                console.log(`Criando sala: ${roomName}`);
                 socket.emit('createRoom', { name: roomName });
             } else {
                 alert("Digite o nome da sala!");
@@ -427,8 +427,8 @@
             const inputRoomName = document.getElementById('roomName').value.trim();
             if (inputRoomName) {
                 roomName = inputRoomName;
-                socket.emit('joinRoom', { roomName, playerData: { name: playerName, color: null } });
                 console.log(`Tentando entrar na sala: ${roomName}`);
+                socket.emit('joinRoom', { roomName, playerData: { name: playerName, color: null } });
                 document.getElementById('roomScreen').style.display = 'none';
                 document.getElementById('colorScreen').style.display = 'flex';
             } else {
@@ -437,8 +437,8 @@
         });
 
         socket.on('roomError', (msg) => {
-            alert(msg);
             console.log(`Erro na sala: ${msg}`);
+            alert(msg);
             document.getElementById('colorScreen').style.display = 'none';
             document.getElementById('roomScreen').style.display = 'flex';
         });
@@ -471,6 +471,7 @@
         });
 
         socket.on('roomClosed', () => {
+            console.log('Sala fechada');
             alert('O criador da sala saiu. A sala foi fechada.');
             document.getElementById('lobbyScreen').style.display = 'none';
             document.getElementById('nameScreen').style.display = 'flex';
@@ -478,6 +479,7 @@
 
         document.getElementById('startRoomButton').addEventListener('click', () => {
             if (isCreator) {
+                console.log(`Iniciando sala: ${roomName}`);
                 socket.emit('startRoom', { roomName });
             }
         });
@@ -488,10 +490,10 @@
         });
 
         socket.on('startGame', ({ state }) => {
-            console.log('Jogo iniciado!');
+            console.log('Jogo iniciado!', state);
             document.getElementById('lobbyScreen').style.display = 'none';
             document.getElementById('gameScreen').style.display = 'block';
-            document.getElementById('countdown').style.display = 'none';
+            document.getElementById('countdown').textContent = '';
             targets = state.targets;
             targets.forEach(target => {
                 const targetMesh = createTarget(target.x, target.z);
@@ -519,9 +521,7 @@
                 if (id !== socket.id) {
                     if (!otherPlayers[id] && currentState.players[id].color) {
                         console.log(`Criando balão para jogador ${id}:`, currentState.players[id]);
-                        const otherBalloon = currentState.players[id].name === "PromoBot" ? 
-                            createBalloon("#FFFFFF", "Divulgue Aqui", true) : 
-                            createBalloon(currentState.players[id].color, currentState.players[id].name);
+                        const otherBalloon = createBalloon(currentState.players[id].color, currentState.players[id].name);
                         otherBalloon.position.set(
                             currentState.players[id].x,
                             currentState.players[id].y,
@@ -630,6 +630,7 @@
         });
 
         socket.on('gameOver', (winner) => {
+            console.log('Fim de jogo recebido');
             gameOver = true;
             alert(`Fim de jogo! Vencedor: ${winner.name} com ${winner.score} pontos`);
             document.getElementById('gameScreen').style.display = 'none';
@@ -646,6 +647,7 @@
         });
 
         socket.on('gameEnd', ({ players }) => {
+            console.log('Fim de jogo com placar recebido');
             gameOver = true;
             let leaderboard = 'Placar Final:\n';
             const sortedPlayers = Object.values(players).sort((a, b) => b.score - a.score);
@@ -673,6 +675,20 @@
                 targets = [state.targets[0]];
                 const targetMesh = createTarget(targets[0].x, targets[0].z);
                 scene.add(targetMesh);
+                balloon = createBalloon(balloonColor, playerName);
+                scene.add(balloon);
+                document.getElementById('colorScreen').style.display = 'none';
+                document.getElementById('gameScreen').style.display = 'block';
+                document.getElementById('playerNameDisplay').textContent = playerName;
+                for (const id in state.players) {
+                    if (id !== socket.id && state.players[id].color) {
+                        const otherBalloon = createBalloon(state.players[id].color, state.players[id].name);
+                        otherBalloon.position.set(state.players[id].x, state.players[id].y, state.players[id].z);
+                        otherPlayers[id] = otherBalloon;
+                        scene.add(otherBalloon);
+                    }
+                }
+                gameStarted = true;
             }
         });
 
@@ -742,7 +758,7 @@
 
             const loader = new THREE.FontLoader();
             loader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', function(font) {
-                const textGeometry = new THREE.TextGeometry(isPromo ? "Divulgue Aqui" : name, {
+                const textGeometry = new THREE.TextGeometry(name, {
                     font: font,
                     size: 7,
                     height: 1,
@@ -975,6 +991,7 @@
         }
 
         function restartGame() {
+            console.log('Reiniciando jogo');
             gameOver = false;
             hasLiftedOff = false;
             altitude = 100;
