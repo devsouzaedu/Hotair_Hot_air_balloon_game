@@ -1,3 +1,4 @@
+
 const express = require('express');
 const http = require('http');
 const socketIO = require('socket.io');
@@ -6,11 +7,10 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIO(server, {
     cors: {
-        origin: "*",
+        origin: "https://devsouzaedu.github.io/Hotair_Hot_air_balloon_game/", // URL do GitHub Pages
         methods: ["GET", "POST"]
     }
 });
-
 const PORT = process.env.PORT || 3000;
 
 let worldState = { 
