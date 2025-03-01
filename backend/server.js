@@ -1,4 +1,3 @@
-
 const express = require('express');
 const http = require('http');
 const socketIO = require('socket.io');
@@ -7,9 +6,9 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIO(server, {
     cors: {
-        origin: "https://devsouzaedu.github.io", // Origem exata do GitHub Pages
+        origin: "https://devsouzaedu.github.io",
         methods: ["GET", "POST"],
-        credentials: false // Geralmente não necessário para GitHub Pages
+        credentials: false
     }
 });
 const PORT = process.env.PORT || 3000;
