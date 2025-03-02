@@ -317,29 +317,6 @@ export function initGame() {
         marker.visible = true;
         tail.position.set(markerStartPos.x, markerStartPos.y, markerStartPos.z);
         tail.visible = true;
-
-        const gravity = -0.5;
-        let velocityY = 0;
-        function fallMarker() {
-            if (marker.position.y > 0) {
-                velocityY += gravity;
-                marker.position.y += velocityY;
-                tail.position.y += velocityY;
-                requestAnimationFrame(fallMarker);
-            } else {
-                marker.position.y = 0;
-                tail.position.y = 0;
-                window.socket.emit('markerLanded', { 
-                    x: marker.position.x, 
-                    y: marker.position.y, 
-                    z: marker.position.z, 
-                    mode: window.mode || 'world',
-                    roomName: window.roomName || null,
-                    markerId
-                });
-            }
-        }
-        fallMarker();
     }
 
     function showNoMarkersMessage() {
@@ -443,7 +420,7 @@ export function initGame() {
         }
 
         if (!gameStarted || gameOver || !balloon) {
-            if (gameOver && !gameEnded) {
+            if (gameOver && !gameEnded()) {
                 document.getElementById('gameScreen').style.display = 'none';
                 document.getElementById('loseScreen').style.display = 'flex';
             }
@@ -525,7 +502,7 @@ export function initGame() {
 
     window.gameStarted = () => gameStarted = true;
     window.gameOver = () => gameOver = true;
-    window.gameEnded = () => gameEnded = true;
+    window.gameEnded = () => gameEnded;
     window.setBalloon = (b) => {
         console.log('Definindo balão:', b);
         balloon = b;

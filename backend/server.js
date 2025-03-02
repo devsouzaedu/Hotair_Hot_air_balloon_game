@@ -76,7 +76,7 @@ function updateMarkersGravity(state, roomName = null) {
     for (const markerId in state.markers) {
         const marker = state.markers[markerId];
         if (marker.y > 0) {
-            marker.y -= 0.5; // Unificar gravidade com o frontend
+            marker.y -= 0.5; // Mesmo valor do frontend
             if (marker.y <= 0) {
                 marker.y = 0;
                 io.to(roomName || 'world').emit('markerLanded', { 
@@ -127,7 +127,8 @@ function addBots() {
                 score: 0,
                 isBot: true,
                 state: 'approachTarget',
-                targetAltitude: 100
+                targetAltitude: 100,
+                waitTime: 0
             };
         }
     }
@@ -160,10 +161,22 @@ function updateBots() {
                     const dx = target.x - bot.x;
                     const dz = target.z - bot.z;
                     const distance = Math.sqrt(dx * dx + dz * dz);
-                    if (distance > 50) {
+                    if (distance > 60) {
                         bot.x += (dx / distance) * speed;
                         bot.z += (dz / distance) * speed;
-                    } else {
+                    } else if (distance > 1 && bot.markers > 0) {
+                        const markerId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+                        const markerData = {
+                            playerId: bot.id,
+                            x: bot.x + (Math.random() * 20 - 10),
+                            y: bot.y - 10,
+                            z: bot.z + (Math.random() * 20 - 10),
+                            markerId
+                        };
+                        bot.markers--;
+                        worldState.markers[markerId] = markerData;
+                        io.to('world').emit('markerDropped', { ...markerData, markers: bot.markers, score: bot.score, markerId });
+                        console.log(`Bot ${bot.name} soltou marcador: ${markerId}, restantes: ${bot.markers}`);
                         bot.state = 'climbNorth';
                         bot.targetAltitude = 500;
                     }
@@ -173,45 +186,22 @@ function updateBots() {
                     if (bot.y < bot.targetAltitude) {
                         bot.y += 2;
                     } else {
-                        bot.state = 'rideSouth';
-                        bot.targetAltitude = 200;
+                        bot.state = 'waitNorth';
+                        bot.waitTime = Date.now();
                     }
                     break;
 
-                case 'rideSouth':
-                    if (bot.y > bot.targetAltitude) {
-                        bot.y -= 2;
-                    } else {
-                        bot.state = 'randomize';
+                case 'waitNorth':
+                    if (Date.now() - bot.waitTime >= 10000) { // Esperar 10 segundos
+                        bot.state = 'approachTarget';
+                        bot.targetAltitude = 100 + Math.random() * 400;
                     }
-                    break;
-
-                case 'randomize':
-                    bot.x = Math.random() * mapSize - mapSize / 2;
-                    bot.z = Math.random() * mapSize - mapSize / 2;
-                    bot.state = 'approachTarget';
-                    bot.targetAltitude = 100 + Math.random() * 200;
                     break;
             }
 
-            bot.y = Math.max(20, Math.min(500, bot.y));
+            bot.y = Math.max(100, Math.min(500, bot.y)); // Nunca abaixo de 100
             bot.x = Math.max(-mapSize / 2, Math.min(mapSize / 2, bot.x));
             bot.z = Math.max(-mapSize / 2, Math.min(mapSize / 2, bot.z));
-
-            if (bot.markers > 0 && Math.random() < 0.0017) {
-                const markerId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-                const markerData = {
-                    playerId: bot.id,
-                    x: bot.x + (Math.random() * 20 - 10),
-                    y: bot.y - 10,
-                    z: bot.z + (Math.random() * 20 - 10),
-                    markerId
-                };
-                bot.markers--;
-                worldState.markers[markerId] = markerData;
-                io.to('world').emit('markerDropped', { ...markerData, markers: bot.markers, score: bot.score, markerId });
-                console.log(`Bot ${bot.name} soltou marcador: ${markerId}, restantes: ${bot.markers}`);
-            }
         }
     }
 }

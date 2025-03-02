@@ -282,8 +282,9 @@ export function initSocket() {
     socket.on('showLeaderboard', ({ players }) => {
         console.log('showLeaderboard recebido:', players);
         window.gameOver();
-        window.gameEnded = () => true; // Forçar gameEnded como true
+        window.gameEnded = () => true;
         document.getElementById('gameScreen').style.display = 'none';
+        document.getElementById('loseScreen').style.display = 'none'; // Evitar tela de derrota
         document.getElementById('leaderboardScreen').style.display = 'block';
         const leaderboardList = document.getElementById('leaderboardList');
         leaderboardList.innerHTML = '';
@@ -321,19 +322,20 @@ export function initSocket() {
     socket.on('gameReset', ({ state }) => {
         console.log('gameReset recebido:', state);
         document.getElementById('leaderboardScreen').style.display = 'none';
+        document.getElementById('loseScreen').style.display = 'none'; // Evitar tela de derrota
         document.getElementById('gameScreen').style.display = 'block';
 
         window.gameOver = false;
-        window.gameEnded = () => false; // Resetar gameEnded
+        window.gameEnded = () => false;
+        window.hasLiftedOff = false; // Evitar game over imediato
+        window.altitude = state.players[socket.id].y; // Garantir altitude correta
         window.setTargets(state.targets || []);
         window.lastTargetMoveTime = state.lastTargetMoveTime || Date.now();
 
-        // Remover todos os balões e marcas existentes
         window.scene.children.filter(obj => obj instanceof THREE.Group || obj.userData.type === 'marker' || obj.userData.type === 'tail').forEach(obj => window.scene.remove(obj));
         window.setMarkers([]);
         window.setOtherPlayers({});
 
-        // Recriar balão do jogador
         const playerName = document.getElementById('playerName').value || 'Jogador';
         window.setBalloon(window.createBalloon(window.balloonColor, playerName));
         if (window.balloon) {
@@ -341,7 +343,6 @@ export function initSocket() {
             window.scene.add(window.balloon);
         }
 
-        // Recriar balões dos outros jogadores/bots com posições randomizadas
         for (const id in state.players) {
             if (id !== socket.id && state.players[id].color) {
                 const otherBalloon = window.createBalloon(state.players[id].color, state.players[id].name);
@@ -351,7 +352,6 @@ export function initSocket() {
             }
         }
 
-        // Recriar alvos
         if (Array.isArray(window.targets)) {
             window.targets.forEach(target => {
                 const targetMesh = window.createTarget(target.x, target.z);
