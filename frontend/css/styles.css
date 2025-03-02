@@ -84,7 +84,7 @@ body {
 
 #score {
     position: absolute;
-    top: 5px;
+    top: 5px; /* Mantido, mas com ajuste de margem abaixo */
     right: 5px;
     background: rgba(0, 0, 0, 0.7);
     color: white;
@@ -96,7 +96,7 @@ body {
 
 #fps {
     position: absolute;
-    top: 35px; /* Reduzido pela metade de 70px */
+    top: 35px; /* Ajustado com margem para #score */
     right: 5px;
     background: rgba(0, 0, 0, 0.7);
     color: white;
@@ -108,7 +108,7 @@ body {
 
 #windIndicator {
     position: absolute;
-    top: 25px; /* Ajustado para evitar sobreposição */
+    top: 25px; /* Ajustado com margem para #timerDisplay */
     right: 40px;
     background: rgba(0, 0, 0, 0.7);
     color: white;
@@ -120,7 +120,7 @@ body {
 
 #timerDisplay {
     position: absolute;
-    top: 5px;
+    top: 5px; /* Mantido, mas com ajuste de margem abaixo */
     left: 50%;
     transform: translateX(-50%);
     background: rgba(0, 0, 0, 0.7);
@@ -133,7 +133,7 @@ body {
 
 #targetMoveTimer {
     position: absolute;
-    top: 15px; /* Reduzido pela metade de 30px */
+    top: 20px; /* Ajustado para dar margem ao #timerDisplay */
     left: 50%;
     transform: translateX(-50%);
     background: rgba(0, 0, 0, 0.7);
@@ -146,7 +146,7 @@ body {
 
 #layerIndicator {
     position: absolute;
-    top: 5px; /* Movido para o canto superior direito */
+    top: 5px; /* Canto superior direito */
     right: 5px;
     background: rgba(0, 0, 0, 0.7);
     color: white;
@@ -197,10 +197,7 @@ body {
     bottom: 5px;
     right: 5px;
     z-index: 2000;
-    display: none; /* Estado inicial */
-    grid-template-columns: repeat(2, 1fr); /* 2 colunas */
-    grid-template-rows: repeat(2, 1fr); /* 2 linhas */
-    gap: 5px; /* Espaçamento entre botões */
+    display: none; /* Estado inicial, desativado por padrão */
     user-select: none;
 }
 
@@ -251,6 +248,9 @@ body {
 /* Media query para mobile */
 @media (max-width: 768px) {
     #mobileControls {
-        display: grid; /* Ativado apenas em mobile */
+        display: grid; /* Ativado em mobile */
+        grid-template-columns: repeat(2, 1fr); /* 2 colunas */
+        grid-template-rows: repeat(2, 1fr); /* 2 linhas */
+        gap: 5px; /* Espaçamento entre botões */
     }
 }
