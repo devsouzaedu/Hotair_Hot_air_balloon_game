@@ -1,9 +1,9 @@
 export function initGame() {
     let scene, camera, renderer;
-    let balloon; // Variável local será sincronizada com window.balloon
+    let balloon; // Será sincronizado com window.balloon
     let marker, tail;
     let altitude = 100;
-    window.markerDropped = false; // Inicializa globalmente
+    window.markerDropped = false;
     let points = 0;
     let bestScore = localStorage.getItem('bestScore') || 0;
     let gameStarted = false;
@@ -356,7 +356,7 @@ export function initGame() {
         points = 0;
         document.getElementById('loseScreen').style.display = 'none';
         document.getElementById('gameScreen').style.display = 'block';
-        scene.remove(window.balloon);
+        if (window.balloon) scene.remove(window.balloon);
         window.balloon = window.createBalloon(window.balloonColor, document.getElementById('playerName').value);
         window.balloon.position.set(0, altitude, 0);
         scene.add(window.balloon);
@@ -375,8 +375,11 @@ export function initGame() {
             document.getElementById('fpsCount').textContent = fps;
         }
 
-        // Sincronizar balloon local com window.balloon
-        balloon = window.balloon;
+        // Sincronizar balloon local com window.balloon em cada frame
+        if (window.balloon && !balloon) {
+            balloon = window.balloon;
+            console.log('Sincronizando balloon local com window.balloon:', balloon);
+        }
 
         if (!gameStarted || gameOver || !balloon) {
             if (gameOver && !gameEnded) {
@@ -464,8 +467,12 @@ export function initGame() {
     window.gameEnded = () => gameEnded = true;
     window.setBalloon = (b) => {
         console.log('Definindo balão:', b);
-        balloon = b; // Sincroniza local com global
+        balloon = b;
         window.balloon = b;
+        if (b && !scene.children.includes(b)) {
+            console.log('Re-adicionando balão à cena:', b);
+            scene.add(b);
+        }
     };
     window.setTargets = (t) => window.targets = t;
     window.setOtherPlayers = (op) => window.otherPlayers = op;
