@@ -325,30 +325,24 @@ export function initSocket() {
         document.getElementById('loseScreen').style.display = 'none';
         document.getElementById('gameScreen').style.display = 'block';
 
-        // Resetar estados para evitar "game over"
         window.gameOver = false;
         window.gameEnded = false;
         window.hasLiftedOff = false;
-        window.altitude = state.players[socket.id].y || 100; // Garantir altitude válida
+        window.altitude = state.players[socket.id].y;
         window.setTargets(state.targets || []);
         window.lastTargetMoveTime = state.lastTargetMoveTime || Date.now();
 
-        // Limpar cena
         window.scene.children.filter(obj => obj instanceof THREE.Group || obj.userData.type === 'marker' || obj.userData.type === 'tail').forEach(obj => window.scene.remove(obj));
         window.setMarkers([]);
         window.setOtherPlayers({});
 
-        // Recriar balão do jogador
         const playerName = document.getElementById('playerName').value || 'Jogador';
         window.setBalloon(window.createBalloon(window.balloonColor, playerName));
         if (window.balloon) {
             window.balloon.position.set(state.players[socket.id].x, state.players[socket.id].y, state.players[socket.id].z);
             window.scene.add(window.balloon);
-        } else {
-            console.error('Falha ao recriar balão no gameReset');
         }
 
-        // Recriar balões dos outros jogadores/bots
         for (const id in state.players) {
             if (id !== socket.id && state.players[id].color) {
                 const otherBalloon = window.createBalloon(state.players[id].color, state.players[id].name);
@@ -358,7 +352,6 @@ export function initSocket() {
             }
         }
 
-        // Recriar alvos
         if (Array.isArray(window.targets)) {
             window.targets.forEach(target => {
                 const targetMesh = window.createTarget(target.x, target.z);
@@ -369,7 +362,7 @@ export function initSocket() {
         window.markersLeft = 5;
         document.getElementById('points').textContent = '0';
         document.getElementById('markersLeft').textContent = window.markersLeft;
-        window.gameStarted(); // Reativar o jogo
+        window.gameStarted();
     });
 
     function resetGameState() {

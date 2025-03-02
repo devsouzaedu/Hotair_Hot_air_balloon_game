@@ -35,25 +35,30 @@ const rooms = {};
 
 function generateTarget() {
     const mapSize = 2600;
-    const maxDistance = 300;
-    const angle = Math.random() * 2 * Math.PI;
-    const distance = Math.random() * maxDistance;
+    const centralArea = mapSize / 4;
     return { 
-        x: Math.cos(angle) * distance, 
-        z: Math.sin(angle) * distance 
+        x: Math.random() * centralArea - centralArea / 2, 
+        z: Math.random() * centralArea - centralArea / 2 
     };
 }
 
 function moveTarget(state) {
-    const mapSize = 2600;
-    const maxDistance = 300;
+    const centralArea = 2600 / 4;
+    const moveDistance = 300;
+    const currentTarget = state.targets[0];
+
     const angle = Math.random() * 2 * Math.PI;
-    const distance = Math.random() * maxDistance;
-    state.targets[0].x = Math.cos(angle) * distance;
-    state.targets[0].z = Math.sin(angle) * distance;
+    let newX = currentTarget.x + Math.cos(angle) * moveDistance;
+    let newZ = currentTarget.z + Math.sin(angle) * moveDistance;
+
+    newX = Math.max(-centralArea / 2, Math.min(centralArea / 2, newX));
+    newZ = Math.max(-centralArea / 2, Math.min(centralArea / 2, newZ));
+
+    currentTarget.x = newX;
+    currentTarget.z = newZ;
 
     state.lastTargetMoveTime = Date.now();
-    console.log(`Alvo movido para: x=${state.targets[0].x}, z=${state.targets[0].z}`);
+    console.log(`Alvo movido para: x=${newX}, z=${newZ}`);
 }
 
 function initializeTargets() {
@@ -122,7 +127,7 @@ function addBots() {
                 score: 0,
                 isBot: true,
                 state: 'approachTarget',
-                targetAltitude: 100 + Math.random() * 300,
+                targetAltitude: 100,
                 waitTime: 0
             };
         }
@@ -173,7 +178,7 @@ function updateBots() {
                         io.to('world').emit('markerDropped', { ...markerData, markers: bot.markers, score: bot.score, markerId });
                         console.log(`Bot ${bot.name} soltou marcador: ${markerId}, restantes: ${bot.markers}`);
                         bot.state = 'climbNorth';
-                        bot.targetAltitude = 400 + Math.random() * 100;
+                        bot.targetAltitude = 500;
                     }
                     break;
 
@@ -188,22 +193,13 @@ function updateBots() {
 
                 case 'waitNorth':
                     if (Date.now() - bot.waitTime >= 10000) {
-                        bot.state = 'descendRandom';
-                        bot.targetAltitude = 100 + Math.random() * 300;
-                    }
-                    break;
-
-                case 'descendRandom':
-                    if (bot.y > bot.targetAltitude) {
-                        bot.y -= 2;
-                    } else {
                         bot.state = 'approachTarget';
-                        bot.targetAltitude = 100 + Math.random() * 300;
+                        bot.targetAltitude = 100 + Math.random() * 400;
                     }
                     break;
             }
 
-            bot.y = Math.max(100, Math.min(400, bot.y));
+            bot.y = Math.max(100, Math.min(500, bot.y));
             bot.x = Math.max(-mapSize / 2, Math.min(mapSize / 2, bot.x));
             bot.z = Math.max(-mapSize / 2, Math.min(mapSize / 2, bot.z));
         }

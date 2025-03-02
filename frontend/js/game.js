@@ -20,16 +20,15 @@ export function initGame() {
     let lastTargetMoveTime = Date.now();
     let gameEnded = false;
 
-    // Ajustar velocidades para metros por segundo reais (dividido por 60 FPS aproximados)
     const windLayers = [
         { minAlt: 0, maxAlt: 100, direction: { x: 0, z: 0 }, speed: 0, name: "Nenhum" },
-        { minAlt: 100, maxAlt: 200, direction: { x: 1, z: 0 }, speed: 0.3, name: "Leste" },  // 0.3m/s
-        { minAlt: 200, maxAlt: 300, direction: { x: 0, z: 1 }, speed: 0., name: "Sul" },    // 0.3m/s
-        { minAlt: 300, maxAlt: 400, direction: { x: -1, z: 0 }, speed: 0.4, name: "Oeste" }, // 0.4m/s
-        { minAlt: 400, maxAlt: 500, direction: { x: 0, z: -1 }, speed: 0.5, name: "Norte" }  // 0.5m/s
+        { minAlt: 100, maxAlt: 200, direction: { x: 1, z: 0 }, speed: 0.3, name: "Leste" },
+        { minAlt: 200, maxAlt: 300, direction: { x: 0, z: 1 }, speed: 0.3, name: "Sul" },
+        { minAlt: 300, maxAlt: 400, direction: { x: -1, z: 0 }, speed: 0.4, name: "Oeste" },
+        { minAlt: 400, maxAlt: 500, direction: { x: 0, z: -1 }, speed: 0.5, name: "Norte" }
     ];
 
-    const keys = { W: false, S: false, E: false, Q: false }; // Novos controles
+    const keys = { W: false, S: false, A: false, D: false, U: false, SHIFT_RIGHT: false };
 
     document.getElementById('bestScore').textContent = bestScore;
     document.getElementById('markersLeft').textContent = window.markersLeft;
@@ -93,8 +92,8 @@ export function initGame() {
 
             upButton.addEventListener('touchstart', () => keys.W = true);
             upButton.addEventListener('touchend', () => keys.W = false);
-            turboButton.addEventListener('touchstart', () => keys.E = true);
-            turboButton.addEventListener('touchend', () => keys.E = false);
+            turboButton.addEventListener('touchstart', () => keys.U = true);
+            turboButton.addEventListener('touchend', () => keys.U = false);
             downButton.addEventListener('touchstart', () => keys.S = true);
             downButton.addEventListener('touchend', () => keys.S = false);
             dropButton.addEventListener('touchstart', (e) => {
@@ -235,15 +234,20 @@ export function initGame() {
 
     window.createTarget = function(x, z) {
         const targetMesh = new THREE.Group();
-        const material = new THREE.MeshBasicMaterial({ color: 0xFF0000 });
-        const rect1Geometry = new THREE.BoxGeometry(90, 0.5, 10);
-        const rect1 = new THREE.Mesh(rect1Geometry, material);
-        rect1.rotation.y = Math.PI / 4;
-        targetMesh.add(rect1);
-        const rect2Geometry = new THREE.BoxGeometry(90, 0.5, 10);
-        const rect2 = new THREE.Mesh(rect2Geometry, material);
-        rect2.rotation.y = -Math.PI / 4;
-        targetMesh.add(rect2);
+        const material = new THREE.LineBasicMaterial({ color: 0xFF0000, linewidth: 10 });
+        const line1Geometry = new THREE.BufferGeometry().setFromPoints([
+            new THREE.Vector3(-45, 0, -45),
+            new THREE.Vector3(45, 0, 45)
+        ]);
+        const line1 = new THREE.Line(line1Geometry, material);
+        targetMesh.add(line1);
+
+        const line2Geometry = new THREE.BufferGeometry().setFromPoints([
+            new THREE.Vector3(45, 0, -45),
+            new THREE.Vector3(-45, 0, 45)
+        ]);
+        const line2 = new THREE.Line(line2Geometry, material);
+        targetMesh.add(line2);
 
         targetMesh.position.set(x, 0.1, z);
         return targetMesh;
@@ -255,10 +259,12 @@ export function initGame() {
         switch(event.code) {
             case 'KeyW': keys.W = true; break;
             case 'KeyS': keys.S = true; break;
-            case 'KeyE': keys.E = true; break;
-            case 'KeyQ': 
+            case 'KeyA': keys.A = true; break;
+            case 'KeyD': keys.D = true; break;
+            case 'KeyU': keys.U = true; break;
+            case 'ShiftRight': 
                 if (!window.markerDropped && window.markersLeft > 0) {
-                    console.log('KeyQ detectado, soltando marcador');
+                    console.log('ShiftRight detectado, soltando marcador');
                     dropMarker();
                 }
                 break;
@@ -269,7 +275,9 @@ export function initGame() {
         switch(event.code) {
             case 'KeyW': keys.W = false; break;
             case 'KeyS': keys.S = false; break;
-            case 'KeyE': keys.E = false; break;
+            case 'KeyA': keys.A = false; break;
+            case 'KeyD': keys.D = false; break;
+            case 'KeyU': keys.U = false; break;
         }
     }
 
@@ -410,7 +418,7 @@ export function initGame() {
         }
 
         if (keys.W) { altitude += 1; hasLiftedOff = true; }
-        if (keys.E) { altitude += 5; hasLiftedOff = true; }
+        if (keys.U) { altitude += 5; hasLiftedOff = true; }
         if (keys.S) altitude = Math.max(20, altitude - 1);
 
         if (altitude <= 20 && hasLiftedOff) gameOver = true;
@@ -424,6 +432,9 @@ export function initGame() {
         balloon.position.x += currentLayer.direction.x * currentLayer.speed;
         balloon.position.z += currentLayer.direction.z * currentLayer.speed;
 
+        if (keys.A) balloon.position.x -= 0.5;
+        if (keys.D) balloon.position.x += 0.5;
+
         balloon.rotation.y += 0.001;
 
         window.socket.emit('updatePosition', { x: balloon.position.x, y: balloon.position.y, z: balloon.position.z, mode: window.mode || 'world', roomName: window.roomName || null });
@@ -434,7 +445,7 @@ export function initGame() {
         const distance = Math.sqrt(dx * dx + dz * dz);
         document.getElementById('distanceToTarget').textContent = `${Math.floor(distance)}m`;
         document.getElementById('windDirection').textContent = getWindDirectionText(currentLayerIndex);
-        document.getElementById('windSpeed').textContent = (currentLayer.speed * 60).toFixed(1); // Exibir velocidade real (m/s)
+        document.getElementById('windSpeed').textContent = currentLayer.speed.toFixed(1);
         document.getElementById('windIndicator').textContent = `Vento: ${currentLayer.name.charAt(0)}`;
 
         updateLayerIndicator(currentLayerIndex);
