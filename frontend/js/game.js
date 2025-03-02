@@ -23,10 +23,10 @@ export function initGame() {
     // Ajustar velocidades para metros por segundo reais (dividido por 60 FPS aproximados)
     const windLayers = [
         { minAlt: 0, maxAlt: 100, direction: { x: 0, z: 0 }, speed: 0, name: "Nenhum" },
-        { minAlt: 100, maxAlt: 200, direction: { x: 1, z: 0 }, speed: 0.4 / 60, name: "Leste" },  // 0.4m/s real
-        { minAlt: 200, maxAlt: 300, direction: { x: 0, z: 1 }, speed: 0.4 / 60, name: "Sul" },    // 0.4m/s real
-        { minAlt: 300, maxAlt: 400, direction: { x: -1, z: 0 }, speed: 0.4 / 60, name: "Oeste" }, // 0.4m/s real
-        { minAlt: 400, maxAlt: 500, direction: { x: 0, z: -1 }, speed: 0.6 / 60, name: "Norte" }  // 0.6m/s real
+        { minAlt: 100, maxAlt: 200, direction: { x: 1, z: 0 }, speed: 0.3, name: "Leste" },  // 0.3m/s
+        { minAlt: 200, maxAlt: 300, direction: { x: 0, z: 1 }, speed: 0., name: "Sul" },    // 0.3m/s
+        { minAlt: 300, maxAlt: 400, direction: { x: -1, z: 0 }, speed: 0.4, name: "Oeste" }, // 0.4m/s
+        { minAlt: 400, maxAlt: 500, direction: { x: 0, z: -1 }, speed: 0.5, name: "Norte" }  // 0.5m/s
     ];
 
     const keys = { W: false, S: false, E: false, Q: false }; // Novos controles
