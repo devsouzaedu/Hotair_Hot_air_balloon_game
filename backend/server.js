@@ -384,25 +384,13 @@ setInterval(() => {
 
     updateMarkersGravity(worldState);
     updateBots();
-
     io.to('world').emit('gameUpdate', { state: worldState, timeLeft });
 
-    if (elapsedWorld > 300) {
-        const winner = calculateWinner(worldState.players);
-        io.to('world').emit('gameOver', winner);
-        setTimeout(() => {
-            worldState = { 
-                players: {}, 
-                targets: [], 
-                startTime: Date.now(), 
-                currentTargetIndex: 0, 
-                markers: {},
-                lastTargetMoveTime: Date.now()
-            };
-            initializeTargets();
-            addBots();
-            console.log('Novo jogo iniciado no mundo aberto');
-        }, 10000);
+    if (elapsedWorld >= 300 && elapsedWorld < 310) {
+        io.to('world').emit('gameRestarting', { message: 'A partida está sendo reiniciada, aguarde para continuar' });
+    } else if (elapsedWorld >= 310) {
+        io.to('world').emit('gameReset', { state: resetWorldState() });
+        console.log('Novo jogo iniciado no mundo aberto');
     }
 
     for (const roomName in rooms) {
@@ -418,13 +406,46 @@ setInterval(() => {
 
             updateMarkersGravity(room, roomName);
             io.to(roomName).emit('gameUpdate', { state: room, timeLeft: roomTimeLeft });
-            if (elapsed > 300) {
-                io.to(roomName).emit('gameOver', calculateWinner(room.players));
-                delete rooms[roomName];
+
+            if (elapsed >= 300 && elapsed < 310) {
+                io.to(roomName).emit('gameRestarting', { message: 'A partida está sendo reiniciada, aguarde para continuar' });
+            } else if (elapsed >= 310) {
+                io.to(roomName).emit('gameReset', { state: resetRoomState(roomName) });
+                console.log(`Novo jogo iniciado na sala ${roomName}`);
             }
         }
     }
 }, 100);
+
+function resetWorldState() {
+    worldState = {
+        players: Object.keys(worldState.players).reduce((acc, id) => {
+            acc[id] = { ...worldState.players[id], x: 0, y: 100, z: 0, markers: 3, score: 0 };
+            return acc;
+        }, {}),
+        targets: [generateTarget()],
+        startTime: Date.now(),
+        currentTargetIndex: 0,
+        markers: {},
+        lastTargetMoveTime: Date.now()
+    };
+    addBots();
+    return worldState;
+}
+
+function resetRoomState(roomName) {
+    const room = rooms[roomName];
+    room.players = Object.keys(room.players).reduce((acc, id) => {
+        acc[id] = { ...room.players[id], x: 0, y: 100, z: 0, markers: 3, score: 0 };
+        return acc;
+    }, {});
+    room.targets = [generateTarget()];
+    room.startTime = Date.now();
+    room.currentTargetIndex = 0;
+    room.markers = {};
+    room.lastTargetMoveTime = Date.now();
+    return room;
+}
 
 function calculateScore(distance) {
     if (distance < 5) return 1000;

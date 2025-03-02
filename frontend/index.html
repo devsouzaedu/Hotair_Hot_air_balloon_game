@@ -182,6 +182,7 @@
             z-index: 2000;
             flex-direction: column;
             align-items: flex-end;
+            user-select: none;
         }
         .mobileButton {
             width: 60px;
@@ -192,6 +193,7 @@
             border-radius: 50%;
             font-size: 1.5em;
             cursor: pointer;
+            user-select: none;
         }
         .mobileButton:active {
             background: rgba(200, 200, 200, 0.8);
@@ -337,7 +339,7 @@
         let worldState = { targets: [] };
         let markers = [];
         let lastTargetMoveTime = Date.now();
-        let gameEnded = false; // Nova flag para evitar múltiplos alertas
+        let gameEnded = false;
 
         document.getElementById('bestScore').textContent = bestScore;
 
@@ -515,7 +517,7 @@
                 }
             }
             gameStarted = true;
-            gameEnded = false; // Reseta a flag ao iniciar um novo jogo
+            gameEnded = false;
         });
 
         socket.on('gameUpdate', ({ state, timeLeft }) => {
@@ -635,7 +637,7 @@
 
         socket.on('gameOver', (winner) => {
             console.log('Game over received, winner:', winner);
-            if (!gameEnded) { // Só exibe o alerta se o jogo não terminou ainda
+            if (!gameEnded) {
                 gameOver = true;
                 gameEnded = true;
                 alert(`Fim de jogo! Vencedor: ${winner.name} com ${winner.score} pontos`);
@@ -643,16 +645,16 @@
                 document.getElementById('nameScreen').style.display = 'flex';
                 resetGameState();
                 if (mode === 'world') {
-                    socket.emit('leaveWorld'); // Evento fictício para sair do mundo, ajuste conforme backend
+                    socket.emit('leaveWorld');
                 } else if (mode === 'room' && roomName) {
-                    socket.emit('leaveRoom', { roomName }); // Evento fictício para sair da sala
+                    socket.emit('leaveRoom', { roomName });
                 }
             }
         });
 
         socket.on('gameEnd', ({ players }) => {
             console.log('Game end received, players:', players);
-            if (!gameEnded) { // Só exibe o alerta se o jogo não terminou ainda
+            if (!gameEnded) {
                 gameOver = true;
                 gameEnded = true;
                 let leaderboard = 'Placar Final:\n';
@@ -665,9 +667,9 @@
                 document.getElementById('nameScreen').style.display = 'flex';
                 resetGameState();
                 if (mode === 'world') {
-                    socket.emit('leaveWorld'); // Evento fictício para sair do mundo
+                    socket.emit('leaveWorld');
                 } else if (mode === 'room' && roomName) {
-                    socket.emit('leaveRoom', { roomName }); // Evento fictício para sair da sala
+                    socket.emit('leaveRoom', { roomName });
                 }
             }
         });
@@ -696,8 +698,55 @@
                     }
                 }
                 gameStarted = true;
-                gameEnded = false; // Reseta a flag ao iniciar um novo jogo
+                gameEnded = false;
             }
+        });
+
+        socket.on('gameRestarting', ({ message }) => {
+            console.log('Game restarting:', message);
+            const restartMessage = document.createElement('div');
+            restartMessage.id = 'restartMessage';
+            restartMessage.style.position = 'absolute';
+            restartMessage.style.top = '50%';
+            restartMessage.style.left = '50%';
+            restartMessage.style.transform = 'translate(-50%, -50%)';
+            restartMessage.style.background = 'rgba(0, 0, 0, 0.8)';
+            restartMessage.style.color = 'white';
+            restartMessage.style.padding = '20px';
+            restartMessage.style.borderRadius = '8px';
+            restartMessage.style.zIndex = '1001';
+            restartMessage.style.fontSize = '1.5em';
+            restartMessage.textContent = message;
+            document.getElementById('gameScreen').appendChild(restartMessage);
+        });
+
+        socket.on('gameReset', ({ state }) => {
+            console.log('Game reset received:', state);
+            const restartMessage = document.getElementById('restartMessage');
+            if (restartMessage) restartMessage.remove();
+
+            gameOver = false;
+            gameEnded = false;
+            targets = state.targets;
+            lastTargetMoveTime = state.lastTargetMoveTime || Date.now();
+            scene.remove(balloon);
+            balloon = createBalloon(balloonColor, playerName);
+            balloon.position.set(0, 100, 0);
+            scene.add(balloon);
+            document.getElementById('points').textContent = '0';
+            document.getElementById('markersLeft').textContent = '3';
+
+            scene.children.filter(obj => obj instanceof THREE.Group && obj.position.y === 0.1).forEach(obj => scene.remove(obj));
+            targets.forEach(target => {
+                const targetMesh = createTarget(target.x, target.z);
+                scene.add(targetMesh);
+            });
+
+            markers.forEach(({ marker, tail }) => {
+                scene.remove(marker);
+                scene.remove(tail);
+            });
+            markers = [];
         });
 
         function resetGameState() {
@@ -719,9 +768,9 @@
             gameOver = false;
             points = 0;
             lastTargetMoveTime = Date.now();
-            mode = null; // Reseta o modo
-            roomName = null; // Reseta o nome da sala
-            isCreator = false; // Reseta o status de criador
+            mode = null;
+            roomName = null;
+            isCreator = false;
         }
 
         const windLayers = [
