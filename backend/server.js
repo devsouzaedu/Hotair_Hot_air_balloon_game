@@ -19,13 +19,13 @@ let worldState = {
     startTime: Date.now(), 
     currentTargetIndex: 0,
     markers: {},
-    lastTargetMoveTime: Date.now() // Novo: rastreia o último movimento do alvo
+    lastTargetMoveTime: Date.now()
 };
 const rooms = {};
 
 function generateTarget() {
     const mapSize = 2600;
-    const centralArea = mapSize / 4; // Área central (650m de largura por 650m de altura)
+    const centralArea = mapSize / 4;
     return { 
         x: Math.random() * centralArea - centralArea / 2, 
         z: Math.random() * centralArea - centralArea / 2 
@@ -33,29 +33,27 @@ function generateTarget() {
 }
 
 function moveTarget(state) {
-    const centralArea = 2600 / 4; // Área central do mapa
-    const moveDistance = 300; // Distância de movimentação (300m)
+    const centralArea = 2600 / 4;
+    const moveDistance = 300;
     const currentTarget = state.targets[0];
 
-    // Calcula uma direção aleatória
     const angle = Math.random() * 2 * Math.PI;
     let newX = currentTarget.x + Math.cos(angle) * moveDistance;
     let newZ = currentTarget.z + Math.sin(angle) * moveDistance;
 
-    // Garante que o alvo permaneça dentro da área central
     newX = Math.max(-centralArea / 2, Math.min(centralArea / 2, newX));
     newZ = Math.max(-centralArea / 2, Math.min(centralArea / 2, newZ));
 
     currentTarget.x = newX;
     currentTarget.z = newZ;
 
-    state.lastTargetMoveTime = Date.now(); // Atualiza o tempo do último movimento
+    state.lastTargetMoveTime = Date.now();
     console.log(`Alvo movido para: x=${newX}, z=${newZ}`);
 }
 
 function initializeTargets() {
     worldState.targets = [generateTarget()];
-    worldState.lastTargetMoveTime = Date.now(); // Inicializa o tempo do último movimento
+    worldState.lastTargetMoveTime = Date.now();
 }
 
 initializeTargets();
@@ -211,7 +209,7 @@ io.on('connection', (socket) => {
             creator: socket.id,
             currentTargetIndex: 0,
             markers: {},
-            lastTargetMoveTime: Date.now() // Novo: rastreia o último movimento do alvo em salas
+            lastTargetMoveTime: Date.now()
         };
         rooms[roomName].players[socket.id] = {
             id: socket.id,
@@ -338,6 +336,25 @@ io.on('connection', (socket) => {
         }
     });
 
+    socket.on('leaveWorld', () => {
+        delete worldState.players[socket.id];
+        socket.leave('world');
+        console.log(`Jogador ${socket.id} saiu do mundo`);
+    });
+
+    socket.on('leaveRoom', ({ roomName }) => {
+        if (rooms[roomName] && rooms[roomName].players[socket.id]) {
+            delete rooms[roomName].players[socket.id];
+            io.to(roomName).emit('playerLeft', socket.id);
+            if (rooms[roomName].creator === socket.id && !rooms[roomName].started) {
+                io.to(roomName).emit('roomClosed');
+                delete rooms[roomName];
+            }
+            socket.leave(roomName);
+            console.log(`Jogador ${socket.id} saiu da sala ${roomName}`);
+        }
+    });
+
     socket.on('disconnect', () => {
         delete worldState.players[socket.id];
         for (const roomName in rooms) {
@@ -360,7 +377,6 @@ setInterval(() => {
     const elapsedWorld = (Date.now() - worldState.startTime) / 1000;
     const timeLeft = Math.max(300 - elapsedWorld, 0);
 
-    // Movimentação do alvo no mundo aberto a cada 60 segundos
     if ((Date.now() - worldState.lastTargetMoveTime) / 1000 >= 60 && elapsedWorld < 290) {
         moveTarget(worldState);
         io.to('world').emit('gameUpdate', { state: worldState, timeLeft });
@@ -386,7 +402,7 @@ setInterval(() => {
             initializeTargets();
             addBots();
             console.log('Novo jogo iniciado no mundo aberto');
-        }, 10000); // Espera 10 segundos antes de reiniciar
+        }, 10000);
     }
 
     for (const roomName in rooms) {
@@ -395,7 +411,6 @@ setInterval(() => {
             const elapsed = (Date.now() - room.startTime) / 1000;
             const roomTimeLeft = Math.max(300 - elapsed, 0);
 
-            // Movimentação do alvo nas salas a cada 60 segundos
             if ((Date.now() - room.lastTargetMoveTime) / 1000 >= 60 && elapsed < 290) {
                 moveTarget(room);
                 io.to(roomName).emit('gameUpdate', { state: room, timeLeft: roomTimeLeft });

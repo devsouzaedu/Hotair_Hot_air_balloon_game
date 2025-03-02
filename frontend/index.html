@@ -122,7 +122,7 @@
         }
         #targetMoveTimer {
             position: absolute;
-            top: 30px; /* Posicionado abaixo do timerDisplay */
+            top: 30px;
             left: 50%;
             transform: translateX(-50%);
             background: rgba(0, 0, 0, 0.7);
@@ -179,14 +179,14 @@
             position: absolute;
             bottom: 5px;
             right: 5px;
-            z-index: 2000; /* Aumentado para ficar acima de tudo */
-            flex-direction: column; /* Volta para vertical */
-            align-items: flex-end; /* Alinha os botões à direita */
+            z-index: 2000;
+            flex-direction: column;
+            align-items: flex-end;
         }
         .mobileButton {
             width: 60px;
             height: 60px;
-            margin: 5px 0; /* Ajustado para espaçamento vertical */
+            margin: 5px 0;
             background: rgba(255, 255, 255, 0.8);
             border: none;
             border-radius: 50%;
@@ -336,7 +336,8 @@
         let otherPlayers = {};
         let worldState = { targets: [] };
         let markers = [];
-        let lastTargetMoveTime = Date.now(); // Rastreia o tempo do último movimento do alvo
+        let lastTargetMoveTime = Date.now();
+        let gameEnded = false; // Nova flag para evitar múltiplos alertas
 
         document.getElementById('bestScore').textContent = bestScore;
 
@@ -357,7 +358,7 @@
             playerName = document.getElementById('playerName').value.trim();
             console.log('nameButton clicked, playerName:', playerName);
             if (playerName) {
-                document.getElementById('nameScreen').style.display = 'none';
+                document.getElementById('nameScreen').style.display = 'flex';
                 document.getElementById('modeScreen').style.display = 'flex';
                 console.log('Transitioning to modeScreen');
             } else {
@@ -476,6 +477,7 @@
             alert('O criador da sala saiu. A sala foi fechada.');
             document.getElementById('lobbyScreen').style.display = 'none';
             document.getElementById('nameScreen').style.display = 'flex';
+            resetGameState();
         });
 
         document.getElementById('startRoomButton').addEventListener('click', () => {
@@ -496,7 +498,7 @@
             document.getElementById('gameScreen').style.display = 'block';
             document.getElementById('countdown').textContent = '';
             targets = state.targets;
-            lastTargetMoveTime = state.lastTargetMoveTime || Date.now(); // Inicializa com o tempo do servidor
+            lastTargetMoveTime = state.lastTargetMoveTime || Date.now();
             targets.forEach(target => {
                 const targetMesh = createTarget(target.x, target.z);
                 scene.add(targetMesh);
@@ -513,15 +515,15 @@
                 }
             }
             gameStarted = true;
+            gameEnded = false; // Reseta a flag ao iniciar um novo jogo
         });
 
         socket.on('gameUpdate', ({ state, timeLeft }) => {
             console.log('gameUpdate received:', state);
             const currentState = mode === 'world' ? state : state;
 
-            // Verifica se o alvo mudou de posição
             if (state.targets[0].x !== targets[0].x || state.targets[0].z !== targets[0].z) {
-                lastTargetMoveTime = Date.now(); // Atualiza o tempo do último movimento
+                lastTargetMoveTime = Date.now();
                 scene.remove(scene.children.find(obj => 
                     obj instanceof THREE.Group && 
                     obj.position.x === targets[0].x && 
@@ -532,7 +534,6 @@
                 scene.add(newTargetMesh);
             }
 
-            // Atualiza o contador de mudança de alvo
             const timeSinceLastMove = (Date.now() - lastTargetMoveTime) / 1000;
             const timeUntilNextMove = Math.max(60 - timeSinceLastMove, 0);
             document.getElementById('targetMoveTimer').textContent = `Próxima mudança de alvo: ${Math.floor(timeUntilNextMove)}s`;
@@ -634,25 +635,41 @@
 
         socket.on('gameOver', (winner) => {
             console.log('Game over received, winner:', winner);
-            gameOver = true;
-            alert(`Fim de jogo! Vencedor: ${winner.name} com ${winner.score} pontos`);
-            document.getElementById('gameScreen').style.display = 'none';
-            document.getElementById('nameScreen').style.display = 'flex';
-            resetGameState();
+            if (!gameEnded) { // Só exibe o alerta se o jogo não terminou ainda
+                gameOver = true;
+                gameEnded = true;
+                alert(`Fim de jogo! Vencedor: ${winner.name} com ${winner.score} pontos`);
+                document.getElementById('gameScreen').style.display = 'none';
+                document.getElementById('nameScreen').style.display = 'flex';
+                resetGameState();
+                if (mode === 'world') {
+                    socket.emit('leaveWorld'); // Evento fictício para sair do mundo, ajuste conforme backend
+                } else if (mode === 'room' && roomName) {
+                    socket.emit('leaveRoom', { roomName }); // Evento fictício para sair da sala
+                }
+            }
         });
 
         socket.on('gameEnd', ({ players }) => {
             console.log('Game end received, players:', players);
-            gameOver = true;
-            let leaderboard = 'Placar Final:\n';
-            const sortedPlayers = Object.values(players).sort((a, b) => b.score - a.score);
-            sortedPlayers.forEach((player, index) => {
-                leaderboard += `${index + 1}. ${player.name} - ${player.score} pontos\n`;
-            });
-            alert(leaderboard);
-            document.getElementById('gameScreen').style.display = 'none';
-            document.getElementById('nameScreen').style.display = 'flex';
-            resetGameState();
+            if (!gameEnded) { // Só exibe o alerta se o jogo não terminou ainda
+                gameOver = true;
+                gameEnded = true;
+                let leaderboard = 'Placar Final:\n';
+                const sortedPlayers = Object.values(players).sort((a, b) => b.score - a.score);
+                sortedPlayers.forEach((player, index) => {
+                    leaderboard += `${index + 1}. ${player.name} - ${player.score} pontos\n`;
+                });
+                alert(leaderboard);
+                document.getElementById('gameScreen').style.display = 'none';
+                document.getElementById('nameScreen').style.display = 'flex';
+                resetGameState();
+                if (mode === 'world') {
+                    socket.emit('leaveWorld'); // Evento fictício para sair do mundo
+                } else if (mode === 'room' && roomName) {
+                    socket.emit('leaveRoom', { roomName }); // Evento fictício para sair da sala
+                }
+            }
         });
 
         socket.on('gameState', ({ mode: gameMode, state }) => {
@@ -660,7 +677,7 @@
             if (gameMode === 'world') {
                 worldState = state;
                 targets = state.targets;
-                lastTargetMoveTime = state.lastTargetMoveTime || Date.now(); // Inicializa com o tempo do servidor
+                lastTargetMoveTime = state.lastTargetMoveTime || Date.now();
                 targets.forEach(target => {
                     const targetMesh = createTarget(target.x, target.z);
                     scene.add(targetMesh);
@@ -679,6 +696,7 @@
                     }
                 }
                 gameStarted = true;
+                gameEnded = false; // Reseta a flag ao iniciar um novo jogo
             }
         });
 
@@ -686,7 +704,10 @@
             console.log('Resetting game state');
             gameStarted = false;
             markerDropped = false;
-            balloon = null;
+            if (balloon) {
+                scene.remove(balloon);
+                balloon = null;
+            }
             targets = [];
             markers = [];
             for (const id in otherPlayers) {
@@ -697,7 +718,10 @@
             hasLiftedOff = false;
             gameOver = false;
             points = 0;
-            lastTargetMoveTime = Date.now(); // Reseta o tempo do movimento do alvo
+            lastTargetMoveTime = Date.now();
+            mode = null; // Reseta o modo
+            roomName = null; // Reseta o nome da sala
+            isCreator = false; // Reseta o status de criador
         }
 
         const windLayers = [
@@ -1030,7 +1054,7 @@
             }
 
             if (!gameStarted || gameOver || !balloon) {
-                if (gameOver) {
+                if (gameOver && !gameEnded) {
                     document.getElementById('gameScreen').style.display = 'none';
                     document.getElementById('loseScreen').style.display = 'flex';
                 }
