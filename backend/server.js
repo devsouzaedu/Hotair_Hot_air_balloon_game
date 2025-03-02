@@ -1,12 +1,11 @@
 const express = require('express');
 const http = require('http');
 const socketIO = require('socket.io');
-const cors = require('cors'); // Adicionado para reforçar CORS
+const cors = require('cors');
 const path = require('path');
 const app = express();
 const server = http.createServer(app);
 
-// Configuração reforçada de CORS para Socket.IO
 const io = socketIO(server, {
     cors: {
         origin: "https://devsouzaedu.github.io",
@@ -17,7 +16,6 @@ const io = socketIO(server, {
 
 const PORT = process.env.PORT || 3000;
 
-// Middleware CORS para Express
 app.use(cors({
     origin: 'https://devsouzaedu.github.io',
     methods: ['GET', 'POST'],
@@ -75,7 +73,7 @@ app.get('/', (req, res) => {
 });
 
 function updateMarkersGravity(state, roomName = null) {
-    const fallSpeed = 0.5; // Sincronizado com o frontend
+    const fallSpeed = 0.5;
     for (const markerId in state.markers) {
         const marker = state.markers[markerId];
         if (marker.y > 0) {
@@ -321,6 +319,10 @@ io.on('connection', (socket) => {
 
     socket.on('markerLanded', ({ x, y, z, mode, roomName, markerId }) => {
         const state = mode === 'world' ? worldState : rooms[roomName];
+        if (!state) {
+            console.error(`Estado não encontrado para mode: ${mode}, roomName: ${roomName}`);
+            return;
+        }
         if (state.markers[markerId]) {
             state.markers[markerId].x = x;
             state.markers[markerId].y = y;
