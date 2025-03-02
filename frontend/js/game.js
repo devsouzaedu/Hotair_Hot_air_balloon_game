@@ -23,10 +23,10 @@ export function initGame() {
 
     const windLayers = [
         { minAlt: 0, maxAlt: 100, direction: { x: 0, z: 0 }, speed: 0, name: "Nenhum" },
-        { minAlt: 100, maxAlt: 200, direction: { x: 1, z: 0 }, speed: 0.4, name: "Leste" },
-        { minAlt: 200, maxAlt: 300, direction: { x: 0, z: 1 }, speed: 0.4, name: "Sul" },
+        { minAlt: 100, maxAlt: 200, direction: { x: 1, z: 0 }, speed: 0.3, name: "Leste" },
+        { minAlt: 200, maxAlt: 300, direction: { x: 0, z: 1 }, speed: 0.3, name: "Sul" },
         { minAlt: 300, maxAlt: 400, direction: { x: -1, z: 0 }, speed: 0.4, name: "Oeste" },
-        { minAlt: 400, maxAlt: 500, direction: { x: 0, z: -1 }, speed: 0.6, name: "Norte" }
+        { minAlt: 400, maxAlt: 500, direction: { x: 0, z: -1 }, speed: 0.5, name: "Norte" }
     ];
 
     const keys = { W: false, S: false, A: false, D: false, U: false, SHIFT_RIGHT: false };
@@ -99,15 +99,20 @@ export function initGame() {
             const downButton = document.getElementById('downButton');
             const dropButton = document.getElementById('dropButton');
 
-            upButton.addEventListener('touchstart', () => keys.W = true);
+            upButton.addEventListener('touchstart', (e) => { e.preventDefault(); keys.W = true; });
             upButton.addEventListener('touchend', () => keys.W = false);
-            turboButton.addEventListener('touchstart', () => keys.U = true);
+            turboButton.addEventListener('touchstart', (e) => { e.preventDefault(); keys.U = true; });
             turboButton.addEventListener('touchend', () => keys.U = false);
-            downButton.addEventListener('touchstart', () => keys.S = true);
+            downButton.addEventListener('touchstart', (e) => { e.preventDefault(); keys.S = true; });
             downButton.addEventListener('touchend', () => keys.S = false);
             dropButton.addEventListener('touchstart', (e) => {
                 e.preventDefault();
                 if (!window.markerDropped && window.markersLeft > 0) dropMarker();
+            });
+
+            // Prevenir zoom por double-tap
+            [upButton, turboButton, downButton, dropButton].forEach(button => {
+                button.addEventListener('dblclick', (e) => e.preventDefault());
             });
         }
 
@@ -400,6 +405,21 @@ export function initGame() {
         window.socket.emit('updatePosition', { x: window.balloon.position.x, y: window.balloon.position.y, z: window.balloon.position.z, mode: window.mode || 'world', roomName: window.roomName || null });
     };
 
+    // Suporte ao gamepad
+    function handleGamepad() {
+        const gamepads = navigator.getGamepads();
+        const gamepad = gamepads[0];
+        if (gamepad) {
+            const buttons = gamepad.buttons;
+            if (buttons[0].pressed) keys.S = true; else if (!buttons[0].pressed && keys.S) keys.S = false; // X
+            if (buttons[1].pressed && !window.markerDropped && window.markersLeft > 0) {
+                if (!keys.SHIFT_RIGHT) { dropMarker(); keys.SHIFT_RIGHT = true; }
+            } else if (!buttons[1].pressed) keys.SHIFT_RIGHT = false; // Círculo
+            if (buttons[2].pressed) keys.U = true; else if (!buttons[2].pressed && keys.U) keys.U = false; // Quadrado
+            if (buttons[3].pressed) keys.W = true; else if (!buttons[3].pressed && keys.W) keys.W = false; // Triângulo
+        }
+    }
+
     function animate() {
         requestAnimationFrame(animate);
 
@@ -411,6 +431,8 @@ export function initGame() {
             lastTime = currentTime;
             document.getElementById('fpsCount').textContent = fps;
         }
+
+        handleGamepad(); // Verifica o estado do controle a cada frame
 
         if (window.balloon && !balloon) {
             balloon = window.balloon;
@@ -497,6 +519,9 @@ export function initGame() {
 
         renderer.render(scene, camera);
     }
+
+    window.addEventListener('gamepadconnected', (e) => console.log('Controle conectado:', e.gamepad));
+    window.addEventListener('gamepaddisconnected', (e) => console.log('Controle desconectado:', e.gamepad));
 
     window.gameStarted = () => gameStarted = true;
     window.gameOver = () => gameOver = true;

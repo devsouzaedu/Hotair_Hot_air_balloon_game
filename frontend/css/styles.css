@@ -202,14 +202,18 @@ body {
 }
 
 .mobileButton {
-    width: 60px; /* Tamanho mantido */
-    height: 60px; /* Tamanho mantido */
+    width: 60px;
+    height: 60px;
     background: rgba(255, 255, 255, 0.8);
     border: none;
     border-radius: 50%;
-    font-size: 1.5em; /* Tamanho mantido */
+    font-size: 1.5em;
     cursor: pointer;
-    user-select: none;
+    user-select: none; /* Já está no body, mas reforçado aqui */
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    -webkit-touch-callout: none; /* Impede long press no iOS */
 }
 
 .mobileButton:active {
