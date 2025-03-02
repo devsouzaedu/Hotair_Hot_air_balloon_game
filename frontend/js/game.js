@@ -12,7 +12,7 @@ export function initGame() {
     let fps = 0;
     let isMobile = detectMobile();
     window.targets = []; // Inicializa globalmente como array vazio
-    let otherPlayers = {};
+    window.otherPlayers = {}; // Inicializa globalmente como objeto vazio
     let markers = [];
     let lastTargetMoveTime = Date.now();
     let gameEnded = false;
@@ -168,6 +168,8 @@ export function initGame() {
     }
 
     window.createBalloon = function(color, name) {
+        // Se color for undefined, usar um valor padrão
+        color = color || '#FF4500'; // Vermelho como fallback
         const group = new THREE.Group();
         const basketGeometry = new THREE.BoxGeometry(15, 12, 15);
         const basketMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
@@ -437,7 +439,7 @@ export function initGame() {
     window.gameEnded = () => gameEnded = true;
     window.setBalloon = (b) => balloon = b;
     window.setTargets = (t) => window.targets = t;
-    window.setOtherPlayers = (op) => otherPlayers = op;
+    window.setOtherPlayers = (op) => window.otherPlayers = op;
     window.setMarkers = (m) => markers = m;
     window.scene = scene;
 }

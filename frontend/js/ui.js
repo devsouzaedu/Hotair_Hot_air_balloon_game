@@ -1,5 +1,5 @@
 export function initUI() {
-    let balloonColor = null;
+    window.balloonColor = null; // Inicializa explicitamente
     let playerName = '';
     let mode = null;
     let roomName = null;
@@ -28,18 +28,18 @@ export function initUI() {
 
     document.querySelectorAll('.colorButton').forEach(button => {
         button.addEventListener('click', () => {
-            balloonColor = button.getAttribute('data-color');
+            window.balloonColor = button.getAttribute('data-color');
         });
     });
 
     document.getElementById('okButton').addEventListener('click', () => {
-        if (balloonColor) {
+        if (window.balloonColor) {
             document.getElementById('colorScreen').style.display = 'none';
             if (mode === 'world') {
-                window.socket.emit('joinNow', { name: playerName, color: balloonColor });
+                window.socket.emit('joinNow', { name: playerName, color: window.balloonColor });
             } else if (mode === 'room' && roomName) {
-                window.socket.emit('setColor', { roomName, color: balloonColor });
-                window.socket.emit('joinRoom', { roomName, playerData: { name: playerName, color: balloonColor } });
+                window.socket.emit('setColor', { roomName, color: window.balloonColor });
+                window.socket.emit('joinRoom', { roomName, playerData: { name: playerName, color: window.balloonColor } });
                 document.getElementById('lobbyScreen').style.display = 'flex';
             }
         } else {

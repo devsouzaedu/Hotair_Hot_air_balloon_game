@@ -2,8 +2,10 @@ export function initSocket() {
     window.socket = io('https://hotair-backend.onrender.com');
     const socket = window.socket;
 
-    // Garantir que window.targets seja um array desde o início
+    // Garantir que variáveis globais estejam inicializadas
     window.targets = window.targets || [];
+    window.otherPlayers = window.otherPlayers || {};
+    window.balloonColor = window.balloonColor || '#FF4500'; // Vermelho como fallback
 
     socket.on('roomCreated', ({ roomName, creator }) => {
         window.roomName = roomName;
@@ -59,7 +61,7 @@ export function initSocket() {
         document.getElementById('lobbyScreen').style.display = 'none';
         document.getElementById('gameScreen').style.display = 'block';
         document.getElementById('countdown').textContent = '';
-        window.setTargets(state.targets || []); // Garante que targets seja um array
+        window.setTargets(state.targets || []);
         window.lastTargetMoveTime = state.lastTargetMoveTime || Date.now();
         if (Array.isArray(window.targets)) {
             window.targets.forEach(target => {
@@ -67,9 +69,10 @@ export function initSocket() {
                 window.scene.add(targetMesh);
             });
         }
-        window.setBalloon(window.createBalloon(window.balloonColor, document.getElementById('playerName').value));
-        window.scene.add(window.balloon);
-        document.getElementById('playerNameDisplay').textContent = document.getElementById('playerName').value;
+        const playerName = document.getElementById('playerName').value || 'Jogador';
+        window.setBalloon(window.createBalloon(window.balloonColor, playerName));
+        if (window.balloon) window.scene.add(window.balloon);
+        document.getElementById('playerNameDisplay').textContent = playerName;
         for (const id in state.players) {
             if (id !== socket.id && state.players[id].color) {
                 const otherBalloon = window.createBalloon(state.players[id].color, state.players[id].name);
@@ -217,9 +220,10 @@ export function initSocket() {
                     window.scene.add(targetMesh);
                 });
             }
-            window.setBalloon(window.createBalloon(window.balloonColor, document.getElementById('playerName').value));
-            window.scene.add(window.balloon);
-            document.getElementById('playerNameDisplay').textContent = document.getElementById('playerName').value;
+            const playerName = document.getElementById('playerName').value || 'Jogador';
+            window.setBalloon(window.createBalloon(window.balloonColor, playerName));
+            if (window.balloon) window.scene.add(window.balloon);
+            document.getElementById('playerNameDisplay').textContent = playerName;
             document.getElementById('colorScreen').style.display = 'none';
             document.getElementById('gameScreen').style.display = 'block';
             for (const id in state.players) {
@@ -243,9 +247,12 @@ export function initSocket() {
         window.setTargets(state.targets || []);
         window.lastTargetMoveTime = state.lastTargetMoveTime || Date.now();
         window.scene.remove(window.balloon);
-        window.setBalloon(window.createBalloon(window.balloonColor, document.getElementById('playerName').value));
-        window.balloon.position.set(0, 100, 0);
-        window.scene.add(window.balloon);
+        const playerName = document.getElementById('playerName').value || 'Jogador';
+        window.setBalloon(window.createBalloon(window.balloonColor, playerName));
+        if (window.balloon) {
+            window.balloon.position.set(0, 100, 0);
+            window.scene.add(window.balloon);
+        }
         document.getElementById('points').textContent = '0';
         document.getElementById('markersLeft').textContent = '3';
 
