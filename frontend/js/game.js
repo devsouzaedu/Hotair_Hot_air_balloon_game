@@ -1,7 +1,9 @@
 export function initGame() {
-    let scene, camera, renderer, balloon, marker, tail;
+    let scene, camera, renderer;
+    let balloon; // Variável local será sincronizada com window.balloon
+    let marker, tail;
     let altitude = 100;
-    window.markerDropped = false; // Inicializa globalmente como false
+    window.markerDropped = false; // Inicializa globalmente
     let points = 0;
     let bestScore = localStorage.getItem('bestScore') || 0;
     let gameStarted = false;
@@ -169,7 +171,7 @@ export function initGame() {
 
     window.createBalloon = function(color, name) {
         console.log('Criando balão com cor:', color, 'e nome:', name);
-        color = color || '#FF4500'; // Vermelho como fallback
+        color = color || '#FF4500';
         const group = new THREE.Group();
         const basketGeometry = new THREE.BoxGeometry(15, 12, 15);
         const basketMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
@@ -289,19 +291,23 @@ export function initGame() {
     }
 
     function dropMarker() {
-        if (!balloon) {
+        if (!window.balloon) {
             console.error('Balão não existe ao tentar soltar marcador');
             return;
         }
-        console.log('Soltando marcador na posição:', balloon.position);
+        console.log('Soltando marcador na posição:', window.balloon.position);
         window.socket.emit('dropMarker', { 
-            x: balloon.position.x, 
-            y: balloon.position.y - 10, 
-            z: balloon.position.z, 
+            x: window.balloon.position.x, 
+            y: window.balloon.position.y - 10, 
+            z: window.balloon.position.z, 
             mode: window.mode, 
             roomName: window.roomName 
         });
         window.markerDropped = true;
+        marker.position.set(window.balloon.position.x, window.balloon.position.y - 10, window.balloon.position.z);
+        marker.visible = true;
+        tail.position.set(window.balloon.position.x, window.balloon.position.y - 10, window.balloon.position.z);
+        tail.visible = true;
     }
 
     function getCurrentWindLayer() {
@@ -350,11 +356,11 @@ export function initGame() {
         points = 0;
         document.getElementById('loseScreen').style.display = 'none';
         document.getElementById('gameScreen').style.display = 'block';
-        scene.remove(balloon);
-        balloon = window.createBalloon(window.balloonColor, document.getElementById('playerName').value);
-        balloon.position.set(0, altitude, 0);
-        scene.add(balloon);
-        window.socket.emit('updatePosition', { x: balloon.position.x, y: balloon.position.y, z: balloon.position.z, mode: window.mode, roomName: window.roomName });
+        scene.remove(window.balloon);
+        window.balloon = window.createBalloon(window.balloonColor, document.getElementById('playerName').value);
+        window.balloon.position.set(0, altitude, 0);
+        scene.add(window.balloon);
+        window.socket.emit('updatePosition', { x: window.balloon.position.x, y: window.balloon.position.y, z: window.balloon.position.z, mode: window.mode, roomName: window.roomName });
     };
 
     function animate() {
@@ -368,6 +374,9 @@ export function initGame() {
             lastTime = currentTime;
             document.getElementById('fpsCount').textContent = fps;
         }
+
+        // Sincronizar balloon local com window.balloon
+        balloon = window.balloon;
 
         if (!gameStarted || gameOver || !balloon) {
             if (gameOver && !gameEnded) {
@@ -411,7 +420,6 @@ export function initGame() {
 
         updateLayerIndicator(currentLayerIndex);
 
-        // Ajustar a câmera para seguir o balão
         camera.position.x = balloon.position.x;
         camera.position.z = balloon.position.z + 200;
         camera.position.y = balloon.position.y + 200;
@@ -456,7 +464,8 @@ export function initGame() {
     window.gameEnded = () => gameEnded = true;
     window.setBalloon = (b) => {
         console.log('Definindo balão:', b);
-        balloon = b;
+        balloon = b; // Sincroniza local com global
+        window.balloon = b;
     };
     window.setTargets = (t) => window.targets = t;
     window.setOtherPlayers = (op) => window.otherPlayers = op;

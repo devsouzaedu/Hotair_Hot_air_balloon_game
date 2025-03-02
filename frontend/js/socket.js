@@ -73,7 +73,7 @@ export function initSocket() {
         window.setBalloon(window.createBalloon(window.balloonColor, playerName));
         if (window.balloon) {
             console.log('Adicionando balão à cena:', window.balloon);
-            window.balloon.position.set(0, 100, 0); // Forçar posição inicial visível
+            window.balloon.position.set(0, 100, 0);
             window.scene.add(window.balloon);
         } else {
             console.error('Falha ao criar balão do jogador');
