@@ -1,11 +1,30 @@
 export function initSocket() {
+    // Verificar se io está definido antes de inicializar
+    if (typeof io === 'undefined') {
+        console.error('Socket.IO não foi carregado corretamente.');
+        return;
+    }
+
     window.socket = io('https://hotair-backend.onrender.com');
     const socket = window.socket;
+
+    if (!socket) {
+        console.error('Falha ao inicializar o socket.');
+        return;
+    }
 
     window.targets = window.targets || [];
     window.otherPlayers = window.otherPlayers || {};
     window.balloonColor = window.balloonColor || '#FF4500';
     window.markersLeft = 5;
+
+    socket.on('connect', () => {
+        console.log('Conectado ao backend via Socket.IO');
+    });
+
+    socket.on('connect_error', (err) => {
+        console.error('Erro de conexão com o backend:', err.message);
+    });
 
     socket.on('roomCreated', ({ roomName, creator }) => {
         window.roomName = roomName;
@@ -164,7 +183,7 @@ export function initSocket() {
             window.markersLeft = markers;
             document.getElementById('markersLeft').textContent = markers;
             document.getElementById('points').textContent = score;
-            window.markerDropped = false; // Permite soltar outra marca
+            window.markerDropped = false; // Reseta para permitir soltar outra marca
             if (markers === 0) {
                 window.showNoMarkersMessage();
             }

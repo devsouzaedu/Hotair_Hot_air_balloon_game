@@ -4,7 +4,7 @@ export function initGame() {
     let marker, tail;
     let altitude = 100;
     window.markerDropped = false;
-    window.markersLeft = 5; // Aumentado para 5 marcas
+    window.markersLeft = 5;
     let points = 0;
     let bestScore = localStorage.getItem('bestScore') || 0;
     let gameStarted = false;
@@ -318,7 +318,6 @@ export function initGame() {
         tail.position.set(markerStartPos.x, markerStartPos.y, markerStartPos.z);
         tail.visible = true;
 
-        // Adicionar gravidade local
         const gravity = -0.5;
         let velocityY = 0;
         function fallMarker() {

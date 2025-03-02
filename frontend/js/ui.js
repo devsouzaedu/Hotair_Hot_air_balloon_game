@@ -1,5 +1,5 @@
 export function initUI() {
-    window.balloonColor = null; // Inicializa explicitamente
+    window.balloonColor = null;
     let playerName = '';
     let mode = null;
     let roomName = null;
@@ -35,6 +35,10 @@ export function initUI() {
     document.getElementById('okButton').addEventListener('click', () => {
         if (window.balloonColor) {
             document.getElementById('colorScreen').style.display = 'none';
+            if (!window.socket) {
+                console.error('Socket não está inicializado.');
+                return;
+            }
             if (mode === 'world') {
                 window.socket.emit('joinNow', { name: playerName, color: window.balloonColor });
             } else if (mode === 'room' && roomName) {
@@ -51,6 +55,10 @@ export function initUI() {
         const inputRoomName = document.getElementById('roomName').value.trim();
         if (inputRoomName) {
             roomName = inputRoomName;
+            if (!window.socket) {
+                console.error('Socket não está inicializado.');
+                return;
+            }
             window.socket.emit('createRoom', { name: roomName });
         } else {
             alert("Digite o nome da sala!");
@@ -61,6 +69,10 @@ export function initUI() {
         const inputRoomName = document.getElementById('roomName').value.trim();
         if (inputRoomName) {
             roomName = inputRoomName;
+            if (!window.socket) {
+                console.error('Socket não está inicializado.');
+                return;
+            }
             window.socket.emit('joinRoom', { roomName, playerData: { name: playerName, color: null } });
             document.getElementById('roomScreen').style.display = 'none';
             document.getElementById('colorScreen').style.display = 'flex';
@@ -70,7 +82,7 @@ export function initUI() {
     });
 
     document.getElementById('startRoomButton').addEventListener('click', () => {
-        if (window.isCreator) {
+        if (window.isCreator && window.socket) {
             window.socket.emit('startRoom', { roomName });
         }
     });
