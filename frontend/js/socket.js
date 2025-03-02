@@ -281,11 +281,80 @@ export function initSocket() {
     });
 
     socket.on('showLeaderboard', ({ players }) => {
-        console.log('showLeaderboard recebido, ignorado nesta versão:', players);
+        console.log('showLeaderboard recebido:', players);
+        if (!window.gameEnded()) {
+            window.gameOver();
+            window.gameEnded();
+            document.getElementById('gameScreen').style.display = 'none';
+            document.getElementById('leaderboardScreen').style.display = 'block';
+            const leaderboardList = document.getElementById('leaderboardList');
+            leaderboardList.innerHTML = '';
+            const sortedPlayers = Object.values(players).sort((a, b) => b.score - a.score);
+            sortedPlayers.forEach((player, index) => {
+                const playerDiv = document.createElement('div');
+                if (index === 0) {
+                    playerDiv.textContent = `🏆 Campeão: ${player.name} - ${player.score} pontos`;
+                    playerDiv.style.color = '#FFD700'; // Ouro para o campeão
+                    playerDiv.style.fontWeight = 'bold';
+                } else {
+                    playerDiv.textContent = `${index + 1}. ${player.name} - ${player.score} pontos`;
+                }
+                leaderboardList.appendChild(playerDiv);
+            });
+
+            // Adicionar countdown de 7 segundos
+            const countdownDiv = document.createElement('div');
+            countdownDiv.id = 'restartCountdown';
+            countdownDiv.style.textAlign = 'center';
+            countdownDiv.style.marginTop = '20px';
+            countdownDiv.style.fontSize = '1.5em';
+            leaderboardList.appendChild(countdownDiv);
+
+            let countdown = 7;
+            countdownDiv.textContent = `Novo jogo em ${countdown} segundos`;
+            const countdownInterval = setInterval(() => {
+                countdown--;
+                countdownDiv.textContent = `Novo jogo em ${countdown} segundos`;
+                if (countdown <= 0) {
+                    clearInterval(countdownInterval);
+                }
+            }, 1000);
+        }
     });
 
     socket.on('gameReset', ({ state }) => {
-        console.log('gameReset recebido, ignorado nesta versão:', state);
+        console.log('gameReset recebido:', state);
+        document.getElementById('leaderboardScreen').style.display = 'none';
+        document.getElementById('gameScreen').style.display = 'block';
+
+        window.gameOver = false;
+        window.gameEnded = false;
+        window.setTargets(state.targets || []);
+        window.lastTargetMoveTime = state.lastTargetMoveTime || Date.now();
+        window.scene.remove(window.balloon);
+        const playerName = document.getElementById('playerName').value || 'Jogador';
+        window.setBalloon(window.createBalloon(window.balloonColor, playerName));
+        if (window.balloon) {
+            window.balloon.position.set(0, 100, 0);
+            window.scene.add(window.balloon);
+        }
+        window.markersLeft = 5;
+        document.getElementById('points').textContent = '0';
+        document.getElementById('markersLeft').textContent = window.markersLeft;
+
+        window.scene.children.filter(obj => obj instanceof THREE.Group && obj.position.y === 0.1).forEach(obj => window.scene.remove(obj));
+        if (Array.isArray(window.targets)) {
+            window.targets.forEach(target => {
+                const targetMesh = window.createTarget(target.x, target.z);
+                window.scene.add(targetMesh);
+            });
+        }
+
+        window.markers.forEach(({ marker, tail }) => {
+            window.scene.remove(marker);
+            window.scene.remove(tail);
+        });
+        window.setMarkers([]);
     });
 
     function resetGameState() {

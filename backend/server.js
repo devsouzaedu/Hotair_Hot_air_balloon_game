@@ -101,7 +101,13 @@ function updateMarkersGravity(state, roomName = null) {
 }
 
 function addBots() {
-    const botNames = ["Aloisio Silvestro", "Santes Raim", "Lional Brutus", "Volodomyr Taveira III", "Eduardes Euro"];
+    const botNames = [
+        "João Silva", 
+        "Maria Oliveira", 
+        "Pedro Santos", 
+        "Ana Costa", 
+        "Lucas Pereira"
+    ];
     const botColors = ["#FF4500", "#3498db", "#2ecc71", "#f1c40f", "#FFFFFF"];
     for (let i = 0; i < 5; i++) {
         const botId = `bot_${i}`;
@@ -113,7 +119,7 @@ function addBots() {
                 x: Math.random() * 2600 - 1300,
                 z: Math.random() * 2600 - 1300,
                 y: 100 + Math.random() * 400,
-                markers: 0,
+                markers: 5,
                 score: 0,
                 isBot: true,
                 state: 'approachTarget',
@@ -187,6 +193,22 @@ function updateBots() {
             bot.y = Math.max(20, Math.min(500, bot.y));
             bot.x = Math.max(-mapSize / 2, Math.min(mapSize / 2, bot.x));
             bot.z = Math.max(-mapSize / 2, Math.min(mapSize / 2, bot.z));
+
+            // Bots soltam marcas eventualmente (1 por minuto em média)
+            if (bot.markers > 0 && Math.random() < 0.0017) { // 0.17% de chance por ciclo (100ms)
+                const markerId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+                const markerData = {
+                    playerId: bot.id,
+                    x: bot.x + (Math.random() * 20 - 10),
+                    y: bot.y - 10,
+                    z: bot.z + (Math.random() * 20 - 10),
+                    markerId
+                };
+                bot.markers--;
+                worldState.markers[markerId] = markerData;
+                io.to('world').emit('markerDropped', { ...markerData, markers: bot.markers, score: bot.score, markerId });
+                console.log(`Bot ${bot.name} soltou marcador: ${markerId}, restantes: ${bot.markers}`);
+            }
         }
     }
 }
