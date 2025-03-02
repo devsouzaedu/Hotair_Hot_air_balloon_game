@@ -12,9 +12,7 @@ export function initSocket() {
         return;
     }
 
-    // Inicializar window.markers globalmente
     window.markers = window.markers || [];
-
     window.targets = window.targets || [];
     window.otherPlayers = window.otherPlayers || {};
     window.balloonColor = window.balloonColor || '#FF4500';
@@ -153,7 +151,6 @@ export function initSocket() {
             }
         }
 
-        // Sincronizar marcadores
         for (const markerId in currentState.markers) {
             const markerData = currentState.markers[markerId];
             let existingMarker = window.markers.find(m => m.marker.userData.markerId === markerId)?.marker;
@@ -175,7 +172,6 @@ export function initSocket() {
 
         document.getElementById('markersLeft').textContent = currentState.players[socket.id]?.markers || window.markersLeft;
         document.getElementById('points').textContent = currentState.players[socket.id]?.score || 0;
-        // Sincronizar o cronômetro com o tempo restante do backend
         const minutes = Math.floor(timeLeft / 60);
         const seconds = Math.floor(timeLeft % 60);
         document.getElementById('timerDisplay').textContent = `Tempo Restante: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
@@ -187,7 +183,7 @@ export function initSocket() {
             window.markersLeft = markers;
             document.getElementById('markersLeft').textContent = markers;
             document.getElementById('points').textContent = score;
-            window.markerDropped = false; // Reseta para permitir soltar outra marca
+            window.markerDropped = false;
             if (markers === 0) {
                 window.showNoMarkersMessage();
             }
@@ -262,38 +258,24 @@ export function initSocket() {
                 playerDiv.textContent = `${index + 1}. ${player.name} - ${player.score} pontos`;
                 leaderboardList.appendChild(playerDiv);
             });
-        }
-    });
 
-    socket.on('gameState', ({ mode: gameMode, state }) => {
-        if (gameMode === 'world') {
-            window.setTargets(state.targets || []);
-            window.lastTargetMoveTime = state.lastTargetMoveTime || Date.now();
-            if (Array.isArray(window.targets)) {
-                window.targets.forEach(target => {
-                    const targetMesh = window.createTarget(target.x, target.z);
-                    window.scene.add(targetMesh);
-                });
-            }
-            const playerName = document.getElementById('playerName').value || 'Jogador';
-            window.setBalloon(window.createBalloon(window.balloonColor, playerName));
-            if (window.balloon) {
-                window.balloon.position.set(0, 100, 0);
-                window.scene.add(window.balloon);
-            }
-            document.getElementById('playerNameDisplay').textContent = playerName;
-            document.getElementById('markersLeft').textContent = window.markersLeft;
-            document.getElementById('colorScreen').style.display = 'none';
-            document.getElementById('gameScreen').style.display = 'block';
-            for (const id in state.players) {
-                if (id !== socket.id && state.players[id].color) {
-                    const otherBalloon = window.createBalloon(state.players[id].color, state.players[id].name);
-                    otherBalloon.position.set(state.players[id].x, state.players[id].y, state.players[id].z);
-                    window.otherPlayers[id] = otherBalloon;
-                    window.scene.add(otherBalloon);
+            // Adicionar countdown de 7 segundos para reinício
+            const countdownDiv = document.createElement('div');
+            countdownDiv.id = 'restartCountdown';
+            countdownDiv.style.textAlign = 'center';
+            countdownDiv.style.marginTop = '20px';
+            countdownDiv.style.fontSize = '1.5em';
+            leaderboardList.appendChild(countdownDiv);
+
+            let countdown = 7;
+            countdownDiv.textContent = `Reiniciando em ${countdown} segundos`;
+            const countdownInterval = setInterval(() => {
+                countdown--;
+                countdownDiv.textContent = `Reiniciando em ${countdown} segundos`;
+                if (countdown <= 0) {
+                    clearInterval(countdownInterval);
                 }
-            }
-            window.gameStarted();
+            }, 1000);
         }
     });
 
@@ -340,7 +322,7 @@ export function initSocket() {
             window.setBalloon(null);
         }
         window.setTargets([]);
-        window.markers = []; // Resetar marcadores globais
+        window.markers = [];
         for (const id in window.otherPlayers) {
             window.scene.remove(window.otherPlayers[id]);
         }
