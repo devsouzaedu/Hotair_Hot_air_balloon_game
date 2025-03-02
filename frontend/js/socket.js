@@ -2,10 +2,9 @@ export function initSocket() {
     window.socket = io('https://hotair-backend.onrender.com');
     const socket = window.socket;
 
-    // Garantir que variáveis globais estejam inicializadas
     window.targets = window.targets || [];
     window.otherPlayers = window.otherPlayers || {};
-    window.balloonColor = window.balloonColor || '#FF4500'; // Vermelho como fallback
+    window.balloonColor = window.balloonColor || '#FF4500';
 
     socket.on('roomCreated', ({ roomName, creator }) => {
         window.roomName = roomName;
@@ -58,6 +57,7 @@ export function initSocket() {
     });
 
     socket.on('startGame', ({ state }) => {
+        console.log('startGame recebido:', state);
         document.getElementById('lobbyScreen').style.display = 'none';
         document.getElementById('gameScreen').style.display = 'block';
         document.getElementById('countdown').textContent = '';
@@ -71,7 +71,13 @@ export function initSocket() {
         }
         const playerName = document.getElementById('playerName').value || 'Jogador';
         window.setBalloon(window.createBalloon(window.balloonColor, playerName));
-        if (window.balloon) window.scene.add(window.balloon);
+        if (window.balloon) {
+            console.log('Adicionando balão à cena:', window.balloon);
+            window.balloon.position.set(0, 100, 0); // Forçar posição inicial visível
+            window.scene.add(window.balloon);
+        } else {
+            console.error('Falha ao criar balão do jogador');
+        }
         document.getElementById('playerNameDisplay').textContent = playerName;
         for (const id in state.players) {
             if (id !== socket.id && state.players[id].color) {
@@ -151,6 +157,7 @@ export function initSocket() {
     });
 
     socket.on('markerDropped', ({ playerId, x, y, z, markers, score }) => {
+        console.log('Marcador solto por:', playerId, 'Restantes:', markers);
         if (playerId === socket.id) {
             document.getElementById('markersLeft').textContent = markers;
             document.getElementById('points').textContent = score;
@@ -222,7 +229,10 @@ export function initSocket() {
             }
             const playerName = document.getElementById('playerName').value || 'Jogador';
             window.setBalloon(window.createBalloon(window.balloonColor, playerName));
-            if (window.balloon) window.scene.add(window.balloon);
+            if (window.balloon) {
+                window.balloon.position.set(0, 100, 0);
+                window.scene.add(window.balloon);
+            }
             document.getElementById('playerNameDisplay').textContent = playerName;
             document.getElementById('colorScreen').style.display = 'none';
             document.getElementById('gameScreen').style.display = 'block';

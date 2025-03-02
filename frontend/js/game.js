@@ -1,7 +1,7 @@
 export function initGame() {
     let scene, camera, renderer, balloon, marker, tail;
     let altitude = 100;
-    let markerDropped = false;
+    window.markerDropped = false; // Inicializa globalmente como false
     let points = 0;
     let bestScore = localStorage.getItem('bestScore') || 0;
     let gameStarted = false;
@@ -11,8 +11,8 @@ export function initGame() {
     let frameCount = 0;
     let fps = 0;
     let isMobile = detectMobile();
-    window.targets = []; // Inicializa globalmente como array vazio
-    window.otherPlayers = {}; // Inicializa globalmente como objeto vazio
+    window.targets = [];
+    window.otherPlayers = {};
     let markers = [];
     let lastTargetMoveTime = Date.now();
     let gameEnded = false;
@@ -94,7 +94,7 @@ export function initGame() {
             downButton.addEventListener('touchend', () => keys.S = false);
             dropButton.addEventListener('touchstart', (e) => {
                 e.preventDefault();
-                if (!markerDropped) dropMarker();
+                if (!window.markerDropped) dropMarker();
             });
         }
 
@@ -168,7 +168,7 @@ export function initGame() {
     }
 
     window.createBalloon = function(color, name) {
-        // Se color for undefined, usar um valor padrão
+        console.log('Criando balão com cor:', color, 'e nome:', name);
         color = color || '#FF4500'; // Vermelho como fallback
         const group = new THREE.Group();
         const basketGeometry = new THREE.BoxGeometry(15, 12, 15);
@@ -212,7 +212,7 @@ export function initGame() {
 
         const loader = new THREE.FontLoader();
         loader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', function(font) {
-            const textGeometry = new THREE.TextGeometry(name, {
+            const textGeometry = new THREE.TextGeometry(name || 'Jogador', {
                 font: font,
                 size: 7,
                 height: 1,
@@ -224,6 +224,7 @@ export function initGame() {
         });
 
         group.position.set(0, altitude, 0);
+        console.log('Balão criado:', group);
         return group;
     };
 
@@ -261,6 +262,7 @@ export function initGame() {
 
     function handleKeyDown(event) {
         if (!gameStarted || gameOver) return;
+        console.log('Tecla pressionada:', event.code, 'markerDropped:', window.markerDropped);
         switch(event.code) {
             case 'KeyW': keys.W = true; break;
             case 'KeyS': keys.S = true; break;
@@ -268,7 +270,10 @@ export function initGame() {
             case 'KeyD': keys.D = true; break;
             case 'KeyU': keys.U = true; break;
             case 'ShiftRight': 
-                if (!markerDropped) dropMarker();
+                if (!window.markerDropped) {
+                    console.log('ShiftRight detectado, soltando marcador');
+                    dropMarker();
+                }
                 break;
         }
     }
@@ -284,8 +289,19 @@ export function initGame() {
     }
 
     function dropMarker() {
-        window.socket.emit('dropMarker', { x: balloon.position.x, y: balloon.position.y - 10, z: balloon.position.z, mode: window.mode, roomName: window.roomName });
-        markerDropped = true;
+        if (!balloon) {
+            console.error('Balão não existe ao tentar soltar marcador');
+            return;
+        }
+        console.log('Soltando marcador na posição:', balloon.position);
+        window.socket.emit('dropMarker', { 
+            x: balloon.position.x, 
+            y: balloon.position.y - 10, 
+            z: balloon.position.z, 
+            mode: window.mode, 
+            roomName: window.roomName 
+        });
+        window.markerDropped = true;
     }
 
     function getCurrentWindLayer() {
@@ -330,7 +346,7 @@ export function initGame() {
         gameOver = false;
         hasLiftedOff = false;
         altitude = 100;
-        markerDropped = false;
+        window.markerDropped = false;
         points = 0;
         document.getElementById('loseScreen').style.display = 'none';
         document.getElementById('gameScreen').style.display = 'block';
@@ -395,10 +411,11 @@ export function initGame() {
 
         updateLayerIndicator(currentLayerIndex);
 
+        // Ajustar a câmera para seguir o balão
         camera.position.x = balloon.position.x;
         camera.position.z = balloon.position.z + 200;
         camera.position.y = balloon.position.y + 200;
-        camera.lookAt(balloon.position.x, balloon.position.y, balloon.position.z - 100);
+        camera.lookAt(balloon.position.x, balloon.position.y, balloon.position.z);
 
         const gpsCanvas = document.getElementById('gpsCanvas');
         const gpsContext = gpsCanvas.getContext('2d');
@@ -437,7 +454,10 @@ export function initGame() {
     window.gameStarted = () => gameStarted = true;
     window.gameOver = () => gameOver = true;
     window.gameEnded = () => gameEnded = true;
-    window.setBalloon = (b) => balloon = b;
+    window.setBalloon = (b) => {
+        console.log('Definindo balão:', b);
+        balloon = b;
+    };
     window.setTargets = (t) => window.targets = t;
     window.setOtherPlayers = (op) => window.otherPlayers = op;
     window.setMarkers = (m) => markers = m;
