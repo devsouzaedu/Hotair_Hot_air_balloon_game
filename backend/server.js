@@ -310,7 +310,7 @@ io.on('connection', (socket) => {
             if (mode === 'world') {
                 worldState.markers[markerId] = markerData;
                 io.to('world').emit('markerDropped', { ...markerData, markers: player.markers, score: player.score, markerId });
-            } else {
+            } else if (rooms[roomName]) {
                 rooms[roomName].markers[markerId] = markerData;
                 io.to(roomName).emit('markerDropped', { ...markerData, markers: player.markers, score: player.score, markerId });
             }
@@ -318,6 +318,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on('markerLanded', ({ x, y, z, mode, roomName, markerId }) => {
+        console.log('markerLanded recebido:', { x, y, z, mode, roomName, markerId });
         const state = mode === 'world' ? worldState : rooms[roomName];
         if (!state) {
             console.error(`Estado não encontrado para mode: ${mode}, roomName: ${roomName}`);
@@ -339,6 +340,8 @@ io.on('connection', (socket) => {
                 io.to(roomName || 'world').emit('targetHitUpdate', { targetIndex: state.currentTargetIndex });
                 state.currentTargetIndex++;
             }
+        } else {
+            console.warn(`Marcador ${markerId} não encontrado em state.markers`);
         }
     });
 

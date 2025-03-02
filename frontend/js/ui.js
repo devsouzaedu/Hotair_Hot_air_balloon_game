@@ -1,8 +1,8 @@
 export function initUI() {
     window.balloonColor = null;
+    window.mode = null; // Inicializa explicitamente
+    window.roomName = null; // Inicializa explicitamente
     let playerName = '';
-    let mode = null;
-    let roomName = null;
 
     document.getElementById('nameButton').addEventListener('click', () => {
         playerName = document.getElementById('playerName').value.trim();
@@ -15,13 +15,13 @@ export function initUI() {
     });
 
     document.getElementById('playNowButton').addEventListener('click', () => {
-        mode = 'world';
+        window.mode = 'world';
         document.getElementById('modeScreen').style.display = 'none';
         document.getElementById('colorScreen').style.display = 'flex';
     });
 
     document.getElementById('roomModeButton').addEventListener('click', () => {
-        mode = 'room';
+        window.mode = 'room';
         document.getElementById('modeScreen').style.display = 'none';
         document.getElementById('roomScreen').style.display = 'flex';
     });
@@ -39,12 +39,14 @@ export function initUI() {
                 console.error('Socket não está inicializado.');
                 return;
             }
-            if (mode === 'world') {
+            if (window.mode === 'world') {
                 window.socket.emit('joinNow', { name: playerName, color: window.balloonColor });
-            } else if (mode === 'room' && roomName) {
-                window.socket.emit('setColor', { roomName, color: window.balloonColor });
-                window.socket.emit('joinRoom', { roomName, playerData: { name: playerName, color: window.balloonColor } });
+            } else if (window.mode === 'room' && window.roomName) {
+                window.socket.emit('setColor', { roomName: window.roomName, color: window.balloonColor });
+                window.socket.emit('joinRoom', { roomName: window.roomName, playerData: { name: playerName, color: window.balloonColor } });
                 document.getElementById('lobbyScreen').style.display = 'flex';
+            } else {
+                console.error('Modo ou nome da sala não definidos:', { mode: window.mode, roomName: window.roomName });
             }
         } else {
             alert("Escolha uma cor!");
@@ -54,12 +56,12 @@ export function initUI() {
     document.getElementById('createRoomButton').addEventListener('click', () => {
         const inputRoomName = document.getElementById('roomName').value.trim();
         if (inputRoomName) {
-            roomName = inputRoomName;
+            window.roomName = inputRoomName;
             if (!window.socket) {
                 console.error('Socket não está inicializado.');
                 return;
             }
-            window.socket.emit('createRoom', { name: roomName });
+            window.socket.emit('createRoom', { name: window.roomName });
         } else {
             alert("Digite o nome da sala!");
         }
@@ -68,12 +70,12 @@ export function initUI() {
     document.getElementById('joinRoomButton').addEventListener('click', () => {
         const inputRoomName = document.getElementById('roomName').value.trim();
         if (inputRoomName) {
-            roomName = inputRoomName;
+            window.roomName = inputRoomName;
             if (!window.socket) {
                 console.error('Socket não está inicializado.');
                 return;
             }
-            window.socket.emit('joinRoom', { roomName, playerData: { name: playerName, color: null } });
+            window.socket.emit('joinRoom', { roomName: window.roomName, playerData: { name: playerName, color: null } });
             document.getElementById('roomScreen').style.display = 'none';
             document.getElementById('colorScreen').style.display = 'flex';
         } else {
@@ -83,7 +85,7 @@ export function initUI() {
 
     document.getElementById('startRoomButton').addEventListener('click', () => {
         if (window.isCreator && window.socket) {
-            window.socket.emit('startRoom', { roomName });
+            window.socket.emit('startRoom', { roomName: window.roomName });
         }
     });
 
