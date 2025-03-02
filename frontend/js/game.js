@@ -22,10 +22,10 @@ export function initGame() {
 
     const windLayers = [
         { minAlt: 0, maxAlt: 100, direction: { x: 0, z: 0 }, speed: 0, name: "Nenhum" },
-        { minAlt: 100, maxAlt: 200, direction: { x: 1, z: 0 }, speed: 4.0, name: "Leste" },  // 4m/s
-        { minAlt: 200, maxAlt: 300, direction: { x: 0, z: 1 }, speed: 4.0, name: "Sul" },    // 4m/s
-        { minAlt: 300, maxAlt: 400, direction: { x: -1, z: 0 }, speed: 4.0, name: "Oeste" }, // 4m/s
-        { minAlt: 400, maxAlt: 500, direction: { x: 0, z: -1 }, speed: 6.0, name: "Norte" }  // 6m/s
+        { minAlt: 100, maxAlt: 200, direction: { x: 1, z: 0 }, speed: 0.4, name: "Leste" },  // 0.4m/s
+        { minAlt: 200, maxAlt: 300, direction: { x: 0, z: 1 }, speed: 0.4, name: "Sul" },    // 0.4m/s
+        { minAlt: 300, maxAlt: 400, direction: { x: -1, z: 0 }, speed: 0.4, name: "Oeste" }, // 0.4m/s
+        { minAlt: 400, maxAlt: 500, direction: { x: 0, z: -1 }, speed: 0.6, name: "Norte" }  // 0.6m/s
     ];
 
     const keys = { W: false, S: false, E: false, Q: false }; // Novos controles
