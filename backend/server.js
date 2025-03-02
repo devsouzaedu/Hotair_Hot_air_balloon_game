@@ -303,6 +303,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on('dropMarker', ({ x, y, z, mode, roomName, markerId }) => {
+        console.log('dropMarker recebido:', { x, y, z, mode, roomName, markerId });
         const player = mode === 'world' ? worldState.players[socket.id] : rooms[roomName]?.players[socket.id];
         if (player && player.markers > 0 && !player.isBot) {
             player.markers--;
@@ -313,15 +314,37 @@ io.on('connection', (socket) => {
             } else if (rooms[roomName]) {
                 rooms[roomName].markers[markerId] = markerData;
                 io.to(roomName).emit('markerDropped', { ...markerData, markers: player.markers, score: player.score, markerId });
+            } else {
+                console.error(`Sala ${roomName} não encontrada para mode: ${mode}`);
             }
+        } else {
+            console.warn(`Jogador ${socket.id} não pode soltar marcador:`, { markers: player?.markers, isBot: player?.isBot });
         }
     });
 
     socket.on('markerLanded', ({ x, y, z, mode, roomName, markerId }) => {
         console.log('markerLanded recebido:', { x, y, z, mode, roomName, markerId });
-        const state = mode === 'world' ? worldState : rooms[roomName];
+        const state = mode === 'world' ? worldState : (rooms[roomName] || null);
         if (!state) {
-            console.error(`Estado não encontrado para mode: ${mode}, roomName: ${roomName}`);
+            console.error(`Estado não encontrado para mode: ${mode}, roomName: ${roomName}. Usando worldState como fallback`);
+            // Fallback para worldState se mode ou roomName estiverem inválidos
+            if (worldState.markers[markerId]) {
+                worldState.markers[markerId].x = x;
+                worldState.markers[markerId].y = y;
+                worldState.markers[markerId].z = z;
+                io.to('world').emit('markerLanded', { x, y, z, playerId: worldState.markers[markerId].playerId, markerId });
+                const targets = worldState.targets;
+                const dx = x - targets[0].x;
+                const dz = z - targets[0].z;
+                const distance = Math.sqrt(dx * dx + dz * dz);
+                const player = worldState.players[worldState.markers[markerId].playerId];
+                if (distance < 40 && player) {
+                    const score = calculateScore(distance);
+                    player.score += score;
+                    io.to('world').emit('targetHitUpdate', { targetIndex: worldState.currentTargetIndex });
+                    worldState.currentTargetIndex++;
+                }
+            }
             return;
         }
         if (state.markers[markerId]) {

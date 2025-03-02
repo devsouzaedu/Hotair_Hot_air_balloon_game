@@ -308,8 +308,8 @@ export function initGame() {
             x: markerStartPos.x, 
             y: markerStartPos.y, 
             z: markerStartPos.z, 
-            mode: window.mode, 
-            roomName: window.roomName,
+            mode: window.mode || 'world', // Fallback para 'world' se undefined
+            roomName: window.roomName || null, // Fallback para null se undefined
             markerId
         });
         window.markerDropped = true;
@@ -333,8 +333,8 @@ export function initGame() {
                     x: marker.position.x, 
                     y: marker.position.y, 
                     z: marker.position.z, 
-                    mode: window.mode, 
-                    roomName: window.roomName,
+                    mode: window.mode || 'world', // Fallback para 'world' se undefined
+                    roomName: window.roomName || null, // Fallback para null se undefined
                     markerId
                 });
             }
@@ -422,7 +422,7 @@ export function initGame() {
         window.balloon.position.set(0, altitude, 0);
         scene.add(window.balloon);
         document.getElementById('markersLeft').textContent = window.markersLeft;
-        window.socket.emit('updatePosition', { x: window.balloon.position.x, y: window.balloon.position.y, z: window.balloon.position.z, mode: window.mode, roomName: window.roomName });
+        window.socket.emit('updatePosition', { x: window.balloon.position.x, y: window.balloon.position.y, z: window.balloon.position.z, mode: window.mode || 'world', roomName: window.roomName || null });
     };
 
     function animate() {
@@ -471,7 +471,7 @@ export function initGame() {
 
         balloon.rotation.y += 0.001;
 
-        window.socket.emit('updatePosition', { x: balloon.position.x, y: balloon.position.y, z: balloon.position.z, mode: window.mode, roomName: window.roomName });
+        window.socket.emit('updatePosition', { x: balloon.position.x, y: balloon.position.y, z: balloon.position.z, mode: window.mode || 'world', roomName: window.roomName || null });
 
         document.getElementById('altitude').textContent = `${Math.floor(altitude)}m`;
         const dx = balloon.position.x - (window.targets[0]?.x || 0);
