@@ -91,9 +91,14 @@ function updateMarkersGravity(state, roomName = null) {
                 const dx = marker.x - targets[0].x;
                 const dz = marker.z - targets[0].z;
                 const distance = Math.sqrt(dx * dx + dz * dz);
-                if (distance < 40 && marker.playerId === marker.playerId) {
-                    io.to(roomName || 'world').emit('targetHitUpdate', { targetIndex: state.currentTargetIndex });
-                    state.currentTargetIndex++;
+                if (distance < 40) {
+                    const player = state.players[marker.playerId];
+                    if (player) {
+                        const score = calculateScore(distance);
+                        player.score += score;
+                        io.to(roomName || 'world').emit('targetHitUpdate', { targetIndex: state.currentTargetIndex });
+                        state.currentTargetIndex++;
+                    }
                 }
             }
         }
@@ -194,8 +199,7 @@ function updateBots() {
             bot.x = Math.max(-mapSize / 2, Math.min(mapSize / 2, bot.x));
             bot.z = Math.max(-mapSize / 2, Math.min(mapSize / 2, bot.z));
 
-            // Bots soltam marcas eventualmente (1 por minuto em média)
-            if (bot.markers > 0 && Math.random() < 0.0017) { // 0.17% de chance por ciclo (100ms)
+            if (bot.markers > 0 && Math.random() < 0.0017) {
                 const markerId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
                 const markerData = {
                     playerId: bot.id,
@@ -430,7 +434,9 @@ setInterval(() => {
     const elapsedWorld = (Date.now() - worldState.startTime) / 1000;
     const timeLeft = Math.max(300 - elapsedWorld, 0);
 
-    if ((Date.now() - worldState.lastTargetMoveTime) / 1000 >= 60 && elapsedWorld < 290) {
+    // Sincronizar movimento do alvo com a virada do minuto
+    const secondsElapsed = elapsedWorld % 60;
+    if (secondsElapsed < 0.1 && elapsedWorld < 290 && Date.now() - worldState.lastTargetMoveTime >= 59 * 1000) {
         moveTarget(worldState);
     }
 
@@ -451,7 +457,8 @@ setInterval(() => {
             const elapsed = (Date.now() - room.startTime) / 1000;
             const roomTimeLeft = Math.max(300 - elapsed, 0);
 
-            if ((Date.now() - room.lastTargetMoveTime) / 1000 >= 60 && elapsed < 290) {
+            const roomSecondsElapsed = elapsed % 60;
+            if (roomSecondsElapsed < 0.1 && elapsed < 290 && Date.now() - room.lastTargetMoveTime >= 59 * 1000) {
                 moveTarget(room);
             }
 

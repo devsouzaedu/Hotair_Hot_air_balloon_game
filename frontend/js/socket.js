@@ -163,9 +163,9 @@ export function initSocket() {
             window.scene.add(newTargetMesh);
         }
 
-        const timeSinceLastMove = (Date.now() - window.lastTargetMoveTime) / 1000;
-        const timeUntilNextMove = Math.max(60 - timeSinceLastMove, 0);
-        document.getElementById('targetMoveTimer').textContent = `Próxima mudança de alvo: ${Math.floor(timeUntilNextMove)}s`;
+        // Sincronizar o contador de alvo com o tempo restante
+        const secondsLeftInMinute = Math.ceil(60 - (timeLeft % 60));
+        document.getElementById('targetMoveTimer').textContent = `Próxima mudança de alvo: ${secondsLeftInMinute}s`;
 
         for (const id in currentState.players) {
             if (id !== socket.id) {
@@ -294,7 +294,7 @@ export function initSocket() {
                 const playerDiv = document.createElement('div');
                 if (index === 0) {
                     playerDiv.textContent = `🏆 Campeão: ${player.name} - ${player.score} pontos`;
-                    playerDiv.style.color = '#FFD700'; // Ouro para o campeão
+                    playerDiv.style.color = '#FFD700';
                     playerDiv.style.fontWeight = 'bold';
                 } else {
                     playerDiv.textContent = `${index + 1}. ${player.name} - ${player.score} pontos`;
@@ -302,7 +302,6 @@ export function initSocket() {
                 leaderboardList.appendChild(playerDiv);
             });
 
-            // Adicionar countdown de 7 segundos
             const countdownDiv = document.createElement('div');
             countdownDiv.id = 'restartCountdown';
             countdownDiv.style.textAlign = 'center';
@@ -324,37 +323,39 @@ export function initSocket() {
 
     socket.on('gameReset', ({ state }) => {
         console.log('gameReset recebido:', state);
-        document.getElementById('leaderboardScreen').style.display = 'none';
-        document.getElementById('gameScreen').style.display = 'block';
+        if (document.getElementById('leaderboardScreen').style.display === 'block') {
+            document.getElementById('leaderboardScreen').style.display = 'none';
+            document.getElementById('gameScreen').style.display = 'block';
 
-        window.gameOver = false;
-        window.gameEnded = false;
-        window.setTargets(state.targets || []);
-        window.lastTargetMoveTime = state.lastTargetMoveTime || Date.now();
-        window.scene.remove(window.balloon);
-        const playerName = document.getElementById('playerName').value || 'Jogador';
-        window.setBalloon(window.createBalloon(window.balloonColor, playerName));
-        if (window.balloon) {
-            window.balloon.position.set(0, 100, 0);
-            window.scene.add(window.balloon);
-        }
-        window.markersLeft = 5;
-        document.getElementById('points').textContent = '0';
-        document.getElementById('markersLeft').textContent = window.markersLeft;
+            window.gameOver = false;
+            window.gameEnded = false;
+            window.setTargets(state.targets || []);
+            window.lastTargetMoveTime = state.lastTargetMoveTime || Date.now();
+            window.scene.remove(window.balloon);
+            const playerName = document.getElementById('playerName').value || 'Jogador';
+            window.setBalloon(window.createBalloon(window.balloonColor, playerName));
+            if (window.balloon) {
+                window.balloon.position.set(0, 100, 0);
+                window.scene.add(window.balloon);
+            }
+            window.markersLeft = 5;
+            document.getElementById('points').textContent = '0';
+            document.getElementById('markersLeft').textContent = window.markersLeft;
 
-        window.scene.children.filter(obj => obj instanceof THREE.Group && obj.position.y === 0.1).forEach(obj => window.scene.remove(obj));
-        if (Array.isArray(window.targets)) {
-            window.targets.forEach(target => {
-                const targetMesh = window.createTarget(target.x, target.z);
-                window.scene.add(targetMesh);
+            window.scene.children.filter(obj => obj instanceof THREE.Group && obj.position.y === 0.1).forEach(obj => window.scene.remove(obj));
+            if (Array.isArray(window.targets)) {
+                window.targets.forEach(target => {
+                    const targetMesh = window.createTarget(target.x, target.z);
+                    window.scene.add(targetMesh);
+                });
+            }
+
+            window.markers.forEach(({ marker, tail }) => {
+                window.scene.remove(marker);
+                window.scene.remove(tail);
             });
+            window.setMarkers([]);
         }
-
-        window.markers.forEach(({ marker, tail }) => {
-            window.scene.remove(marker);
-            window.scene.remove(tail);
-        });
-        window.setMarkers([]);
     });
 
     function resetGameState() {
