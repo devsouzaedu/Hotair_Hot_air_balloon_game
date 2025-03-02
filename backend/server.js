@@ -1,9 +1,12 @@
 const express = require('express');
 const http = require('http');
 const socketIO = require('socket.io');
+const cors = require('cors'); // Adicionado para reforçar CORS
 const path = require('path');
 const app = express();
 const server = http.createServer(app);
+
+// Configuração reforçada de CORS para Socket.IO
 const io = socketIO(server, {
     cors: {
         origin: "https://devsouzaedu.github.io",
@@ -11,7 +14,16 @@ const io = socketIO(server, {
         credentials: false
     }
 });
+
 const PORT = process.env.PORT || 3000;
+
+// Middleware CORS para Express
+app.use(cors({
+    origin: 'https://devsouzaedu.github.io',
+    methods: ['GET', 'POST'],
+    allowedHeaders: ['Content-Type'],
+    credentials: false
+}));
 
 let worldState = { 
     players: {}, 
@@ -63,7 +75,7 @@ app.get('/', (req, res) => {
 });
 
 function updateMarkersGravity(state, roomName = null) {
-    const fallSpeed = 0.5; // Ajustado para corresponder ao frontend
+    const fallSpeed = 0.5; // Sincronizado com o frontend
     for (const markerId in state.markers) {
         const marker = state.markers[markerId];
         if (marker.y > 0) {
@@ -192,7 +204,7 @@ io.on('connection', (socket) => {
             x: 0,
             z: 0,
             y: 100,
-            markers: 5, // Aumentado para 5
+            markers: 5,
             score: 0,
             isBot: false
         };
@@ -225,7 +237,7 @@ io.on('connection', (socket) => {
             x: 0,
             z: 0,
             y: 100,
-            markers: 5, // Aumentado para 5
+            markers: 5,
             score: 0,
             isBot: false
         };
@@ -242,7 +254,7 @@ io.on('connection', (socket) => {
                 x: 0,
                 z: 0,
                 y: 100,
-                markers: 5, // Aumentado para 5
+                markers: 5,
                 score: 0,
                 isBot: false
             };
@@ -405,7 +417,7 @@ setInterval(() => {
             }
         }
     }
-}, 100); // Atualiza a cada 100ms
+}, 100);
 
 function resetWorldState() {
     worldState = {
