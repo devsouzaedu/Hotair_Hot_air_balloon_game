@@ -11,7 +11,7 @@ export function initGame() {
     let frameCount = 0;
     let fps = 0;
     let isMobile = detectMobile();
-    let targets = [];
+    window.targets = []; // Inicializa globalmente como array vazio
     let otherPlayers = {};
     let markers = [];
     let lastTargetMoveTime = Date.now();
@@ -383,8 +383,8 @@ export function initGame() {
         window.socket.emit('updatePosition', { x: balloon.position.x, y: balloon.position.y, z: balloon.position.z, mode: window.mode, roomName: window.roomName });
 
         document.getElementById('altitude').textContent = `${Math.floor(altitude)}m`;
-        const dx = balloon.position.x - (targets[0]?.x || 0);
-        const dz = balloon.position.z - (targets[0]?.z || 0);
+        const dx = balloon.position.x - (window.targets[0]?.x || 0);
+        const dz = balloon.position.z - (window.targets[0]?.z || 0);
         const distance = Math.sqrt(dx * dx + dz * dz);
         document.getElementById('distanceToTarget').textContent = `${Math.floor(distance)}m`;
         document.getElementById('windDirection').textContent = getWindDirectionText(currentLayerIndex);
@@ -417,7 +417,7 @@ export function initGame() {
         gpsContext.arc(balloonX, balloonZ, 5, 0, Math.PI * 2);
         gpsContext.fill();
 
-        targets.forEach(target => {
+        window.targets.forEach(target => {
             const targetX = centerX + (target.x * gpsScale);
             const targetZ = centerZ - (target.z * gpsScale);
             gpsContext.fillStyle = '#FF0000';
@@ -425,8 +425,8 @@ export function initGame() {
         });
 
         const direction = getDirectionToTarget(balloonX, balloonZ, 
-            centerX + (targets[0]?.x * gpsScale) || centerX, 
-            centerZ - (targets[0]?.z * gpsScale) || centerZ);
+            centerX + (window.targets[0]?.x * gpsScale) || centerX, 
+            centerZ - (window.targets[0]?.z * gpsScale) || centerZ);
         document.getElementById('gpsDirection').textContent = `Direção: ${direction}`;
 
         renderer.render(scene, camera);
@@ -436,7 +436,7 @@ export function initGame() {
     window.gameOver = () => gameOver = true;
     window.gameEnded = () => gameEnded = true;
     window.setBalloon = (b) => balloon = b;
-    window.setTargets = (t) => targets = t;
+    window.setTargets = (t) => window.targets = t;
     window.setOtherPlayers = (op) => otherPlayers = op;
     window.setMarkers = (m) => markers = m;
     window.scene = scene;

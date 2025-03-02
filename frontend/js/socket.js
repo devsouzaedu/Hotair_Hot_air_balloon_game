@@ -2,6 +2,9 @@ export function initSocket() {
     window.socket = io('https://hotair-backend.onrender.com');
     const socket = window.socket;
 
+    // Garantir que window.targets seja um array desde o início
+    window.targets = window.targets || [];
+
     socket.on('roomCreated', ({ roomName, creator }) => {
         window.roomName = roomName;
         window.isCreator = (creator === socket.id);
@@ -56,12 +59,14 @@ export function initSocket() {
         document.getElementById('lobbyScreen').style.display = 'none';
         document.getElementById('gameScreen').style.display = 'block';
         document.getElementById('countdown').textContent = '';
-        window.setTargets(state.targets);
+        window.setTargets(state.targets || []); // Garante que targets seja um array
         window.lastTargetMoveTime = state.lastTargetMoveTime || Date.now();
-        window.targets.forEach(target => {
-            const targetMesh = window.createTarget(target.x, target.z);
-            window.scene.add(targetMesh);
-        });
+        if (Array.isArray(window.targets)) {
+            window.targets.forEach(target => {
+                const targetMesh = window.createTarget(target.x, target.z);
+                window.scene.add(targetMesh);
+            });
+        }
         window.setBalloon(window.createBalloon(window.balloonColor, document.getElementById('playerName').value));
         window.scene.add(window.balloon);
         document.getElementById('playerNameDisplay').textContent = document.getElementById('playerName').value;
@@ -79,7 +84,8 @@ export function initSocket() {
     socket.on('gameUpdate', ({ state, timeLeft }) => {
         const currentState = window.mode === 'world' ? state : state;
 
-        if (state.targets && (state.targets[0].x !== window.targets[0]?.x || state.targets[0].z !== window.targets[0]?.z)) {
+        if (state.targets && Array.isArray(state.targets) && 
+            (!window.targets.length || state.targets[0].x !== window.targets[0]?.x || state.targets[0].z !== window.targets[0]?.z)) {
             window.lastTargetMoveTime = Date.now();
             window.scene.children.filter(obj => 
                 obj instanceof THREE.Group && 
@@ -203,12 +209,14 @@ export function initSocket() {
 
     socket.on('gameState', ({ mode: gameMode, state }) => {
         if (gameMode === 'world') {
-            window.setTargets(state.targets);
+            window.setTargets(state.targets || []);
             window.lastTargetMoveTime = state.lastTargetMoveTime || Date.now();
-            window.targets.forEach(target => {
-                const targetMesh = window.createTarget(target.x, target.z);
-                window.scene.add(targetMesh);
-            });
+            if (Array.isArray(window.targets)) {
+                window.targets.forEach(target => {
+                    const targetMesh = window.createTarget(target.x, target.z);
+                    window.scene.add(targetMesh);
+                });
+            }
             window.setBalloon(window.createBalloon(window.balloonColor, document.getElementById('playerName').value));
             window.scene.add(window.balloon);
             document.getElementById('playerNameDisplay').textContent = document.getElementById('playerName').value;
@@ -232,7 +240,7 @@ export function initSocket() {
 
         window.gameOver = false;
         window.gameEnded = false;
-        window.setTargets(state.targets);
+        window.setTargets(state.targets || []);
         window.lastTargetMoveTime = state.lastTargetMoveTime || Date.now();
         window.scene.remove(window.balloon);
         window.setBalloon(window.createBalloon(window.balloonColor, document.getElementById('playerName').value));
@@ -242,10 +250,12 @@ export function initSocket() {
         document.getElementById('markersLeft').textContent = '3';
 
         window.scene.children.filter(obj => obj instanceof THREE.Group && obj.position.y === 0.1).forEach(obj => window.scene.remove(obj));
-        window.targets.forEach(target => {
-            const targetMesh = window.createTarget(target.x, target.z);
-            window.scene.add(targetMesh);
-        });
+        if (Array.isArray(window.targets)) {
+            window.targets.forEach(target => {
+                const targetMesh = window.createTarget(target.x, target.z);
+                window.scene.add(targetMesh);
+            });
+        }
 
         window.markers.forEach(({ marker, tail }) => {
             window.scene.remove(marker);
