@@ -5,6 +5,7 @@ export function initSocket() {
     window.targets = window.targets || [];
     window.otherPlayers = window.otherPlayers || {};
     window.balloonColor = window.balloonColor || '#FF4500';
+    window.markersLeft = 5; // Inicializa com 5 marcas
 
     socket.on('roomCreated', ({ roomName, creator }) => {
         window.roomName = roomName;
@@ -79,6 +80,7 @@ export function initSocket() {
             console.error('Falha ao criar balão do jogador');
         }
         document.getElementById('playerNameDisplay').textContent = playerName;
+        document.getElementById('markersLeft').textContent = window.markersLeft;
         for (const id in state.players) {
             if (id !== socket.id && state.players[id].color) {
                 const otherBalloon = window.createBalloon(state.players[id].color, state.players[id].name);
@@ -149,20 +151,43 @@ export function initSocket() {
             existingTail.position.set(markerData.x, markerData.y, markerData.z);
         }
 
-        document.getElementById('markersLeft').textContent = currentState.players[socket.id]?.markers || 3;
+        document.getElementById('markersLeft').textContent = currentState.players[socket.id]?.markers || window.markersLeft;
         document.getElementById('points').textContent = currentState.players[socket.id]?.score || 0;
         const minutes = Math.floor(timeLeft / 60);
         const seconds = Math.floor(timeLeft % 60);
         document.getElementById('timerDisplay').textContent = `Tempo Restante: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
     });
 
-    socket.on('markerDropped', ({ playerId, x, y, z, markers, score }) => {
+    socket.on('markerDropped', ({ playerId, x, y, z, markers, score, markerId }) => {
         console.log('Marcador solto por:', playerId, 'Restantes:', markers);
         if (playerId === socket.id) {
+            window.markersLeft = markers;
             document.getElementById('markersLeft').textContent = markers;
             document.getElementById('points').textContent = score;
-            window.markerDropped = true;
+            window.markerDropped = false; // Permite soltar outra marca
+            if (markers === 0) {
+                window.showNoMarkersMessage();
+            }
         }
+    });
+
+    socket.on('markerLanded', ({ x, y, z, playerId, markerId }) => {
+        console.log('Marcador pousou em:', { x, y, z }, 'por:', playerId);
+        let existingMarker = window.markers.find(m => m.marker.userData.markerId === markerId)?.marker;
+        let existingTail = window.markers.find(m => m.tail.userData.markerId === markerId)?.tail;
+
+        if (!existingMarker) {
+            existingMarker = new THREE.Mesh(new THREE.SphereGeometry(4.5, 16, 16), new THREE.MeshLambertMaterial({ color: 0x0000FF }));
+            existingTail = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, -45, 0)]), new THREE.LineBasicMaterial({ color: 0xFFFFFF }));
+            existingMarker.userData = { playerId, type: 'marker', markerId };
+            existingTail.userData = { playerId, type: 'tail', markerId };
+            window.scene.add(existingMarker);
+            window.scene.add(existingTail);
+            window.markers.push({ marker: existingMarker, tail: existingTail, playerId });
+        }
+
+        existingMarker.position.set(x, y, z);
+        existingTail.position.set(x, y, z);
     });
 
     socket.on('targetHitUpdate', ({ targetIndex }) => {
@@ -234,6 +259,7 @@ export function initSocket() {
                 window.scene.add(window.balloon);
             }
             document.getElementById('playerNameDisplay').textContent = playerName;
+            document.getElementById('markersLeft').textContent = window.markersLeft;
             document.getElementById('colorScreen').style.display = 'none';
             document.getElementById('gameScreen').style.display = 'block';
             for (const id in state.players) {
@@ -263,8 +289,9 @@ export function initSocket() {
             window.balloon.position.set(0, 100, 0);
             window.scene.add(window.balloon);
         }
+        window.markersLeft = 5; // Resetar para 5 marcas
         document.getElementById('points').textContent = '0';
-        document.getElementById('markersLeft').textContent = '3';
+        document.getElementById('markersLeft').textContent = window.markersLeft;
 
         window.scene.children.filter(obj => obj instanceof THREE.Group && obj.position.y === 0.1).forEach(obj => window.scene.remove(obj));
         if (Array.isArray(window.targets)) {
@@ -284,6 +311,7 @@ export function initSocket() {
     function resetGameState() {
         window.gameStarted = false;
         window.markerDropped = false;
+        window.markersLeft = 5; // Resetar para 5 marcas
         if (window.balloon) {
             window.scene.remove(window.balloon);
             window.setBalloon(null);

@@ -1,9 +1,10 @@
 export function initGame() {
     let scene, camera, renderer;
-    let balloon; // Será sincronizado com window.balloon
+    let balloon;
     let marker, tail;
     let altitude = 100;
-    window.markerDropped = false;
+    window.markerDropped = false; // Controla se uma marca está sendo solta
+    window.markersLeft = 5; // Aumentado de 3 para 5 marcas
     let points = 0;
     let bestScore = localStorage.getItem('bestScore') || 0;
     let gameStarted = false;
@@ -15,7 +16,7 @@ export function initGame() {
     let isMobile = detectMobile();
     window.targets = [];
     window.otherPlayers = {};
-    let markers = [];
+    let markers = []; // Lista de marcadores locais
     let lastTargetMoveTime = Date.now();
     let gameEnded = false;
 
@@ -30,6 +31,7 @@ export function initGame() {
     const keys = { W: false, S: false, A: false, D: false, U: false, SHIFT_RIGHT: false };
 
     document.getElementById('bestScore').textContent = bestScore;
+    document.getElementById('markersLeft').textContent = window.markersLeft; // Inicializa UI com 5
     if (isMobile) {
         document.getElementById('mobileControls').style.display = 'flex';
         document.getElementById('controlsInfo').textContent = 'Use os botões para jogar';
@@ -264,7 +266,7 @@ export function initGame() {
 
     function handleKeyDown(event) {
         if (!gameStarted || gameOver) return;
-        console.log('Tecla pressionada:', event.code, 'markerDropped:', window.markerDropped);
+        console.log('Tecla pressionada:', event.code, 'markerDropped:', window.markerDropped, 'markersLeft:', window.markersLeft);
         switch(event.code) {
             case 'KeyW': keys.W = true; break;
             case 'KeyS': keys.S = true; break;
@@ -272,7 +274,7 @@ export function initGame() {
             case 'KeyD': keys.D = true; break;
             case 'KeyU': keys.U = true; break;
             case 'ShiftRight': 
-                if (!window.markerDropped) {
+                if (!window.markerDropped && window.markersLeft > 0) {
                     console.log('ShiftRight detectado, soltando marcador');
                     dropMarker();
                 }
@@ -296,18 +298,75 @@ export function initGame() {
             return;
         }
         console.log('Soltando marcador na posição:', window.balloon.position);
-        window.socket.emit('dropMarker', { 
+        const markerStartPos = { 
             x: window.balloon.position.x, 
             y: window.balloon.position.y - 10, 
-            z: window.balloon.position.z, 
+            z: window.balloon.position.z 
+        };
+        window.socket.emit('dropMarker', { 
+            x: markerStartPos.x, 
+            y: markerStartPos.y, 
+            z: markerStartPos.z, 
             mode: window.mode, 
             roomName: window.roomName 
         });
         window.markerDropped = true;
-        marker.position.set(window.balloon.position.x, window.balloon.position.y - 10, window.balloon.position.z);
+        marker.position.set(markerStartPos.x, markerStartPos.y, markerStartPos.z);
         marker.visible = true;
-        tail.position.set(window.balloon.position.x, window.balloon.position.y - 10, window.balloon.position.z);
+        tail.position.set(markerStartPos.x, markerStartPos.y, markerStartPos.z);
         tail.visible = true;
+
+        // Adicionar gravidade local
+        const gravity = -0.5; // Aceleração da gravidade (m/s²)
+        let velocityY = 0;
+        function fallMarker() {
+            if (marker.position.y > 0) {
+                velocityY += gravity;
+                marker.position.y += velocityY;
+                tail.position.y += velocityY;
+                requestAnimationFrame(fallMarker);
+            } else {
+                marker.position.y = 0;
+                tail.position.y = 0;
+                window.socket.emit('markerLanded', { 
+                    x: marker.position.x, 
+                    y: marker.position.y, 
+                    z: marker.position.z, 
+                    mode: window.mode, 
+                    roomName: window.roomName 
+                });
+            }
+        }
+        fallMarker();
+    }
+
+    function showNoMarkersMessage() {
+        const message = document.createElement('div');
+        message.textContent = "Suas marcas acabaram";
+        message.style.position = 'absolute';
+        message.style.top = '50%';
+        message.style.left = '50%';
+        message.style.transform = 'translate(-50%, -50%)';
+        message.style.color = 'white';
+        message.style.fontSize = '2em';
+        message.style.background = 'rgba(0, 0, 0, 0.7)';
+        message.style.padding = '10px 20px';
+        message.style.borderRadius = '5px';
+        message.style.zIndex = '1001';
+        message.style.animation = 'fadeOut 3s forwards';
+        document.getElementById('gameScreen').appendChild(message);
+
+        // Adicionar animação CSS via código
+        const styleSheet = document.styleSheets[0];
+        styleSheet.insertRule(`
+            @keyframes fadeOut {
+                0% { opacity: 1; }
+                80% { opacity: 1; }
+                100% { opacity: 0; }
+            }
+        `, styleSheet.cssRules.length);
+
+        setTimeout(() => message.remove(), 3000);
     }
 
     function getCurrentWindLayer() {
@@ -353,6 +412,7 @@ export function initGame() {
         hasLiftedOff = false;
         altitude = 100;
         window.markerDropped = false;
+        window.markersLeft = 5; // Resetar para 5 marcas
         points = 0;
         document.getElementById('loseScreen').style.display = 'none';
         document.getElementById('gameScreen').style.display = 'block';
@@ -360,6 +420,7 @@ export function initGame() {
         window.balloon = window.createBalloon(window.balloonColor, document.getElementById('playerName').value);
         window.balloon.position.set(0, altitude, 0);
         scene.add(window.balloon);
+        document.getElementById('markersLeft').textContent = window.markersLeft;
         window.socket.emit('updatePosition', { x: window.balloon.position.x, y: window.balloon.position.y, z: window.balloon.position.z, mode: window.mode, roomName: window.roomName });
     };
 
@@ -375,7 +436,6 @@ export function initGame() {
             document.getElementById('fpsCount').textContent = fps;
         }
 
-        // Sincronizar balloon local com window.balloon em cada frame
         if (window.balloon && !balloon) {
             balloon = window.balloon;
             console.log('Sincronizando balloon local com window.balloon:', balloon);
@@ -477,5 +537,6 @@ export function initGame() {
     window.setTargets = (t) => window.targets = t;
     window.setOtherPlayers = (op) => window.otherPlayers = op;
     window.setMarkers = (m) => markers = m;
+    window.showNoMarkersMessage = showNoMarkersMessage; // Expor função para socket.js
     window.scene = scene;
 }
