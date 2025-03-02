@@ -1,3 +1,4 @@
+// game.js
 export function initGame() {
     let scene, camera, renderer;
     let balloon;
@@ -30,11 +31,19 @@ export function initGame() {
 
     const keys = { W: false, S: false, A: false, D: false, U: false, SHIFT_RIGHT: false };
 
-    document.getElementById('bestScore').textContent = bestScore;
-    document.getElementById('markersLeft').textContent = window.markersLeft;
+    const bestScoreElement = document.getElementById('bestScore');
+    if (bestScoreElement) bestScoreElement.textContent = bestScore;
+    else console.error('Elemento bestScore não encontrado');
+
+    const markersLeftElement = document.getElementById('markersLeft');
+    if (markersLeftElement) markersLeftElement.textContent = window.markersLeft;
+    else console.error('Elemento markersLeft não encontrado');
+
+    const mobileControls = document.getElementById('mobileControls');
+    const controlsInfo = document.getElementById('controlsInfo');
     if (isMobile) {
-        document.getElementById('mobileControls').style.display = 'flex';
-        document.getElementById('controlsInfo').textContent = 'Use os botões para jogar';
+        if (mobileControls) mobileControls.style.display = 'flex';
+        if (controlsInfo) controlsInfo.textContent = 'Use os botões para jogar';
     }
 
     initThreeJS();

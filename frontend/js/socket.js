@@ -1,3 +1,4 @@
+// socket.js
 export function initSocket() {
     if (typeof io === 'undefined') {
         console.error('Socket.IO não foi carregado corretamente.');
@@ -81,7 +82,12 @@ export function initSocket() {
         document.getElementById('lobbyScreen').style.display = 'none';
         document.getElementById('gameScreen').style.display = 'block';
         document.getElementById('countdown').textContent = '';
-        window.setTargets(state.targets || []);
+        if (typeof window.setTargets === 'function') {
+            window.setTargets(state.targets || []);
+        } else {
+            console.error('window.setTargets não está definido ainda');
+            window.targets = state.targets || [];
+        }
         window.lastTargetMoveTime = state.lastTargetMoveTime || Date.now();
         if (Array.isArray(window.targets)) {
             window.targets.forEach(target => {
@@ -114,7 +120,12 @@ export function initSocket() {
     socket.on('gameState', ({ mode: gameMode, state }) => {
         console.log('gameState recebido:', state);
         if (gameMode === 'world') {
-            window.setTargets(state.targets || []);
+            if (typeof window.setTargets === 'function') {
+                window.setTargets(state.targets || []);
+            } else {
+                console.error('window.setTargets não está definido ainda');
+                window.targets = state.targets || [];
+            }
             window.lastTargetMoveTime = state.lastTargetMoveTime || Date.now();
             if (Array.isArray(window.targets)) {
                 window.targets.forEach(target => {
@@ -153,14 +164,16 @@ export function initSocket() {
         if (state.targets && Array.isArray(state.targets) && 
             (!window.targets.length || state.targets[0].x !== window.targets[0]?.x || state.targets[0].z !== window.targets[0]?.z)) {
             window.lastTargetMoveTime = Date.now();
-            window.scene.children.filter(obj => 
-                obj instanceof THREE.Group && 
-                obj.position.x === window.targets[0]?.x && 
-                obj.position.z === window.targets[0]?.z
-            ).forEach(obj => window.scene.remove(obj));
+            if (window.scene && window.scene.children) {
+                window.scene.children.filter(obj => 
+                    obj instanceof THREE.Group && 
+                    obj.position.x === window.targets[0]?.x && 
+                    obj.position.z === window.targets[0]?.z
+                ).forEach(obj => window.scene.remove(obj));
+            }
             window.setTargets(state.targets);
             const newTargetMesh = window.createTarget(window.targets[0].x, window.targets[0].z);
-            window.scene.add(newTargetMesh);
+            if (window.scene) window.scene.add(newTargetMesh);
         }
 
         const secondsLeftInMinute = Math.ceil(60 - (timeLeft % 60));
@@ -235,8 +248,12 @@ export function initSocket() {
             existingTail = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, -45, 0)]), new THREE.LineBasicMaterial({ color: 0xFFFFFF }));
             existingMarker.userData = { playerId, type: 'marker', markerId };
             existingTail.userData = { playerId, type: 'tail', markerId };
-            window.scene.add(existingMarker);
-            window.scene.add(existingTail);
+            if (window.scene) {
+                window.scene.add(existingMarker);
+                window.scene.add(existingTail);
+            } else {
+                console.error('window.scene não está definido ao adicionar marcador');
+            }
             window.markers.push({ marker: existingMarker, tail: existingTail, playerId });
         }
 
