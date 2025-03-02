@@ -35,10 +35,9 @@ const rooms = {};
 
 function generateTarget() {
     const mapSize = 2600;
-    const minDistance = mapSize / 4; // Mínimo de 650 unidades do centro
-    const maxDistance = mapSize / 2; // Máximo de 1300 unidades do centro
+    const maxDistance = 300;
     const angle = Math.random() * 2 * Math.PI;
-    const distance = minDistance + Math.random() * (maxDistance - minDistance);
+    const distance = Math.random() * maxDistance;
     return { 
         x: Math.cos(angle) * distance, 
         z: Math.sin(angle) * distance 
@@ -47,10 +46,9 @@ function generateTarget() {
 
 function moveTarget(state) {
     const mapSize = 2600;
-    const minDistance = mapSize / 4;
-    const maxDistance = mapSize / 2;
+    const maxDistance = 300;
     const angle = Math.random() * 2 * Math.PI;
-    const distance = minDistance + Math.random() * (maxDistance - minDistance);
+    const distance = Math.random() * maxDistance;
     state.targets[0].x = Math.cos(angle) * distance;
     state.targets[0].z = Math.sin(angle) * distance;
 
@@ -124,7 +122,7 @@ function addBots() {
                 score: 0,
                 isBot: true,
                 state: 'approachTarget',
-                targetAltitude: 100 + Math.random() * 300, // Entre 100 e 400
+                targetAltitude: 100 + Math.random() * 300,
                 waitTime: 0
             };
         }
@@ -175,7 +173,7 @@ function updateBots() {
                         io.to('world').emit('markerDropped', { ...markerData, markers: bot.markers, score: bot.score, markerId });
                         console.log(`Bot ${bot.name} soltou marcador: ${markerId}, restantes: ${bot.markers}`);
                         bot.state = 'climbNorth';
-                        bot.targetAltitude = 400 + Math.random() * 100; // Subir até 400-500
+                        bot.targetAltitude = 400 + Math.random() * 100;
                     }
                     break;
 
@@ -191,7 +189,7 @@ function updateBots() {
                 case 'waitNorth':
                     if (Date.now() - bot.waitTime >= 10000) {
                         bot.state = 'descendRandom';
-                        bot.targetAltitude = 100 + Math.random() * 300; // Descer até 100-400
+                        bot.targetAltitude = 100 + Math.random() * 300;
                     }
                     break;
 
@@ -200,12 +198,12 @@ function updateBots() {
                         bot.y -= 2;
                     } else {
                         bot.state = 'approachTarget';
-                        bot.targetAltitude = 100 + Math.random() * 300; // Nova altitude aleatória
+                        bot.targetAltitude = 100 + Math.random() * 300;
                     }
                     break;
             }
 
-            bot.y = Math.max(100, Math.min(400, bot.y)); // Limitar entre 100 e 400
+            bot.y = Math.max(100, Math.min(400, bot.y));
             bot.x = Math.max(-mapSize / 2, Math.min(mapSize / 2, bot.x));
             bot.z = Math.max(-mapSize / 2, Math.min(mapSize / 2, bot.z));
         }

@@ -22,13 +22,13 @@ export function initGame() {
 
     const windLayers = [
         { minAlt: 0, maxAlt: 100, direction: { x: 0, z: 0 }, speed: 0, name: "Nenhum" },
-        { minAlt: 100, maxAlt: 200, direction: { x: 1, z: 0 }, speed: 0.3, name: "Leste" },
-        { minAlt: 200, maxAlt: 300, direction: { x: 0, z: 1 }, speed: 0.3, name: "Sul" },
-        { minAlt: 300, maxAlt: 400, direction: { x: -1, z: 0 }, speed: 0.4, name: "Oeste" },
-        { minAlt: 400, maxAlt: 500, direction: { x: 0, z: -1 }, speed: 0.5, name: "Norte" }
+        { minAlt: 100, maxAlt: 200, direction: { x: 1, z: 0 }, speed: 4.0, name: "Leste" },  // 4m/s
+        { minAlt: 200, maxAlt: 300, direction: { x: 0, z: 1 }, speed: 4.0, name: "Sul" },    // 4m/s
+        { minAlt: 300, maxAlt: 400, direction: { x: -1, z: 0 }, speed: 4.0, name: "Oeste" }, // 4m/s
+        { minAlt: 400, maxAlt: 500, direction: { x: 0, z: -1 }, speed: 6.0, name: "Norte" }  // 6m/s
     ];
 
-    const keys = { W: false, S: false, A: false, D: false, U: false, SHIFT_RIGHT: false };
+    const keys = { W: false, S: false, E: false, Q: false }; // Novos controles
 
     document.getElementById('bestScore').textContent = bestScore;
     document.getElementById('markersLeft').textContent = window.markersLeft;
@@ -92,8 +92,8 @@ export function initGame() {
 
             upButton.addEventListener('touchstart', () => keys.W = true);
             upButton.addEventListener('touchend', () => keys.W = false);
-            turboButton.addEventListener('touchstart', () => keys.U = true);
-            turboButton.addEventListener('touchend', () => keys.U = false);
+            turboButton.addEventListener('touchstart', () => keys.E = true);
+            turboButton.addEventListener('touchend', () => keys.E = false);
             downButton.addEventListener('touchstart', () => keys.S = true);
             downButton.addEventListener('touchend', () => keys.S = false);
             dropButton.addEventListener('touchstart', (e) => {
@@ -234,23 +234,18 @@ export function initGame() {
 
     window.createTarget = function(x, z) {
         const targetMesh = new THREE.Group();
-        const material = new THREE.LineBasicMaterial({ color: 0xFF0000, linewidth: 10 }); // Apenas "X" mais grosso
-        const line1Geometry = new THREE.BufferGeometry().setFromPoints([
-            new THREE.Vector3(-45, 0, -45),
-            new THREE.Vector3(45, 0, 45)
-        ]);
-        const line1 = new THREE.Line(line1Geometry, material);
-        targetMesh.add(line1);
-
-        const line2Geometry = new THREE.BufferGeometry().setFromPoints([
-            new THREE.Vector3(45, 0, -45),
-            new THREE.Vector3(-45, 0, 45)
-        ]);
-        const line2 = new THREE.Line(line2Geometry, material);
-        targetMesh.add(line2);
+        const material = new THREE.MeshBasicMaterial({ color: 0xFF0000 });
+        const rect1Geometry = new THREE.BoxGeometry(90, 0.5, 10);
+        const rect1 = new THREE.Mesh(rect1Geometry, material);
+        rect1.rotation.y = Math.PI / 4;
+        targetMesh.add(rect1);
+        const rect2Geometry = new THREE.BoxGeometry(90, 0.5, 10);
+        const rect2 = new THREE.Mesh(rect2Geometry, material);
+        rect2.rotation.y = -Math.PI / 4;
+        targetMesh.add(rect2);
 
         targetMesh.position.set(x, 0.1, z);
-        return targetMesh; // Sem círculo
+        return targetMesh;
     };
 
     function handleKeyDown(event) {
@@ -259,12 +254,10 @@ export function initGame() {
         switch(event.code) {
             case 'KeyW': keys.W = true; break;
             case 'KeyS': keys.S = true; break;
-            case 'KeyA': keys.A = true; break;
-            case 'KeyD': keys.D = true; break;
-            case 'KeyU': keys.U = true; break;
-            case 'ShiftRight': 
+            case 'KeyE': keys.E = true; break;
+            case 'KeyQ': 
                 if (!window.markerDropped && window.markersLeft > 0) {
-                    console.log('ShiftRight detectado, soltando marcador');
+                    console.log('KeyQ detectado, soltando marcador');
                     dropMarker();
                 }
                 break;
@@ -275,9 +268,7 @@ export function initGame() {
         switch(event.code) {
             case 'KeyW': keys.W = false; break;
             case 'KeyS': keys.S = false; break;
-            case 'KeyA': keys.A = false; break;
-            case 'KeyD': keys.D = false; break;
-            case 'KeyU': keys.U = false; break;
+            case 'KeyE': keys.E = false; break;
         }
     }
 
@@ -377,7 +368,7 @@ export function initGame() {
     window.restartGame = function() {
         gameOver = false;
         hasLiftedOff = false;
-        altitude = 100; // Garantir altura inicial válida
+        altitude = 100;
         window.markerDropped = false;
         window.markersLeft = 5;
         points = 0;
@@ -385,7 +376,7 @@ export function initGame() {
         document.getElementById('gameScreen').style.display = 'block';
         if (window.balloon) scene.remove(window.balloon);
         window.balloon = window.createBalloon(window.balloonColor, document.getElementById('playerName').value);
-        window.balloon.position.set(0, altitude, 0); // Posição inicial padrão
+        window.balloon.position.set(0, altitude, 0);
         scene.add(window.balloon);
         document.getElementById('markersLeft').textContent = window.markersLeft;
         window.socket.emit('updatePosition', { x: window.balloon.position.x, y: window.balloon.position.y, z: window.balloon.position.z, mode: window.mode || 'world', roomName: window.roomName || null });
@@ -418,7 +409,7 @@ export function initGame() {
         }
 
         if (keys.W) { altitude += 1; hasLiftedOff = true; }
-        if (keys.U) { altitude += 5; hasLiftedOff = true; }
+        if (keys.E) { altitude += 5; hasLiftedOff = true; }
         if (keys.S) altitude = Math.max(20, altitude - 1);
 
         if (altitude <= 20 && hasLiftedOff) gameOver = true;
@@ -431,9 +422,6 @@ export function initGame() {
 
         balloon.position.x += currentLayer.direction.x * currentLayer.speed;
         balloon.position.z += currentLayer.direction.z * currentLayer.speed;
-
-        if (keys.A) balloon.position.x -= 0.5;
-        if (keys.D) balloon.position.x += 0.5;
 
         balloon.rotation.y += 0.001;
 

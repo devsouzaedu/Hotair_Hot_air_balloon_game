@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"> <!-- Impedir zoom no iOS -->
     <title>Jogo de Balão de Ar Quente</title>
     <link rel="stylesheet" href="css/styles.css">
     <style>
@@ -22,6 +22,10 @@
             <h2>Digite seu nome</h2>
             <input type="text" id="playerName" placeholder="Seu nome aqui" required>
             <button id="nameButton">OK</button>
+            <p style="font-size: 0.9em; color: #666; margin-top: 10px;">
+                Controles: W (subir), S (descer), E (turbo subir), Q (lançar marca)<br>
+                Regras: 5 minutos, 5 alvos, 5 marcas. Acerte os alvos para pontuar!
+            </p>
         </div>
     </div>
     <div id="modeScreen">
@@ -66,7 +70,6 @@
             <p>Vento: <span id="windDirection">Nenhum</span> (<span id="windSpeed">0</span> m/s)</p>
             <p>Dist: <span id="distanceToTarget">0m</span></p>
             <p>Markers: <span id="markersLeft">5</span></p>
-            <p id="controlsInfo">W/U - Subir | S - Descer | A/D - Esquerda/Direita | Shift - Soltar</p>
         </div>
         <div id="score">
             <h3>Pontos: <span id="points">0</span></h3>
