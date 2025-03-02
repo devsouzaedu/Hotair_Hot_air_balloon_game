@@ -120,6 +120,18 @@
             z-index: 100;
             font-size: 1em;
         }
+        #targetMoveTimer {
+            position: absolute;
+            top: 30px; /* Posicionado abaixo do timerDisplay */
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 5px;
+            border-radius: 3px;
+            z-index: 100;
+            font-size: 0.9em;
+        }
         #layerIndicator {
             position: absolute;
             right: 5px;
@@ -167,12 +179,14 @@
             position: absolute;
             bottom: 5px;
             right: 5px;
-            z-index: 100;
+            z-index: 2000; /* Aumentado para ficar acima de tudo */
+            flex-direction: column; /* Volta para vertical */
+            align-items: flex-end; /* Alinha os botões à direita */
         }
         .mobileButton {
             width: 60px;
             height: 60px;
-            margin: 5px;
+            margin: 5px 0; /* Ajustado para espaçamento vertical */
             background: rgba(255, 255, 255, 0.8);
             border: none;
             border-radius: 50%;
@@ -269,6 +283,7 @@
             FPS: <span id="fpsCount">0</span>
         </div>
         <div id="timerDisplay">Tempo Restante: 5:00</div>
+        <div id="targetMoveTimer">Próxima mudança de alvo: 60s</div>
         <div id="windIndicator">Vento: -</div>
         <div id="layerIndicator">
             <div class="layer" id="layer5" style="background-color: #3498db;">Camada 5 - Norte</div>
@@ -321,6 +336,7 @@
         let otherPlayers = {};
         let worldState = { targets: [] };
         let markers = [];
+        let lastTargetMoveTime = Date.now(); // Rastreia o tempo do último movimento do alvo
 
         document.getElementById('bestScore').textContent = bestScore;
 
@@ -480,6 +496,7 @@
             document.getElementById('gameScreen').style.display = 'block';
             document.getElementById('countdown').textContent = '';
             targets = state.targets;
+            lastTargetMoveTime = state.lastTargetMoveTime || Date.now(); // Inicializa com o tempo do servidor
             targets.forEach(target => {
                 const targetMesh = createTarget(target.x, target.z);
                 scene.add(targetMesh);
@@ -501,6 +518,24 @@
         socket.on('gameUpdate', ({ state, timeLeft }) => {
             console.log('gameUpdate received:', state);
             const currentState = mode === 'world' ? state : state;
+
+            // Verifica se o alvo mudou de posição
+            if (state.targets[0].x !== targets[0].x || state.targets[0].z !== targets[0].z) {
+                lastTargetMoveTime = Date.now(); // Atualiza o tempo do último movimento
+                scene.remove(scene.children.find(obj => 
+                    obj instanceof THREE.Group && 
+                    obj.position.x === targets[0].x && 
+                    obj.position.z === targets[0].z
+                ));
+                targets = state.targets;
+                const newTargetMesh = createTarget(targets[0].x, targets[0].z);
+                scene.add(newTargetMesh);
+            }
+
+            // Atualiza o contador de mudança de alvo
+            const timeSinceLastMove = (Date.now() - lastTargetMoveTime) / 1000;
+            const timeUntilNextMove = Math.max(60 - timeSinceLastMove, 0);
+            document.getElementById('targetMoveTimer').textContent = `Próxima mudança de alvo: ${Math.floor(timeUntilNextMove)}s`;
 
             for (const id in currentState.players) {
                 if (id !== socket.id) {
@@ -625,6 +660,7 @@
             if (gameMode === 'world') {
                 worldState = state;
                 targets = state.targets;
+                lastTargetMoveTime = state.lastTargetMoveTime || Date.now(); // Inicializa com o tempo do servidor
                 targets.forEach(target => {
                     const targetMesh = createTarget(target.x, target.z);
                     scene.add(targetMesh);
@@ -661,6 +697,7 @@
             hasLiftedOff = false;
             gameOver = false;
             points = 0;
+            lastTargetMoveTime = Date.now(); // Reseta o tempo do movimento do alvo
         }
 
         const windLayers = [
