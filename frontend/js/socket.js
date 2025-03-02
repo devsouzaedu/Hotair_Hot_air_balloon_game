@@ -1,5 +1,4 @@
 export function initSocket() {
-    // Verificar se io está definido antes de inicializar
     if (typeof io === 'undefined') {
         console.error('Socket.IO não foi carregado corretamente.');
         return;
@@ -12,6 +11,9 @@ export function initSocket() {
         console.error('Falha ao inicializar o socket.');
         return;
     }
+
+    // Inicializar window.markers globalmente
+    window.markers = window.markers || [];
 
     window.targets = window.targets || [];
     window.otherPlayers = window.otherPlayers || {};
@@ -151,6 +153,7 @@ export function initSocket() {
             }
         }
 
+        // Sincronizar marcadores
         for (const markerId in currentState.markers) {
             const markerData = currentState.markers[markerId];
             let existingMarker = window.markers.find(m => m.marker.userData.markerId === markerId)?.marker;
@@ -172,6 +175,7 @@ export function initSocket() {
 
         document.getElementById('markersLeft').textContent = currentState.players[socket.id]?.markers || window.markersLeft;
         document.getElementById('points').textContent = currentState.players[socket.id]?.score || 0;
+        // Sincronizar o cronômetro com o tempo restante do backend
         const minutes = Math.floor(timeLeft / 60);
         const seconds = Math.floor(timeLeft % 60);
         document.getElementById('timerDisplay').textContent = `Tempo Restante: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
@@ -336,7 +340,7 @@ export function initSocket() {
             window.setBalloon(null);
         }
         window.setTargets([]);
-        window.setMarkers([]);
+        window.markers = []; // Resetar marcadores globais
         for (const id in window.otherPlayers) {
             window.scene.remove(window.otherPlayers[id]);
         }

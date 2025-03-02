@@ -327,7 +327,6 @@ io.on('connection', (socket) => {
         const state = mode === 'world' ? worldState : (rooms[roomName] || null);
         if (!state) {
             console.error(`Estado não encontrado para mode: ${mode}, roomName: ${roomName}. Usando worldState como fallback`);
-            // Fallback para worldState se mode ou roomName estiverem inválidos
             if (worldState.markers[markerId]) {
                 worldState.markers[markerId].x = x;
                 worldState.markers[markerId].y = y;

@@ -16,7 +16,7 @@ export function initGame() {
     let isMobile = detectMobile();
     window.targets = [];
     window.otherPlayers = {};
-    let markers = [];
+    window.markers = window.markers || []; // Usar global em vez de local
     let lastTargetMoveTime = Date.now();
     let gameEnded = false;
 
@@ -308,8 +308,8 @@ export function initGame() {
             x: markerStartPos.x, 
             y: markerStartPos.y, 
             z: markerStartPos.z, 
-            mode: window.mode || 'world', // Fallback para 'world' se undefined
-            roomName: window.roomName || null, // Fallback para null se undefined
+            mode: window.mode || 'world',
+            roomName: window.roomName || null,
             markerId
         });
         window.markerDropped = true;
@@ -333,8 +333,8 @@ export function initGame() {
                     x: marker.position.x, 
                     y: marker.position.y, 
                     z: marker.position.z, 
-                    mode: window.mode || 'world', // Fallback para 'world' se undefined
-                    roomName: window.roomName || null, // Fallback para null se undefined
+                    mode: window.mode || 'world',
+                    roomName: window.roomName || null,
                     markerId
                 });
             }
@@ -537,7 +537,7 @@ export function initGame() {
     };
     window.setTargets = (t) => window.targets = t;
     window.setOtherPlayers = (op) => window.otherPlayers = op;
-    window.setMarkers = (m) => markers = m;
+    window.setMarkers = (m) => window.markers = m;
     window.showNoMarkersMessage = showNoMarkersMessage;
     window.scene = scene;
 }
