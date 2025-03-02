@@ -18,7 +18,7 @@ export function initGame() {
     window.otherPlayers = {};
     window.markers = window.markers || [];
     let lastTargetMoveTime = Date.now();
-    let gameEnded = false; // Manter como booleano
+    let gameEnded = false;
 
     const windLayers = [
         { minAlt: 0, maxAlt: 100, direction: { x: 0, z: 0 }, speed: 0, name: "Nenhum" },
@@ -234,7 +234,7 @@ export function initGame() {
 
     window.createTarget = function(x, z) {
         const targetMesh = new THREE.Group();
-        const material = new THREE.LineBasicMaterial({ color: 0xFF0000, linewidth: 5 });
+        const material = new THREE.LineBasicMaterial({ color: 0xFF0000, linewidth: 10 }); // Apenas "X" mais grosso
         const line1Geometry = new THREE.BufferGeometry().setFromPoints([
             new THREE.Vector3(-45, 0, -45),
             new THREE.Vector3(45, 0, 45)
@@ -249,19 +249,8 @@ export function initGame() {
         const line2 = new THREE.Line(line2Geometry, material);
         targetMesh.add(line2);
 
-        const circleGeometry = new THREE.CircleGeometry(60, 32);
-        const circleMaterial = new THREE.MeshBasicMaterial({ 
-            color: 0xFF0000, 
-            side: THREE.DoubleSide,
-            transparent: true,
-            opacity: 0.3
-        });
-        const circle = new THREE.Mesh(circleGeometry, circleMaterial);
-        circle.rotation.x = -Math.PI / 2;
-        targetMesh.add(circle);
-
         targetMesh.position.set(x, 0.1, z);
-        return targetMesh;
+        return targetMesh; // Sem círculo
     };
 
     function handleKeyDown(event) {
@@ -388,7 +377,7 @@ export function initGame() {
     window.restartGame = function() {
         gameOver = false;
         hasLiftedOff = false;
-        altitude = 100;
+        altitude = 100; // Garantir altura inicial válida
         window.markerDropped = false;
         window.markersLeft = 5;
         points = 0;
@@ -396,7 +385,7 @@ export function initGame() {
         document.getElementById('gameScreen').style.display = 'block';
         if (window.balloon) scene.remove(window.balloon);
         window.balloon = window.createBalloon(window.balloonColor, document.getElementById('playerName').value);
-        window.balloon.position.set(0, altitude, 0);
+        window.balloon.position.set(0, altitude, 0); // Posição inicial padrão
         scene.add(window.balloon);
         document.getElementById('markersLeft').textContent = window.markersLeft;
         window.socket.emit('updatePosition', { x: window.balloon.position.x, y: window.balloon.position.y, z: window.balloon.position.z, mode: window.mode || 'world', roomName: window.roomName || null });
@@ -502,7 +491,7 @@ export function initGame() {
 
     window.gameStarted = () => gameStarted = true;
     window.gameOver = () => gameOver = true;
-    window.gameEnded = gameEnded; // Manter como variável booleana
+    window.gameEnded = gameEnded;
     window.setBalloon = (b) => {
         console.log('Definindo balão:', b);
         balloon = b;

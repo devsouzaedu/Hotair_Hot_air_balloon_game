@@ -35,30 +35,27 @@ const rooms = {};
 
 function generateTarget() {
     const mapSize = 2600;
-    const centralArea = mapSize / 4;
+    const minDistance = mapSize / 4; // Mínimo de 650 unidades do centro
+    const maxDistance = mapSize / 2; // Máximo de 1300 unidades do centro
+    const angle = Math.random() * 2 * Math.PI;
+    const distance = minDistance + Math.random() * (maxDistance - minDistance);
     return { 
-        x: Math.random() * centralArea - centralArea / 2, 
-        z: Math.random() * centralArea - centralArea / 2 
+        x: Math.cos(angle) * distance, 
+        z: Math.sin(angle) * distance 
     };
 }
 
 function moveTarget(state) {
-    const centralArea = 2600 / 4;
-    const moveDistance = 300;
-    const currentTarget = state.targets[0];
-
+    const mapSize = 2600;
+    const minDistance = mapSize / 4;
+    const maxDistance = mapSize / 2;
     const angle = Math.random() * 2 * Math.PI;
-    let newX = currentTarget.x + Math.cos(angle) * moveDistance;
-    let newZ = currentTarget.z + Math.sin(angle) * moveDistance;
-
-    newX = Math.max(-centralArea / 2, Math.min(centralArea / 2, newX));
-    newZ = Math.max(-centralArea / 2, Math.min(centralArea / 2, newZ));
-
-    currentTarget.x = newX;
-    currentTarget.z = newZ;
+    const distance = minDistance + Math.random() * (maxDistance - minDistance);
+    state.targets[0].x = Math.cos(angle) * distance;
+    state.targets[0].z = Math.sin(angle) * distance;
 
     state.lastTargetMoveTime = Date.now();
-    console.log(`Alvo movido para: x=${newX}, z=${newZ}`);
+    console.log(`Alvo movido para: x=${state.targets[0].x}, z=${state.targets[0].z}`);
 }
 
 function initializeTargets() {
@@ -76,7 +73,7 @@ function updateMarkersGravity(state, roomName = null) {
     for (const markerId in state.markers) {
         const marker = state.markers[markerId];
         if (marker.y > 0) {
-            marker.y -= 5.0; // Gravidade aumentada para queda em ~2 segundos
+            marker.y -= 5.0;
             if (marker.y <= 0) {
                 marker.y = 0;
                 io.to(roomName || 'world').emit('markerLanded', { 
@@ -127,7 +124,7 @@ function addBots() {
                 score: 0,
                 isBot: true,
                 state: 'approachTarget',
-                targetAltitude: 100,
+                targetAltitude: 100 + Math.random() * 300, // Entre 100 e 400
                 waitTime: 0
             };
         }
@@ -178,7 +175,7 @@ function updateBots() {
                         io.to('world').emit('markerDropped', { ...markerData, markers: bot.markers, score: bot.score, markerId });
                         console.log(`Bot ${bot.name} soltou marcador: ${markerId}, restantes: ${bot.markers}`);
                         bot.state = 'climbNorth';
-                        bot.targetAltitude = 500;
+                        bot.targetAltitude = 400 + Math.random() * 100; // Subir até 400-500
                     }
                     break;
 
@@ -193,13 +190,22 @@ function updateBots() {
 
                 case 'waitNorth':
                     if (Date.now() - bot.waitTime >= 10000) {
+                        bot.state = 'descendRandom';
+                        bot.targetAltitude = 100 + Math.random() * 300; // Descer até 100-400
+                    }
+                    break;
+
+                case 'descendRandom':
+                    if (bot.y > bot.targetAltitude) {
+                        bot.y -= 2;
+                    } else {
                         bot.state = 'approachTarget';
-                        bot.targetAltitude = 100 + Math.random() * 400;
+                        bot.targetAltitude = 100 + Math.random() * 300; // Nova altitude aleatória
                     }
                     break;
             }
 
-            bot.y = Math.max(100, Math.min(500, bot.y));
+            bot.y = Math.max(100, Math.min(400, bot.y)); // Limitar entre 100 e 400
             bot.x = Math.max(-mapSize / 2, Math.min(mapSize / 2, bot.x));
             bot.z = Math.max(-mapSize / 2, Math.min(mapSize / 2, bot.z));
         }
@@ -266,7 +272,7 @@ io.on('connection', (socket) => {
                 color: playerData.color,
                 x: 0,
                 z: 0,
-            y: 100,
+                y: 100,
                 markers: 5,
                 score: 0,
                 isBot: false
