@@ -20,12 +20,13 @@ export function initGame() {
     let lastTargetMoveTime = Date.now();
     let gameEnded = false;
 
+    // Ajustar velocidades para metros por segundo reais (dividido por 60 FPS aproximados)
     const windLayers = [
         { minAlt: 0, maxAlt: 100, direction: { x: 0, z: 0 }, speed: 0, name: "Nenhum" },
-        { minAlt: 100, maxAlt: 200, direction: { x: 1, z: 0 }, speed: 0.4, name: "Leste" },  // 0.4m/s
-        { minAlt: 200, maxAlt: 300, direction: { x: 0, z: 1 }, speed: 0.4, name: "Sul" },    // 0.4m/s
-        { minAlt: 300, maxAlt: 400, direction: { x: -1, z: 0 }, speed: 0.4, name: "Oeste" }, // 0.4m/s
-        { minAlt: 400, maxAlt: 500, direction: { x: 0, z: -1 }, speed: 0.6, name: "Norte" }  // 0.6m/s
+        { minAlt: 100, maxAlt: 200, direction: { x: 1, z: 0 }, speed: 0.4 / 60, name: "Leste" },  // 0.4m/s real
+        { minAlt: 200, maxAlt: 300, direction: { x: 0, z: 1 }, speed: 0.4 / 60, name: "Sul" },    // 0.4m/s real
+        { minAlt: 300, maxAlt: 400, direction: { x: -1, z: 0 }, speed: 0.4 / 60, name: "Oeste" }, // 0.4m/s real
+        { minAlt: 400, maxAlt: 500, direction: { x: 0, z: -1 }, speed: 0.6 / 60, name: "Norte" }  // 0.6m/s real
     ];
 
     const keys = { W: false, S: false, E: false, Q: false }; // Novos controles
@@ -433,7 +434,7 @@ export function initGame() {
         const distance = Math.sqrt(dx * dx + dz * dz);
         document.getElementById('distanceToTarget').textContent = `${Math.floor(distance)}m`;
         document.getElementById('windDirection').textContent = getWindDirectionText(currentLayerIndex);
-        document.getElementById('windSpeed').textContent = currentLayer.speed.toFixed(1);
+        document.getElementById('windSpeed').textContent = (currentLayer.speed * 60).toFixed(1); // Exibir velocidade real (m/s)
         document.getElementById('windIndicator').textContent = `Vento: ${currentLayer.name.charAt(0)}`;
 
         updateLayerIndicator(currentLayerIndex);
