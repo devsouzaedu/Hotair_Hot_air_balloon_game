@@ -5,7 +5,7 @@ export function initSocket() {
     window.targets = window.targets || [];
     window.otherPlayers = window.otherPlayers || {};
     window.balloonColor = window.balloonColor || '#FF4500';
-    window.markersLeft = 5; // Inicializa com 5 marcas
+    window.markersLeft = 5;
 
     socket.on('roomCreated', ({ roomName, creator }) => {
         window.roomName = roomName;
@@ -289,7 +289,7 @@ export function initSocket() {
             window.balloon.position.set(0, 100, 0);
             window.scene.add(window.balloon);
         }
-        window.markersLeft = 5; // Resetar para 5 marcas
+        window.markersLeft = 5;
         document.getElementById('points').textContent = '0';
         document.getElementById('markersLeft').textContent = window.markersLeft;
 
@@ -311,7 +311,7 @@ export function initSocket() {
     function resetGameState() {
         window.gameStarted = false;
         window.markerDropped = false;
-        window.markersLeft = 5; // Resetar para 5 marcas
+        window.markersLeft = 5;
         if (window.balloon) {
             window.scene.remove(window.balloon);
             window.setBalloon(null);

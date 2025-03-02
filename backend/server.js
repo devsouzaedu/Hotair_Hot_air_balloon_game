@@ -63,13 +63,20 @@ app.get('/', (req, res) => {
 });
 
 function updateMarkersGravity(state, roomName = null) {
-    const fallSpeed = 7;
+    const fallSpeed = 0.5; // Ajustado para corresponder ao frontend
     for (const markerId in state.markers) {
         const marker = state.markers[markerId];
         if (marker.y > 0) {
             marker.y -= fallSpeed;
             if (marker.y <= 0) {
                 marker.y = 0;
+                io.to(roomName || 'world').emit('markerLanded', { 
+                    x: marker.x, 
+                    y: marker.y, 
+                    z: marker.z, 
+                    playerId: marker.playerId, 
+                    markerId 
+                });
                 const targets = state.targets;
                 const dx = marker.x - targets[0].x;
                 const dz = marker.z - targets[0].z;
@@ -185,7 +192,7 @@ io.on('connection', (socket) => {
             x: 0,
             z: 0,
             y: 100,
-            markers: 3,
+            markers: 5, // Aumentado para 5
             score: 0,
             isBot: false
         };
@@ -218,7 +225,7 @@ io.on('connection', (socket) => {
             x: 0,
             z: 0,
             y: 100,
-            markers: 3,
+            markers: 5, // Aumentado para 5
             score: 0,
             isBot: false
         };
@@ -235,7 +242,7 @@ io.on('connection', (socket) => {
                 x: 0,
                 z: 0,
                 y: 100,
-                markers: 3,
+                markers: 5, // Aumentado para 5
                 score: 0,
                 isBot: false
             };
@@ -285,53 +292,38 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('dropMarker', ({ x, y, z, mode, roomName }) => {
+    socket.on('dropMarker', ({ x, y, z, mode, roomName, markerId }) => {
         const player = mode === 'world' ? worldState.players[socket.id] : rooms[roomName]?.players[socket.id];
         if (player && player.markers > 0 && !player.isBot) {
             player.markers--;
-            const markerId = `${socket.id}-${Date.now()}`;
-            const targets = mode === 'world' ? worldState.targets : rooms[roomName].targets;
-            let score = 0;
-            targets.forEach(target => {
-                const dx = x - target.x;
-                const dz = z - target.z;
-                const distance = Math.sqrt(dx * dx + dz * dz);
-                score += calculateScore(distance);
-            });
-            player.score += score;
-
             const markerData = { playerId: socket.id, x, y, z, markerId };
             if (mode === 'world') {
                 worldState.markers[markerId] = markerData;
-                io.to('world').emit('markerDropped', { ...markerData, markers: player.markers, score: player.score });
+                io.to('world').emit('markerDropped', { ...markerData, markers: player.markers, score: player.score, markerId });
             } else {
                 rooms[roomName].markers[markerId] = markerData;
-                io.to(roomName).emit('markerDropped', { ...markerData, markers: player.markers, score: player.score });
+                io.to(roomName).emit('markerDropped', { ...markerData, markers: player.markers, score: player.score, markerId });
             }
         }
     });
 
-    socket.on('checkGameEnd', ({ mode, roomName }) => {
-        let allMarkersUsed = true;
-        if (mode === 'world') {
-            for (const id in worldState.players) {
-                if (!worldState.players[id].isBot && worldState.players[id].markers > 0) {
-                    allMarkersUsed = false;
-                    break;
-                }
-            }
-            if (allMarkersUsed) {
-                io.to('world').emit('gameEnd', { players: worldState.players });
-            }
-        } else if (rooms[roomName]) {
-            for (const id in rooms[roomName].players) {
-                if (!rooms[roomName].players[id].isBot && rooms[roomName].players[id].markers > 0) {
-                    allMarkersUsed = false;
-                    break;
-                }
-            }
-            if (allMarkersUsed) {
-                io.to(roomName).emit('gameEnd', { players: rooms[roomName].players });
+    socket.on('markerLanded', ({ x, y, z, mode, roomName, markerId }) => {
+        const state = mode === 'world' ? worldState : rooms[roomName];
+        if (state.markers[markerId]) {
+            state.markers[markerId].x = x;
+            state.markers[markerId].y = y;
+            state.markers[markerId].z = z;
+            io.to(roomName || 'world').emit('markerLanded', { x, y, z, playerId: state.markers[markerId].playerId, markerId });
+            const targets = state.targets;
+            const dx = x - targets[0].x;
+            const dz = z - targets[0].z;
+            const distance = Math.sqrt(dx * dx + dz * dz);
+            const player = state.players[state.markers[markerId].playerId];
+            if (distance < 40 && player) {
+                const score = calculateScore(distance);
+                player.score += score;
+                io.to(roomName || 'world').emit('targetHitUpdate', { targetIndex: state.currentTargetIndex });
+                state.currentTargetIndex++;
             }
         }
     });
@@ -379,7 +371,6 @@ setInterval(() => {
 
     if ((Date.now() - worldState.lastTargetMoveTime) / 1000 >= 60 && elapsedWorld < 290) {
         moveTarget(worldState);
-        io.to('world').emit('gameUpdate', { state: worldState, timeLeft });
     }
 
     updateMarkersGravity(worldState);
@@ -401,7 +392,6 @@ setInterval(() => {
 
             if ((Date.now() - room.lastTargetMoveTime) / 1000 >= 60 && elapsed < 290) {
                 moveTarget(room);
-                io.to(roomName).emit('gameUpdate', { state: room, timeLeft: roomTimeLeft });
             }
 
             updateMarkersGravity(room, roomName);
@@ -415,12 +405,12 @@ setInterval(() => {
             }
         }
     }
-}, 100);
+}, 100); // Atualiza a cada 100ms
 
 function resetWorldState() {
     worldState = {
         players: Object.keys(worldState.players).reduce((acc, id) => {
-            acc[id] = { ...worldState.players[id], x: 0, y: 100, z: 0, markers: 3, score: 0 };
+            acc[id] = { ...worldState.players[id], x: 0, y: 100, z: 0, markers: 5, score: 0 };
             return acc;
         }, {}),
         targets: [generateTarget()],
@@ -436,7 +426,7 @@ function resetWorldState() {
 function resetRoomState(roomName) {
     const room = rooms[roomName];
     room.players = Object.keys(room.players).reduce((acc, id) => {
-        acc[id] = { ...room.players[id], x: 0, y: 100, z: 0, markers: 3, score: 0 };
+        acc[id] = { ...room.players[id], x: 0, y: 100, z: 0, markers: 5, score: 0 };
         return acc;
     }, {});
     room.targets = [generateTarget()];
@@ -454,18 +444,6 @@ function calculateScore(distance) {
     if (distance < 40) return 100;
     if (distance < 100) return 50;
     return Math.max(10, Math.floor(200 - distance));
-}
-
-function calculateWinner(players) {
-    let winner = null;
-    let maxScore = -1;
-    for (const id in players) {
-        if (players[id].score > maxScore) {
-            maxScore = players[id].score;
-            winner = players[id];
-        }
-    }
-    return winner;
 }
 
 server.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));

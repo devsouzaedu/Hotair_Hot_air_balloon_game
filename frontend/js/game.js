@@ -3,8 +3,8 @@ export function initGame() {
     let balloon;
     let marker, tail;
     let altitude = 100;
-    window.markerDropped = false; // Controla se uma marca está sendo solta
-    window.markersLeft = 5; // Aumentado de 3 para 5 marcas
+    window.markerDropped = false;
+    window.markersLeft = 5; // Aumentado para 5 marcas
     let points = 0;
     let bestScore = localStorage.getItem('bestScore') || 0;
     let gameStarted = false;
@@ -16,7 +16,7 @@ export function initGame() {
     let isMobile = detectMobile();
     window.targets = [];
     window.otherPlayers = {};
-    let markers = []; // Lista de marcadores locais
+    let markers = [];
     let lastTargetMoveTime = Date.now();
     let gameEnded = false;
 
@@ -31,7 +31,7 @@ export function initGame() {
     const keys = { W: false, S: false, A: false, D: false, U: false, SHIFT_RIGHT: false };
 
     document.getElementById('bestScore').textContent = bestScore;
-    document.getElementById('markersLeft').textContent = window.markersLeft; // Inicializa UI com 5
+    document.getElementById('markersLeft').textContent = window.markersLeft;
     if (isMobile) {
         document.getElementById('mobileControls').style.display = 'flex';
         document.getElementById('controlsInfo').textContent = 'Use os botões para jogar';
@@ -98,7 +98,7 @@ export function initGame() {
             downButton.addEventListener('touchend', () => keys.S = false);
             dropButton.addEventListener('touchstart', (e) => {
                 e.preventDefault();
-                if (!window.markerDropped) dropMarker();
+                if (!window.markerDropped && window.markersLeft > 0) dropMarker();
             });
         }
 
@@ -303,12 +303,14 @@ export function initGame() {
             y: window.balloon.position.y - 10, 
             z: window.balloon.position.z 
         };
+        const markerId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         window.socket.emit('dropMarker', { 
             x: markerStartPos.x, 
             y: markerStartPos.y, 
             z: markerStartPos.z, 
             mode: window.mode, 
-            roomName: window.roomName 
+            roomName: window.roomName,
+            markerId
         });
         window.markerDropped = true;
         marker.position.set(markerStartPos.x, markerStartPos.y, markerStartPos.z);
@@ -317,7 +319,7 @@ export function initGame() {
         tail.visible = true;
 
         // Adicionar gravidade local
-        const gravity = -0.5; // Aceleração da gravidade (m/s²)
+        const gravity = -0.5;
         let velocityY = 0;
         function fallMarker() {
             if (marker.position.y > 0) {
@@ -333,7 +335,8 @@ export function initGame() {
                     y: marker.position.y, 
                     z: marker.position.z, 
                     mode: window.mode, 
-                    roomName: window.roomName 
+                    roomName: window.roomName,
+                    markerId
                 });
             }
         }
@@ -356,7 +359,6 @@ export function initGame() {
         message.style.animation = 'fadeOut 3s forwards';
         document.getElementById('gameScreen').appendChild(message);
 
-        // Adicionar animação CSS via código
         const styleSheet = document.styleSheets[0];
         styleSheet.insertRule(`
             @keyframes fadeOut {
@@ -412,7 +414,7 @@ export function initGame() {
         hasLiftedOff = false;
         altitude = 100;
         window.markerDropped = false;
-        window.markersLeft = 5; // Resetar para 5 marcas
+        window.markersLeft = 5;
         points = 0;
         document.getElementById('loseScreen').style.display = 'none';
         document.getElementById('gameScreen').style.display = 'block';
@@ -537,6 +539,6 @@ export function initGame() {
     window.setTargets = (t) => window.targets = t;
     window.setOtherPlayers = (op) => window.otherPlayers = op;
     window.setMarkers = (m) => markers = m;
-    window.showNoMarkersMessage = showNoMarkersMessage; // Expor função para socket.js
+    window.showNoMarkersMessage = showNoMarkersMessage;
     window.scene = scene;
 }
