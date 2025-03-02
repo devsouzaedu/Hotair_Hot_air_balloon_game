@@ -111,6 +111,42 @@ export function initSocket() {
         window.gameStarted();
     });
 
+    socket.on('gameState', ({ mode: gameMode, state }) => {
+        console.log('gameState recebido:', state);
+        if (gameMode === 'world') {
+            window.setTargets(state.targets || []);
+            window.lastTargetMoveTime = state.lastTargetMoveTime || Date.now();
+            if (Array.isArray(window.targets)) {
+                window.targets.forEach(target => {
+                    const targetMesh = window.createTarget(target.x, target.z);
+                    window.scene.add(targetMesh);
+                });
+            }
+            const playerName = document.getElementById('playerName').value || 'Jogador';
+            window.setBalloon(window.createBalloon(window.balloonColor, playerName));
+            if (window.balloon) {
+                console.log('Adicionando balão à cena via gameState:', window.balloon);
+                window.balloon.position.set(0, 100, 0);
+                window.scene.add(window.balloon);
+            } else {
+                console.error('Falha ao criar balão do jogador em gameState');
+            }
+            document.getElementById('playerNameDisplay').textContent = playerName;
+            document.getElementById('markersLeft').textContent = window.markersLeft;
+            document.getElementById('colorScreen').style.display = 'none';
+            document.getElementById('gameScreen').style.display = 'block';
+            for (const id in state.players) {
+                if (id !== socket.id && state.players[id].color) {
+                    const otherBalloon = window.createBalloon(state.players[id].color, state.players[id].name);
+                    otherBalloon.position.set(state.players[id].x, state.players[id].y, state.players[id].z);
+                    window.otherPlayers[id] = otherBalloon;
+                    window.scene.add(otherBalloon);
+                }
+            }
+            window.gameStarted();
+        }
+    });
+
     socket.on('gameUpdate', ({ state, timeLeft }) => {
         const currentState = window.mode === 'world' ? state : state;
 
@@ -135,7 +171,7 @@ export function initSocket() {
             if (id !== socket.id) {
                 if (!window.otherPlayers[id] && currentState.players[id].color) {
                     const otherBalloon = window.createBalloon(currentState.players[id].color, currentState.players[id].name);
-                    otherBalloon.position.set(currentState.players[id].x, currentState.players[id].y, state.players[id].z);
+                    otherBalloon.position.set(currentState.players[id].x, currentState.players[id].y, currentState.players[id].z);
                     window.otherPlayers[id] = otherBalloon;
                     window.scene.add(otherBalloon);
                 } else if (window.otherPlayers[id]) {
@@ -246,12 +282,10 @@ export function initSocket() {
 
     socket.on('showLeaderboard', ({ players }) => {
         console.log('showLeaderboard recebido, ignorado nesta versão:', players);
-        // Evento ignorado para manter a versão funcional sem placar
     });
 
     socket.on('gameReset', ({ state }) => {
         console.log('gameReset recebido, ignorado nesta versão:', state);
-        // Evento ignorado para manter a versão funcional sem reset
     });
 
     function resetGameState() {
