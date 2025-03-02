@@ -10,8 +10,12 @@
             overflow: hidden; 
             font-family: Arial, sans-serif;
             background: #87CEEB;
+            user-select: none; /* Impede seleção em todo o corpo */
+            -webkit-user-select: none; /* Safari */
+            -moz-user-select: none; /* Firefox */
+            -ms-user-select: none; /* IE/Edge */
         }
-        #nameScreen, #modeScreen, #colorScreen, #roomScreen, #lobbyScreen, #gameScreen, #startScreen, #loseScreen {
+        #nameScreen, #modeScreen, #colorScreen, #roomScreen, #lobbyScreen, #gameScreen, #startScreen, #loseScreen, #leaderboardScreen {
             position: fixed;
             top: 0;
             left: 0;
@@ -25,15 +29,15 @@
             z-index: 1000;
             color: white;
         }
-        #loseScreen, #modeScreen, #colorScreen, #roomScreen, #lobbyScreen, #gameScreen {
+        #loseScreen, #modeScreen, #colorScreen, #roomScreen, #lobbyScreen, #gameScreen, #leaderboardScreen {
             display: none;
         }
-        #nameScreen h1, #modeScreen h1, #colorScreen h1, #roomScreen h1, #lobbyScreen h1, #startScreen h1, #loseScreen h1 {
+        #nameScreen h1, #modeScreen h1, #colorScreen h1, #roomScreen h1, #lobbyScreen h1, #startScreen h1, #loseScreen h1, #leaderboardScreen h1 {
             font-size: 2em;
             color: #ffdd00;
             text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
         }
-        #nameForm, #modeForm, #colorForm, #roomForm, #lobbyForm, #loseForm {
+        #nameForm, #modeForm, #colorForm, #roomForm, #lobbyForm, #loseForm, #leaderboardForm {
             background: rgba(255, 255, 255, 0.1);
             padding: 15px;
             border-radius: 8px;
@@ -221,7 +225,7 @@
             padding: 5px;
             border-radius: 3px;
             z-index: 100;
-            font-size: 0.9em;
+            font-size: 0.72em; /* Reduzido em 20% de 0.9em */
             text-align: center;
         }
     </style>
@@ -249,6 +253,8 @@
             <button class="colorButton" style="background: #3498db" onclick="selectColor('#3498db')">Azul</button>
             <button class="colorButton" style="background: #2ecc71" onclick="selectColor('#2ecc71')">Verde</button>
             <button class="colorButton" style="background: #f1c40f" onclick="selectColor('#f1c40f')">Amarelo</button>
+            <button class="colorButton" style="background: #000000" onclick="selectColor('#000000')">Preto</button>
+            <button class="colorButton" style="background: linear-gradient(to right, red, orange, yellow, green, blue, indigo, violet)" onclick="selectColor('rainbow')">Arco-íris</button>
             <button id="okButton">OK</button>
         </div>
     </div>
@@ -305,12 +311,18 @@
             <button id="dropButton" class="mobileButton">🎯</button>
         </div>
         <div id="countdown"></div>
-        <div id="promoText">Jogo de Balão de Ar Quente - Desenvolvido por Eduardo Souza | Para mais jogos, visite nosso site!</div>
+        <div id="promoText">Desenvolvido por JMSOUZA - 11954997799</div>
     </div>
     <div id="loseScreen">
         <h1>Você Tocou no Chão, Perdeu!</h1>
         <div id="loseForm">
             <button id="restartButton">Começar Novamente</button>
+        </div>
+    </div>
+    <div id="leaderboardScreen">
+        <h1>Placar Final</h1>
+        <div id="leaderboardForm">
+            <div id="leaderboardList"></div>
         </div>
     </div>
 
@@ -360,7 +372,7 @@
             playerName = document.getElementById('playerName').value.trim();
             console.log('nameButton clicked, playerName:', playerName);
             if (playerName) {
-                document.getElementById('nameScreen').style.display = 'flex';
+                document.getElementById('nameScreen').style.display = 'none';
                 document.getElementById('modeScreen').style.display = 'flex';
                 console.log('Transitioning to modeScreen');
             } else {
@@ -524,13 +536,13 @@
             console.log('gameUpdate received:', state);
             const currentState = mode === 'world' ? state : state;
 
-            if (state.targets[0].x !== targets[0].x || state.targets[0].z !== targets[0].z) {
+            if (state.targets && (state.targets[0].x !== targets[0]?.x || state.targets[0].z !== targets[0]?.z)) {
                 lastTargetMoveTime = Date.now();
-                scene.remove(scene.children.find(obj => 
+                scene.children.filter(obj => 
                     obj instanceof THREE.Group && 
-                    obj.position.x === targets[0].x && 
-                    obj.position.z === targets[0].z
-                ));
+                    obj.position.x === targets[0]?.x && 
+                    obj.position.z === targets[0]?.z
+                ).forEach(obj => scene.remove(obj));
                 targets = state.targets;
                 const newTargetMesh = createTarget(targets[0].x, targets[0].z);
                 scene.add(newTargetMesh);
@@ -640,7 +652,6 @@
             if (!gameEnded) {
                 gameOver = true;
                 gameEnded = true;
-                alert(`Fim de jogo! Vencedor: ${winner.name} com ${winner.score} pontos`);
                 document.getElementById('gameScreen').style.display = 'none';
                 document.getElementById('nameScreen').style.display = 'flex';
                 resetGameState();
@@ -657,12 +668,6 @@
             if (!gameEnded) {
                 gameOver = true;
                 gameEnded = true;
-                let leaderboard = 'Placar Final:\n';
-                const sortedPlayers = Object.values(players).sort((a, b) => b.score - a.score);
-                sortedPlayers.forEach((player, index) => {
-                    leaderboard += `${index + 1}. ${player.name} - ${player.score} pontos\n`;
-                });
-                alert(leaderboard);
                 document.getElementById('gameScreen').style.display = 'none';
                 document.getElementById('nameScreen').style.display = 'flex';
                 resetGameState();
@@ -671,6 +676,24 @@
                 } else if (mode === 'room' && roomName) {
                     socket.emit('leaveRoom', { roomName });
                 }
+            }
+        });
+
+        socket.on('showLeaderboard', ({ players }) => {
+            console.log('Show leaderboard received, players:', players);
+            if (!gameEnded) {
+                gameOver = true;
+                gameEnded = true;
+                document.getElementById('gameScreen').style.display = 'none';
+                document.getElementById('leaderboardScreen').style.display = 'flex';
+                const leaderboardList = document.getElementById('leaderboardList');
+                leaderboardList.innerHTML = '';
+                const sortedPlayers = Object.values(players).sort((a, b) => b.score - a.score);
+                sortedPlayers.forEach((player, index) => {
+                    const playerDiv = document.createElement('div');
+                    playerDiv.textContent = `${index + 1}. ${player.name} - ${player.score} pontos`;
+                    leaderboardList.appendChild(playerDiv);
+                });
             }
         });
 
@@ -702,28 +725,10 @@
             }
         });
 
-        socket.on('gameRestarting', ({ message }) => {
-            console.log('Game restarting:', message);
-            const restartMessage = document.createElement('div');
-            restartMessage.id = 'restartMessage';
-            restartMessage.style.position = 'absolute';
-            restartMessage.style.top = '50%';
-            restartMessage.style.left = '50%';
-            restartMessage.style.transform = 'translate(-50%, -50%)';
-            restartMessage.style.background = 'rgba(0, 0, 0, 0.8)';
-            restartMessage.style.color = 'white';
-            restartMessage.style.padding = '20px';
-            restartMessage.style.borderRadius = '8px';
-            restartMessage.style.zIndex = '1001';
-            restartMessage.style.fontSize = '1.5em';
-            restartMessage.textContent = message;
-            document.getElementById('gameScreen').appendChild(restartMessage);
-        });
-
         socket.on('gameReset', ({ state }) => {
             console.log('Game reset received:', state);
-            const restartMessage = document.getElementById('restartMessage');
-            if (restartMessage) restartMessage.remove();
+            document.getElementById('leaderboardScreen').style.display = 'none';
+            document.getElementById('gameScreen').style.display = 'block';
 
             gameOver = false;
             gameEnded = false;
@@ -820,10 +825,27 @@
             group.add(basket);
 
             const balloonGeometry = new THREE.SphereGeometry(30, 32, 32);
-            const balloonMaterial = new THREE.MeshLambertMaterial({ color });
+            let balloonMaterial;
+            if (color === 'rainbow') {
+                balloonMaterial = new THREE.MeshLambertMaterial({ 
+                    color: 0xffffff,
+                    vertexColors: true
+                });
+            } else {
+                balloonMaterial = new THREE.MeshLambertMaterial({ color });
+            }
             const balloonMesh = new THREE.Mesh(balloonGeometry, balloonMaterial);
             balloonMesh.scale.y = 1.2;
             balloonMesh.position.y = 30;
+            if (color === 'rainbow') {
+                const colors = new Float32Array(balloonGeometry.attributes.position.count * 3);
+                for (let i = 0; i < balloonGeometry.attributes.position.count; i++) {
+                    colors[i * 3] = Math.random();
+                    colors[i * 3 + 1] = Math.random();
+                    colors[i * 3 + 2] = Math.random();
+                }
+                balloonGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+            }
             group.add(balloonMesh);
 
             const ropeMaterial = new THREE.LineBasicMaterial({ color: 0x000000 });
@@ -1171,7 +1193,7 @@
             const balloonX = centerX + (balloon.position.x * gpsScale);
             const balloonZ = centerZ - (balloon.position.z * gpsScale);
 
-            gpsContext.fillStyle = balloonColor;
+            gpsContext.fillStyle = balloonColor === 'rainbow' ? '#FFFFFF' : balloonColor;
             gpsContext.beginPath();
             gpsContext.arc(balloonX, balloonZ, 5, 0, Math.PI * 2);
             gpsContext.fill();

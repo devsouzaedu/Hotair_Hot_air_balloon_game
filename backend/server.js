@@ -386,9 +386,9 @@ setInterval(() => {
     updateBots();
     io.to('world').emit('gameUpdate', { state: worldState, timeLeft });
 
-    if (elapsedWorld >= 300 && elapsedWorld < 310) {
-        io.to('world').emit('gameRestarting', { message: 'A partida está sendo reiniciada, aguarde para continuar' });
-    } else if (elapsedWorld >= 310) {
+    if (elapsedWorld >= 300 && elapsedWorld < 307) {
+        io.to('world').emit('showLeaderboard', { players: worldState.players });
+    } else if (elapsedWorld >= 307) {
         io.to('world').emit('gameReset', { state: resetWorldState() });
         console.log('Novo jogo iniciado no mundo aberto');
     }
@@ -407,9 +407,9 @@ setInterval(() => {
             updateMarkersGravity(room, roomName);
             io.to(roomName).emit('gameUpdate', { state: room, timeLeft: roomTimeLeft });
 
-            if (elapsed >= 300 && elapsed < 310) {
-                io.to(roomName).emit('gameRestarting', { message: 'A partida está sendo reiniciada, aguarde para continuar' });
-            } else if (elapsed >= 310) {
+            if (elapsed >= 300 && elapsed < 307) {
+                io.to(roomName).emit('showLeaderboard', { players: room.players });
+            } else if (elapsed >= 307) {
                 io.to(roomName).emit('gameReset', { state: resetRoomState(roomName) });
                 console.log(`Novo jogo iniciado na sala ${roomName}`);
             }
