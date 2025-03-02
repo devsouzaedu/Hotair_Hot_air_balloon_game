@@ -193,12 +193,11 @@ body {
 }
 
 #mobileControls {
-    display: none;
     position: absolute;
     bottom: 5px;
     right: 5px;
     z-index: 2000;
-    display: grid; /* Alterado para grid */
+    display: none; /* Estado inicial */
     grid-template-columns: repeat(2, 1fr); /* 2 colunas */
     grid-template-rows: repeat(2, 1fr); /* 2 linhas */
     gap: 5px; /* Espaçamento entre botões */
