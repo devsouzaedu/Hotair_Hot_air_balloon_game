@@ -76,7 +76,7 @@ function updateMarkersGravity(state, roomName = null) {
     for (const markerId in state.markers) {
         const marker = state.markers[markerId];
         if (marker.y > 0) {
-            marker.y -= 0.5; // Mesmo valor do frontend
+            marker.y -= 3.5; // Aumentar gravidade para queda em ~3 segundos
             if (marker.y <= 0) {
                 marker.y = 0;
                 io.to(roomName || 'world').emit('markerLanded', { 
@@ -192,14 +192,14 @@ function updateBots() {
                     break;
 
                 case 'waitNorth':
-                    if (Date.now() - bot.waitTime >= 10000) { // Esperar 10 segundos
+                    if (Date.now() - bot.waitTime >= 10000) {
                         bot.state = 'approachTarget';
                         bot.targetAltitude = 100 + Math.random() * 400;
                     }
                     break;
             }
 
-            bot.y = Math.max(100, Math.min(500, bot.y)); // Nunca abaixo de 100
+            bot.y = Math.max(100, Math.min(500, bot.y));
             bot.x = Math.max(-mapSize / 2, Math.min(mapSize / 2, bot.x));
             bot.z = Math.max(-mapSize / 2, Math.min(mapSize / 2, bot.z));
         }
