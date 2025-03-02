@@ -1,0 +1,223 @@
+body { 
+    margin: 0; 
+    overflow: hidden; 
+    font-family: Arial, sans-serif;
+    background: #87CEEB;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}
+#nameScreen, #modeScreen, #colorScreen, #roomScreen, #lobbyScreen, #gameScreen, #startScreen, #loseScreen, #leaderboardScreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    color: white;
+}
+#loseScreen, #modeScreen, #colorScreen, #roomScreen, #lobbyScreen, #gameScreen, #leaderboardScreen {
+    display: none;
+}
+#nameScreen h1, #modeScreen h1, #colorScreen h1, #roomScreen h1, #lobbyScreen h1, #startScreen h1, #loseScreen h1, #leaderboardScreen h1 {
+    font-size: 2em;
+    color: #ffdd00;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+#nameForm, #modeForm, #colorForm, #roomForm, #lobbyForm, #loseForm, #leaderboardForm {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 15px;
+    border-radius: 8px;
+    text-align: center;
+    max-width: 400px;
+    width: 70%;
+}
+#playerName, #roomName {
+    padding: 8px;
+    font-size: 1em;
+    width: 80%;
+    border-radius: 4px;
+    border: none;
+    margin: 15px 0;
+}
+#nameButton, #playNowButton, #roomModeButton, .colorButton, #createRoomButton, #joinRoomButton, #okButton, #startRoomButton, #restartButton {
+    padding: 8px 20px;
+    font-size: 1em;
+    background: #e74c3c;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.3s;
+    margin: 5px;
+}
+#nameButton:hover, #playNowButton:hover, #roomModeButton:hover, .colorButton:hover, #createRoomButton:hover, #joinRoomButton:hover, #okButton:hover, #startRoomButton:hover, #restartButton:hover {
+    background: #c0392b;
+}
+#info {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 5px;
+    border-radius: 3px;
+    z-index: 100;
+    font-size: 0.8em;
+    max-width: 150px;
+}
+#score {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 5px;
+    border-radius: 3px;
+    z-index: 100;
+    font-size: 0.8em;
+}
+#fps {
+    position: absolute;
+    top: 70px;
+    right: 5px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 3px;
+    border-radius: 3px;
+    z-index: 100;
+    font-size: 0.7em;
+}
+#windIndicator {
+    position: absolute;
+    top: 5px;
+    right: 80px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 5px;
+    border-radius: 3px;
+    z-index: 100;
+    font-size: 0.9em;
+}
+#timerDisplay {
+    position: absolute;
+    top: 5px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 5px;
+    border-radius: 3px;
+    z-index: 100;
+    font-size: 1em;
+}
+#targetMoveTimer {
+    position: absolute;
+    top: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 5px;
+    border-radius: 3px;
+    z-index: 100;
+    font-size: 0.9em;
+}
+#layerIndicator {
+    position: absolute;
+    right: 5px;
+    bottom: 170px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 5px;
+    border-radius: 3px;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    font-size: 0.7em;
+}
+.layer {
+    margin: 3px 0;
+    padding: 3px;
+    width: 100px;
+    text-align: center;
+    border-radius: 2px;
+}
+.active {
+    font-weight: bold;
+    box-shadow: 0 0 3px white;
+}
+#gps {
+    position: absolute;
+    bottom: 5px;
+    left: 5px;
+    width: 150px;
+    height: 165px;
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: 3px;
+    z-index: 100;
+    text-align: center;
+    color: white;
+    font-size: 0.8em;
+}
+#gpsCanvas {
+    width: 150px;
+    height: 140px;
+}
+#mobileControls {
+    display: none;
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    z-index: 2000;
+    flex-direction: column;
+    align-items: flex-end;
+    user-select: none;
+}
+.mobileButton {
+    width: 60px;
+    height: 60px;
+    margin: 5px 0;
+    background: rgba(255, 255, 255, 0.8);
+    border: none;
+    border-radius: 50%;
+    font-size: 1.5em;
+    cursor: pointer;
+    user-select: none;
+}
+.mobileButton:active {
+    background: rgba(200, 200, 200, 0.8);
+}
+#countdown {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 3em;
+    color: white;
+    z-index: 101;
+}
+#playersList {
+    margin-top: 10px;
+    font-size: 1em;
+}
+#promoText {
+    position: absolute;
+    bottom: 5px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 5px;
+    border-radius: 3px;
+    z-index: 100;
+    font-size: 0.72em;
+    text-align: center;
+}
