@@ -250,7 +250,7 @@ export function initSocket() {
             window.gameOver();
             window.gameEnded();
             document.getElementById('gameScreen').style.display = 'none';
-            document.getElementById('leaderboardScreen').style.display = 'flex';
+            document.getElementById('leaderboardScreen').style.display = 'block';
             const leaderboardList = document.getElementById('leaderboardList');
             leaderboardList.innerHTML = '';
             const sortedPlayers = Object.values(players).sort((a, b) => b.score - a.score);
@@ -259,22 +259,17 @@ export function initSocket() {
                 playerDiv.textContent = `${index + 1}. ${player.name} - ${player.score} pontos`;
                 leaderboardList.appendChild(playerDiv);
             });
-
             // Adicionar countdown de 7 segundos
+            let countdown = 7;
             const countdownDiv = document.createElement('div');
             countdownDiv.id = 'restartCountdown';
-            countdownDiv.style.textAlign = 'center';
-            countdownDiv.style.marginTop = '20px';
-            countdownDiv.style.fontSize = '1.5em';
-            leaderboardList.appendChild(countdownDiv);
-
-            let countdown = 7;
             countdownDiv.textContent = `Reiniciando em ${countdown} segundos`;
-            const countdownInterval = setInterval(() => {
+            leaderboardList.appendChild(countdownDiv);
+            const interval = setInterval(() => {
                 countdown--;
                 countdownDiv.textContent = `Reiniciando em ${countdown} segundos`;
                 if (countdown <= 0) {
-                    clearInterval(countdownInterval);
+                    clearInterval(interval);
                 }
             }, 1000);
         }
