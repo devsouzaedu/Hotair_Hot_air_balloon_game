@@ -256,9 +256,9 @@ export function initSocket() {
     });
 
     socket.on('gameOver', (winner) => {
-        if (!window.gameEnded()) {
+        if (!window.gameEnded) {
             window.gameOver();
-            window.gameEnded();
+            window.gameEnded = true;
             document.getElementById('gameScreen').style.display = 'none';
             document.getElementById('nameScreen').style.display = 'flex';
             resetGameState();
@@ -268,9 +268,9 @@ export function initSocket() {
     });
 
     socket.on('gameEnd', ({ players }) => {
-        if (!window.gameEnded()) {
+        if (!window.gameEnded) {
             window.gameOver();
-            window.gameEnded();
+            window.gameEnded = true;
             document.getElementById('gameScreen').style.display = 'none';
             document.getElementById('nameScreen').style.display = 'flex';
             resetGameState();
@@ -282,9 +282,9 @@ export function initSocket() {
     socket.on('showLeaderboard', ({ players }) => {
         console.log('showLeaderboard recebido:', players);
         window.gameOver();
-        window.gameEnded = () => true;
+        window.gameEnded = true;
         document.getElementById('gameScreen').style.display = 'none';
-        document.getElementById('loseScreen').style.display = 'none'; // Evitar tela de derrota
+        document.getElementById('loseScreen').style.display = 'none';
         document.getElementById('leaderboardScreen').style.display = 'block';
         const leaderboardList = document.getElementById('leaderboardList');
         leaderboardList.innerHTML = '';
@@ -322,13 +322,13 @@ export function initSocket() {
     socket.on('gameReset', ({ state }) => {
         console.log('gameReset recebido:', state);
         document.getElementById('leaderboardScreen').style.display = 'none';
-        document.getElementById('loseScreen').style.display = 'none'; // Evitar tela de derrota
+        document.getElementById('loseScreen').style.display = 'none';
         document.getElementById('gameScreen').style.display = 'block';
 
         window.gameOver = false;
-        window.gameEnded = () => false;
-        window.hasLiftedOff = false; // Evitar game over imediato
-        window.altitude = state.players[socket.id].y; // Garantir altitude correta
+        window.gameEnded = false;
+        window.hasLiftedOff = false;
+        window.altitude = state.players[socket.id].y;
         window.setTargets(state.targets || []);
         window.lastTargetMoveTime = state.lastTargetMoveTime || Date.now();
 
@@ -362,6 +362,7 @@ export function initSocket() {
         window.markersLeft = 5;
         document.getElementById('points').textContent = '0';
         document.getElementById('markersLeft').textContent = window.markersLeft;
+        window.gameStarted(); // Reativar o jogo
     });
 
     function resetGameState() {

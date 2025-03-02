@@ -76,7 +76,7 @@ function updateMarkersGravity(state, roomName = null) {
     for (const markerId in state.markers) {
         const marker = state.markers[markerId];
         if (marker.y > 0) {
-            marker.y -= 3.5; // Aumentar gravidade para queda em ~3 segundos
+            marker.y -= 5.0; // Gravidade aumentada para queda em ~2 segundos
             if (marker.y <= 0) {
                 marker.y = 0;
                 io.to(roomName || 'world').emit('markerLanded', { 
@@ -266,7 +266,7 @@ io.on('connection', (socket) => {
                 color: playerData.color,
                 x: 0,
                 z: 0,
-                y: 100,
+            y: 100,
                 markers: 5,
                 score: 0,
                 isBot: false

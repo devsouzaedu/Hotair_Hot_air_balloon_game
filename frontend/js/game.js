@@ -18,7 +18,7 @@ export function initGame() {
     window.otherPlayers = {};
     window.markers = window.markers || [];
     let lastTargetMoveTime = Date.now();
-    let gameEnded = false;
+    let gameEnded = false; // Manter como booleano
 
     const windLayers = [
         { minAlt: 0, maxAlt: 100, direction: { x: 0, z: 0 }, speed: 0, name: "Nenhum" },
@@ -420,7 +420,7 @@ export function initGame() {
         }
 
         if (!gameStarted || gameOver || !balloon) {
-            if (gameOver && !gameEnded()) {
+            if (gameOver && !gameEnded) {
                 document.getElementById('gameScreen').style.display = 'none';
                 document.getElementById('loseScreen').style.display = 'flex';
             }
@@ -502,7 +502,7 @@ export function initGame() {
 
     window.gameStarted = () => gameStarted = true;
     window.gameOver = () => gameOver = true;
-    window.gameEnded = () => gameEnded;
+    window.gameEnded = gameEnded; // Manter como variável booleana
     window.setBalloon = (b) => {
         console.log('Definindo balão:', b);
         balloon = b;
