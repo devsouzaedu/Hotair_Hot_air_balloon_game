@@ -163,7 +163,6 @@ export function initSocket() {
             window.scene.add(newTargetMesh);
         }
 
-        // Sincronizar o contador de alvo com o tempo restante
         const secondsLeftInMinute = Math.ceil(60 - (timeLeft % 60));
         document.getElementById('targetMoveTimer').textContent = `Próxima mudança de alvo: ${secondsLeftInMinute}s`;
 
@@ -282,80 +281,87 @@ export function initSocket() {
 
     socket.on('showLeaderboard', ({ players }) => {
         console.log('showLeaderboard recebido:', players);
-        if (!window.gameEnded()) {
-            window.gameOver();
-            window.gameEnded();
-            document.getElementById('gameScreen').style.display = 'none';
-            document.getElementById('leaderboardScreen').style.display = 'block';
-            const leaderboardList = document.getElementById('leaderboardList');
-            leaderboardList.innerHTML = '';
-            const sortedPlayers = Object.values(players).sort((a, b) => b.score - a.score);
-            sortedPlayers.forEach((player, index) => {
-                const playerDiv = document.createElement('div');
-                if (index === 0) {
-                    playerDiv.textContent = `🏆 Campeão: ${player.name} - ${player.score} pontos`;
-                    playerDiv.style.color = '#FFD700';
-                    playerDiv.style.fontWeight = 'bold';
-                } else {
-                    playerDiv.textContent = `${index + 1}. ${player.name} - ${player.score} pontos`;
-                }
-                leaderboardList.appendChild(playerDiv);
-            });
+        window.gameOver();
+        window.gameEnded = () => true; // Forçar gameEnded como true
+        document.getElementById('gameScreen').style.display = 'none';
+        document.getElementById('leaderboardScreen').style.display = 'block';
+        const leaderboardList = document.getElementById('leaderboardList');
+        leaderboardList.innerHTML = '';
+        const sortedPlayers = Object.values(players).sort((a, b) => b.score - a.score);
+        sortedPlayers.forEach((player, index) => {
+            const playerDiv = document.createElement('div');
+            if (index === 0) {
+                playerDiv.textContent = `🏆 Campeão: ${player.name} - ${player.score} pontos`;
+                playerDiv.style.color = '#FFD700';
+                playerDiv.style.fontWeight = 'bold';
+            } else {
+                playerDiv.textContent = `${index + 1}. ${player.name} - ${player.score} pontos`;
+            }
+            leaderboardList.appendChild(playerDiv);
+        });
 
-            const countdownDiv = document.createElement('div');
-            countdownDiv.id = 'restartCountdown';
-            countdownDiv.style.textAlign = 'center';
-            countdownDiv.style.marginTop = '20px';
-            countdownDiv.style.fontSize = '1.5em';
-            leaderboardList.appendChild(countdownDiv);
+        const countdownDiv = document.createElement('div');
+        countdownDiv.id = 'restartCountdown';
+        countdownDiv.style.textAlign = 'center';
+        countdownDiv.style.marginTop = '20px';
+        countdownDiv.style.fontSize = '1.5em';
+        leaderboardList.appendChild(countdownDiv);
 
-            let countdown = 7;
+        let countdown = 7;
+        countdownDiv.textContent = `Novo jogo em ${countdown} segundos`;
+        const countdownInterval = setInterval(() => {
+            countdown--;
             countdownDiv.textContent = `Novo jogo em ${countdown} segundos`;
-            const countdownInterval = setInterval(() => {
-                countdown--;
-                countdownDiv.textContent = `Novo jogo em ${countdown} segundos`;
-                if (countdown <= 0) {
-                    clearInterval(countdownInterval);
-                }
-            }, 1000);
-        }
+            if (countdown <= 0) {
+                clearInterval(countdownInterval);
+            }
+        }, 1000);
     });
 
     socket.on('gameReset', ({ state }) => {
         console.log('gameReset recebido:', state);
-        if (document.getElementById('leaderboardScreen').style.display === 'block') {
-            document.getElementById('leaderboardScreen').style.display = 'none';
-            document.getElementById('gameScreen').style.display = 'block';
+        document.getElementById('leaderboardScreen').style.display = 'none';
+        document.getElementById('gameScreen').style.display = 'block';
 
-            window.gameOver = false;
-            window.gameEnded = false;
-            window.setTargets(state.targets || []);
-            window.lastTargetMoveTime = state.lastTargetMoveTime || Date.now();
-            window.scene.remove(window.balloon);
-            const playerName = document.getElementById('playerName').value || 'Jogador';
-            window.setBalloon(window.createBalloon(window.balloonColor, playerName));
-            if (window.balloon) {
-                window.balloon.position.set(0, 100, 0);
-                window.scene.add(window.balloon);
-            }
-            window.markersLeft = 5;
-            document.getElementById('points').textContent = '0';
-            document.getElementById('markersLeft').textContent = window.markersLeft;
+        window.gameOver = false;
+        window.gameEnded = () => false; // Resetar gameEnded
+        window.setTargets(state.targets || []);
+        window.lastTargetMoveTime = state.lastTargetMoveTime || Date.now();
 
-            window.scene.children.filter(obj => obj instanceof THREE.Group && obj.position.y === 0.1).forEach(obj => window.scene.remove(obj));
-            if (Array.isArray(window.targets)) {
-                window.targets.forEach(target => {
-                    const targetMesh = window.createTarget(target.x, target.z);
-                    window.scene.add(targetMesh);
-                });
-            }
+        // Remover todos os balões e marcas existentes
+        window.scene.children.filter(obj => obj instanceof THREE.Group || obj.userData.type === 'marker' || obj.userData.type === 'tail').forEach(obj => window.scene.remove(obj));
+        window.setMarkers([]);
+        window.setOtherPlayers({});
 
-            window.markers.forEach(({ marker, tail }) => {
-                window.scene.remove(marker);
-                window.scene.remove(tail);
-            });
-            window.setMarkers([]);
+        // Recriar balão do jogador
+        const playerName = document.getElementById('playerName').value || 'Jogador';
+        window.setBalloon(window.createBalloon(window.balloonColor, playerName));
+        if (window.balloon) {
+            window.balloon.position.set(state.players[socket.id].x, state.players[socket.id].y, state.players[socket.id].z);
+            window.scene.add(window.balloon);
         }
+
+        // Recriar balões dos outros jogadores/bots com posições randomizadas
+        for (const id in state.players) {
+            if (id !== socket.id && state.players[id].color) {
+                const otherBalloon = window.createBalloon(state.players[id].color, state.players[id].name);
+                otherBalloon.position.set(state.players[id].x, state.players[id].y, state.players[id].z);
+                window.otherPlayers[id] = otherBalloon;
+                window.scene.add(otherBalloon);
+            }
+        }
+
+        // Recriar alvos
+        if (Array.isArray(window.targets)) {
+            window.targets.forEach(target => {
+                const targetMesh = window.createTarget(target.x, target.z);
+                window.scene.add(targetMesh);
+            });
+        }
+
+        window.markersLeft = 5;
+        document.getElementById('points').textContent = '0';
+        document.getElementById('markersLeft').textContent = window.markersLeft;
     });
 
     function resetGameState() {

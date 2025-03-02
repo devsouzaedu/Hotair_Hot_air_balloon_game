@@ -73,11 +73,10 @@ app.get('/', (req, res) => {
 });
 
 function updateMarkersGravity(state, roomName = null) {
-    const fallSpeed = 0.5;
     for (const markerId in state.markers) {
         const marker = state.markers[markerId];
         if (marker.y > 0) {
-            marker.y -= fallSpeed;
+            marker.y -= 0.5; // Unificar gravidade com o frontend
             if (marker.y <= 0) {
                 marker.y = 0;
                 io.to(roomName || 'world').emit('markerLanded', { 
@@ -434,7 +433,6 @@ setInterval(() => {
     const elapsedWorld = (Date.now() - worldState.startTime) / 1000;
     const timeLeft = Math.max(300 - elapsedWorld, 0);
 
-    // Sincronizar movimento do alvo com a virada do minuto
     const secondsElapsed = elapsedWorld % 60;
     if (secondsElapsed < 0.1 && elapsedWorld < 290 && Date.now() - worldState.lastTargetMoveTime >= 59 * 1000) {
         moveTarget(worldState);
@@ -476,9 +474,17 @@ setInterval(() => {
 }, 100);
 
 function resetWorldState() {
+    const mapSize = 2600;
     worldState = {
         players: Object.keys(worldState.players).reduce((acc, id) => {
-            acc[id] = { ...worldState.players[id], x: 0, y: 100, z: 0, markers: 5, score: 0 };
+            acc[id] = { 
+                ...worldState.players[id], 
+                x: Math.random() * mapSize - mapSize / 2, 
+                y: 100 + Math.random() * 400, 
+                z: Math.random() * mapSize - mapSize / 2, 
+                markers: 5, 
+                score: 0 
+            };
             return acc;
         }, {}),
         targets: [generateTarget()],
@@ -492,9 +498,17 @@ function resetWorldState() {
 }
 
 function resetRoomState(roomName) {
+    const mapSize = 2600;
     const room = rooms[roomName];
     room.players = Object.keys(room.players).reduce((acc, id) => {
-        acc[id] = { ...room.players[id], x: 0, y: 100, z: 0, markers: 5, score: 0 };
+        acc[id] = { 
+            ...room.players[id], 
+            x: Math.random() * mapSize - mapSize / 2, 
+            y: 100 + Math.random() * 400, 
+            z: Math.random() * mapSize - mapSize / 2, 
+            markers: 5, 
+            score: 0 
+        };
         return acc;
     }, {});
     room.targets = [generateTarget()];
