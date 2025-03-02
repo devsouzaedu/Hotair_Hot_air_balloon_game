@@ -16,7 +16,7 @@ export function initGame() {
     let isMobile = detectMobile();
     window.targets = [];
     window.otherPlayers = {};
-    window.markers = window.markers || []; // Usar global em vez de local
+    window.markers = window.markers || [];
     let lastTargetMoveTime = Date.now();
     let gameEnded = false;
 

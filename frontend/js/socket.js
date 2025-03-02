@@ -245,6 +245,7 @@ export function initSocket() {
     });
 
     socket.on('showLeaderboard', ({ players }) => {
+        console.log('showLeaderboard recebido:', players);
         if (!window.gameEnded()) {
             window.gameOver();
             window.gameEnded();
@@ -259,7 +260,7 @@ export function initSocket() {
                 leaderboardList.appendChild(playerDiv);
             });
 
-            // Adicionar countdown de 7 segundos para reinício
+            // Adicionar countdown de 7 segundos
             const countdownDiv = document.createElement('div');
             countdownDiv.id = 'restartCountdown';
             countdownDiv.style.textAlign = 'center';
@@ -280,6 +281,7 @@ export function initSocket() {
     });
 
     socket.on('gameReset', ({ state }) => {
+        console.log('gameReset recebido:', state);
         document.getElementById('leaderboardScreen').style.display = 'none';
         document.getElementById('gameScreen').style.display = 'block';
 
