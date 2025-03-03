@@ -8,7 +8,7 @@ const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const mongoose = require('mongoose');
 const session = require('express-session');
 
-const app = express(); // Primeiro definimos o app
+const app = express();
 const server = http.createServer(app);
 const io = socketIO(server, {
     cors: {
@@ -47,40 +47,51 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Middleware CORS
+// Middleware CORS e parsing
 app.use(cors({
     origin: 'https://devsouzaedu.github.io',
     methods: ['GET', 'POST'],
     credentials: true
 }));
 app.use(express.json());
-app.use(express.urlencoded({ extended: true })); // Para parsear parâmetros de URL como 'code'
+app.use(express.urlencoded({ extended: true })); // Para parsear 'code' na URL
 
-// Configuração do Google OAuth com Google Identity Services
+// Configuração do Google OAuth para GIS
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     callbackURL: 'https://hotair-backend.onrender.com/auth/google/callback',
     userProfileURL: 'https://www.googleapis.com/oauth2/v3/userinfo'
 }, async (accessToken, refreshToken, profile, done) => {
+    console.log('Perfil recebido do Google:', profile);
     try {
         let user = await User.findOne({ googleId: profile.id });
         if (!user) {
             user = new User({ googleId: profile.id });
             await user.save();
+            console.log('Novo usuário criado:', user.googleId);
+        } else {
+            console.log('Usuário existente encontrado:', user.googleId);
         }
         done(null, user);
     } catch (err) {
+        console.error('Erro ao salvar/buscar usuário:', err);
         done(err, null);
     }
 }));
 
-passport.serializeUser((user, done) => done(null, user.id));
+passport.serializeUser((user, done) => {
+    console.log('Serializando usuário:', user.id);
+    done(null, user.id);
+});
+
 passport.deserializeUser(async (id, done) => {
     try {
         const user = await User.findById(id);
+        console.log('Desserializando usuário:', user ? user.googleId : 'não encontrado');
         done(null, user);
     } catch (err) {
+        console.error('Erro ao desserializar usuário:', err);
         done(err, null);
     }
 });
@@ -89,6 +100,7 @@ passport.deserializeUser(async (id, done) => {
 app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 
 app.get('/auth/google/callback', (req, res, next) => {
+    console.log('Recebido callback com código:', req.query.code);
     passport.authenticate('google', { failureRedirect: '/' }, (err, user, info) => {
         if (err) {
             console.error('Erro na autenticação:', err);
@@ -111,35 +123,55 @@ app.get('/auth/google/callback', (req, res, next) => {
 
 app.get('/auth/check', (req, res) => {
     if (req.isAuthenticated()) {
+        console.log('Verificação de autenticação: Usuário autenticado', req.user.googleId);
         res.json({ authenticated: true, user: { googleId: req.user.googleId, nickname: req.user.nickname } });
     } else {
+        console.log('Verificação de autenticação: Não autenticado');
         res.json({ authenticated: false });
     }
 });
 
 app.post('/auth/set-nickname', async (req, res) => {
-    if (!req.isAuthenticated()) return res.status(401).json({ error: 'Não autenticado' });
+    if (!req.isAuthenticated()) {
+        console.log('Tentativa de set-nickname sem autenticação');
+        return res.status(401).json({ error: 'Não autenticado' });
+    }
     const { nickname } = req.body;
-    if (!nickname || nickname.length > 18) return res.status(400).json({ error: 'Nickname inválido (máx. 18 caracteres)' });
+    if (!nickname || nickname.length > 18) {
+        console.log('Nickname inválido:', nickname);
+        return res.status(400).json({ error: 'Nickname inválido (máx. 18 caracteres)' });
+    }
 
     try {
         const existingUser = await User.findOne({ nickname });
-        if (existingUser) return res.status(400).json({ error: 'Nickname já em uso' });
+        if (existingUser) {
+            console.log('Nickname já em uso:', nickname);
+            return res.status(400).json({ error: 'Nickname já em uso' });
+        }
 
         const user = await User.findOne({ googleId: req.user.googleId });
-        if (user.nickname) return res.status(400).json({ error: 'Nickname já definido e não pode ser alterado' });
+        if (user.nickname) {
+            console.log('Nickname já definido para usuário:', user.googleId);
+            return res.status(400).json({ error: 'Nickname já definido e não pode ser alterado' });
+        }
 
         user.nickname = nickname;
         await user.save();
+        console.log('Nickname definido com sucesso para:', user.googleId, 'Nickname:', nickname);
         res.json({ success: true, nickname });
     } catch (err) {
+        console.error('Erro ao salvar nickname:', err);
         res.status(500).json({ error: 'Erro ao salvar nickname' });
     }
 });
 
 app.get('/profile', async (req, res) => {
-    if (!req.isAuthenticated()) return res.status(401).json({ error: 'Não autenticado' });
+    if (!req.isAuthenticated()) {
+        console.log('Tentativa de acessar perfil sem autenticação');
+        return res.status(401).json({ error: 'Não autenticado' });
+    }
     const user = await User.findOne({ googleId: req.user.googleId });
+    console.log('Perfil retornado para:', user.googleId);
     res.json({
         googleId: user.googleId,
         nickname: user.nickname,
