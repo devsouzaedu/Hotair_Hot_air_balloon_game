@@ -6,7 +6,7 @@ import { initSocket } from './socket.js';
 // Carregar Google Auth2
 gapi.load('auth2', () => {
     gapi.auth2.init({
-        client_id: '977819867201-unkn3raoa1evunhpcrm6ipqtejbnec0n.apps.googleusercontent.com' // Substituído pelo seu Client ID
+        client_id: '977819867201-unkn3raoa1evunhpcrm6ipqtejbnec0n.apps.googleusercontent.com'
     });
 });
 
@@ -27,54 +27,73 @@ document.addEventListener('DOMContentLoaded', () => {
         .catch(err => console.error('Erro ao verificar autenticação:', err));
 
     // Login com Google
-    document.getElementById('googleLoginButton').addEventListener('click', () => {
-        const auth2 = gapi.auth2.getAuthInstance();
-        auth2.signIn().then(googleUser => {
-            const idToken = googleUser.getAuthResponse().id_token;
-            window.location.href = `https://hotair-backend.onrender.com/auth/google/callback?code=${idToken}`;
+    const googleLoginButton = document.getElementById('googleLoginButton');
+    if (googleLoginButton) {
+        googleLoginButton.addEventListener('click', () => {
+            console.log('Botão de login clicado');
+            const auth2 = gapi.auth2.getAuthInstance();
+            auth2.signIn().then(googleUser => {
+                const idToken = googleUser.getAuthResponse().id_token;
+                console.log('ID Token obtido:', idToken);
+                window.location.href = `https://hotair-backend.onrender.com/auth/google/callback?code=${idToken}`;
+            }).catch(err => console.error('Erro ao fazer login com Google:', err));
         });
-    });
+    } else {
+        console.error('Elemento googleLoginButton não encontrado');
+    }
 
     // Definir Nickname
-    document.getElementById('setNicknameButton').addEventListener('click', () => {
-        const nickname = document.getElementById('nicknameInput').value;
-        fetch('https://hotair-backend.onrender.com/auth/set-nickname', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nickname }),
-            credentials: 'include'
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showProfile({ googleId: data.googleId, nickname: data.nickname });
-            } else {
-                alert(data.error);
-            }
-        })
-        .catch(err => console.error('Erro ao definir nickname:', err));
-    });
+    const setNicknameButton = document.getElementById('setNicknameButton');
+    if (setNicknameButton) {
+        setNicknameButton.addEventListener('click', () => {
+            const nickname = document.getElementById('nicknameInput').value;
+            fetch('https://hotair-backend.onrender.com/auth/set-nickname', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nickname }),
+                credentials: 'include'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showProfile({ googleId: data.googleId, nickname: data.nickname });
+                } else {
+                    alert(data.error);
+                }
+            })
+            .catch(err => console.error('Erro ao definir nickname:', err));
+        });
+    }
 
     // Iniciar Jogo
-    document.getElementById('startGameButton').addEventListener('click', () => {
-        document.getElementById('profileScreen').style.display = 'none';
-        document.getElementById('modeScreen').style.display = 'flex';
-        initGame();
-        initSocket();
-        initUI();
-    });
+    const startGameButton = document.getElementById('startGameButton');
+    if (startGameButton) {
+        startGameButton.addEventListener('click', () => {
+            document.getElementById('profileScreen').style.display = 'none';
+            document.getElementById('modeScreen').style.display = 'flex';
+            initGame();
+            initSocket();
+            initUI(); // Só chama initUI após o perfil estar carregado
+        });
+    }
 
     // Modo de Jogo
-    document.getElementById('playNowButton').addEventListener('click', () => {
-        window.mode = 'world';
-        document.getElementById('modeScreen').style.display = 'none';
-        document.getElementById('colorScreen').style.display = 'flex';
-    });
+    const playNowButton = document.getElementById('playNowButton');
+    if (playNowButton) {
+        playNowButton.addEventListener('click', () => {
+            window.mode = 'world';
+            document.getElementById('modeScreen').style.display = 'none';
+            document.getElementById('colorScreen').style.display = 'flex';
+        });
+    }
 
-    document.getElementById('roomModeButton').addEventListener('click', () => {
-        document.getElementById('modeScreen').style.display = 'none';
-        document.getElementById('roomScreen').style.display = 'flex';
-    });
+    const roomModeButton = document.getElementById('roomModeButton');
+    if (roomModeButton) {
+        roomModeButton.addEventListener('click', () => {
+            document.getElementById('modeScreen').style.display = 'none';
+            document.getElementById('roomScreen').style.display = 'flex';
+        });
+    }
 });
 
 function showProfile(user) {

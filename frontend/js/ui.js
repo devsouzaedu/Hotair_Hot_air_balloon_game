@@ -1,31 +1,10 @@
+// libraair_/frontend/js/ui.js
 export function initUI() {
     window.balloonColor = null;
     window.mode = null; // Inicializa explicitamente
     window.roomName = null; // Inicializa explicitamente
-    let playerName = '';
 
-    document.getElementById('nameButton').addEventListener('click', () => {
-        playerName = document.getElementById('playerName').value.trim();
-        if (playerName) {
-            document.getElementById('nameScreen').style.display = 'none';
-            document.getElementById('modeScreen').style.display = 'flex';
-        } else {
-            alert("Digite seu nome!");
-        }
-    });
-
-    document.getElementById('playNowButton').addEventListener('click', () => {
-        window.mode = 'world';
-        document.getElementById('modeScreen').style.display = 'none';
-        document.getElementById('colorScreen').style.display = 'flex';
-    });
-
-    document.getElementById('roomModeButton').addEventListener('click', () => {
-        window.mode = 'room';
-        document.getElementById('modeScreen').style.display = 'none';
-        document.getElementById('roomScreen').style.display = 'flex';
-    });
-
+    // Configurar eventos apenas para elementos que existem após autenticação
     document.querySelectorAll('.colorButton').forEach(button => {
         button.addEventListener('click', () => {
             window.balloonColor = button.getAttribute('data-color');
@@ -39,15 +18,21 @@ export function initUI() {
                 console.error('Socket não está inicializado.');
                 return;
             }
-            if (window.mode === 'world') {
-                window.socket.emit('joinNow', { name: playerName, color: window.balloonColor });
-            } else if (window.mode === 'room' && window.roomName) {
-                window.socket.emit('setColor', { roomName: window.roomName, color: window.balloonColor });
-                window.socket.emit('joinRoom', { roomName: window.roomName, playerData: { name: playerName, color: window.balloonColor } });
-                document.getElementById('lobbyScreen').style.display = 'flex';
-            } else {
-                console.error('Modo ou nome da sala não definidos:', { mode: window.mode, roomName: window.roomName });
-            }
+            fetch('https://hotair-backend.onrender.com/profile', { credentials: 'include' })
+                .then(response => response.json())
+                .then(profile => {
+                    const playerName = profile.nickname;
+                    if (window.mode === 'world') {
+                        window.socket.emit('joinNow', { name: playerName, color: window.balloonColor });
+                    } else if (window.mode === 'room' && window.roomName) {
+                        window.socket.emit('setColor', { roomName: window.roomName, color: window.balloonColor });
+                        window.socket.emit('joinRoom', { roomName: window.roomName, playerData: { name: playerName, color: window.balloonColor } });
+                        document.getElementById('lobbyScreen').style.display = 'flex';
+                    } else {
+                        console.error('Modo ou nome da sala não definidos:', { mode: window.mode, roomName: window.roomName });
+                    }
+                })
+                .catch(err => console.error('Erro ao obter perfil para nome:', err));
         } else {
             alert("Escolha uma cor!");
         }
@@ -75,9 +60,14 @@ export function initUI() {
                 console.error('Socket não está inicializado.');
                 return;
             }
-            window.socket.emit('joinRoom', { roomName: window.roomName, playerData: { name: playerName, color: null } });
-            document.getElementById('roomScreen').style.display = 'none';
-            document.getElementById('colorScreen').style.display = 'flex';
+            fetch('https://hotair-backend.onrender.com/profile', { credentials: 'include' })
+                .then(response => response.json())
+                .then(profile => {
+                    window.socket.emit('joinRoom', { roomName: window.roomName, playerData: { name: profile.nickname, color: null } });
+                    document.getElementById('roomScreen').style.display = 'none';
+                    document.getElementById('colorScreen').style.display = 'flex';
+                })
+                .catch(err => console.error('Erro ao obter perfil para nome:', err));
         } else {
             alert("Digite o nome da sala!");
         }
