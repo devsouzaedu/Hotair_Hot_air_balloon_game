@@ -1,6 +1,26 @@
 import { initUI } from './ui.js';
 import { initGame } from './game.js';
 import { initSocket } from './socket.js';
+// Adicione isso antes das rotas existentes no server.js
+app.get('/auth/google/callback', (req, res, next) => {
+    passport.authenticate('google', { failureRedirect: '/' }, (err, user, info) => {
+        if (err) {
+            console.error('Erro na autenticação:', err);
+            return res.status(500).send('Erro na autenticação');
+        }
+        if (!user) {
+            console.error('Usuário não autenticado:', info);
+            return res.status(401).send('Falha na autenticação');
+        }
+        req.logIn(user, (loginErr) => {
+            if (loginErr) {
+                console.error('Erro ao logar:', loginErr);
+                return res.status(500).send('Erro ao logar');
+            }
+            res.redirect('https://devsouzaedu.github.io/?auth=success');
+        });
+    })(req, res, next);
+});
 
 // Carregar Google Auth2
 gapi.load('auth2', () => {
