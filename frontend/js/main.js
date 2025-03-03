@@ -3,14 +3,21 @@ import { initUI } from './ui.js';
 import { initGame } from './game.js';
 import { initSocket } from './socket.js';
 
-// Carregar Google Auth2
-gapi.load('auth2', () => {
-    gapi.auth2.init({
-        client_id: '977819867201-unkn3raoa1evunhpcrm6ipqtejbnec0n.apps.googleusercontent.com'
-    });
-});
-
 document.addEventListener('DOMContentLoaded', () => {
+    // Inicializar Google Identity Services
+    google.accounts.oauth2.initCodeClient({
+        client_id: '977819867201-unkn3raoa1evunhpcrm6ipqtejbnec0n.apps.googleusercontent.com',
+        scope: 'profile email',
+        ux_mode: 'popup',
+        callback: (response) => {
+            console.log('Código de autorização obtido:', response.code);
+            window.location.href = `https://hotair-backend.onrender.com/auth/google/callback?code=${response.code}`;
+        },
+        error_callback: (error) => {
+            console.error('Erro ao inicializar Google Login:', error);
+        }
+    });
+
     // Verificar autenticação ao carregar a página
     fetch('https://hotair-backend.onrender.com/auth/check', { credentials: 'include' })
         .then(response => response.json())
@@ -31,12 +38,19 @@ document.addEventListener('DOMContentLoaded', () => {
     if (googleLoginButton) {
         googleLoginButton.addEventListener('click', () => {
             console.log('Botão de login clicado');
-            const auth2 = gapi.auth2.getAuthInstance();
-            auth2.signIn({ prompt: 'select_account' }).then(googleUser => {
-                const idToken = googleUser.getAuthResponse().id_token;
-                console.log('ID Token obtido:', idToken);
-                window.location.href = `https://hotair-backend.onrender.com/auth/google/callback?code=${idToken}`;
-            }).catch(err => console.error('Erro ao fazer login com Google:', err));
+            const client = google.accounts.oauth2.initCodeClient({
+                client_id: '977819867201-unkn3raoa1evunhpcrm6ipqtejbnec0n.apps.googleusercontent.com',
+                scope: 'profile email',
+                ux_mode: 'popup',
+                callback: (response) => {
+                    console.log('Código de autorização obtido:', response.code);
+                    window.location.href = `https://hotair-backend.onrender.com/auth/google/callback?code=${response.code}`;
+                },
+                error_callback: (error) => {
+                    console.error('Erro ao fazer login com Google:', error);
+                }
+            });
+            client.requestCode();
         });
     } else {
         console.error('Elemento googleLoginButton não encontrado');

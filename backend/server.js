@@ -47,17 +47,21 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Middleware CSP (adicionado após a definição do app)
-app.use((req, res, next) => {
-    res.setHeader("Content-Security-Policy", "script-src 'self' https://apis.google.com https://www.gstatic.com 'unsafe-inline' 'unsafe-eval'");
-    next();
-});
+// Middleware CORS
+app.use(cors({
+    origin: 'https://devsouzaedu.github.io',
+    methods: ['GET', 'POST'],
+    credentials: true
+}));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true })); // Para parsear parâmetros de URL como 'code'
 
-// Configuração do Google OAuth
+// Configuração do Google OAuth com Google Identity Services
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: 'https://hotair-backend.onrender.com/auth/google/callback'
+    callbackURL: 'https://hotair-backend.onrender.com/auth/google/callback',
+    userProfileURL: 'https://www.googleapis.com/oauth2/v3/userinfo'
 }, async (accessToken, refreshToken, profile, done) => {
     try {
         let user = await User.findOne({ googleId: profile.id });
@@ -81,19 +85,28 @@ passport.deserializeUser(async (id, done) => {
     }
 });
 
-// Middleware CORS
-app.use(cors({
-    origin: 'https://devsouzaedu.github.io',
-    methods: ['GET', 'POST'],
-    credentials: true
-}));
-app.use(express.json());
-
 // Rotas de Autenticação
 app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 
-app.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/' }), (req, res) => {
-    res.redirect('https://devsouzaedu.github.io/?auth=success');
+app.get('/auth/google/callback', (req, res, next) => {
+    passport.authenticate('google', { failureRedirect: '/' }, (err, user, info) => {
+        if (err) {
+            console.error('Erro na autenticação:', err);
+            return res.status(500).send('Erro na autenticação');
+        }
+        if (!user) {
+            console.error('Usuário não autenticado:', info);
+            return res.status(401).send('Falha na autenticação');
+        }
+        req.logIn(user, (loginErr) => {
+            if (loginErr) {
+                console.error('Erro ao logar:', loginErr);
+                return res.status(500).send('Erro ao logar');
+            }
+            console.log('Usuário autenticado com sucesso:', user.googleId);
+            res.redirect('https://devsouzaedu.github.io/?auth=success');
+        });
+    })(req, res, next);
 });
 
 app.get('/auth/check', (req, res) => {
@@ -621,8 +634,6 @@ function resetRoomState(roomName) {
     room.lastTargetMoveTime = Date.now();
     return room;
 }
-
-
 
 function calculateScore(distance) {
     if (distance < 5) return 1000;
