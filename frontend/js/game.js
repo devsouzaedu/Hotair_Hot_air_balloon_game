@@ -25,9 +25,9 @@ export function initGame() {
     const windLayers = [
         { minAlt: 0, maxAlt: 100, direction: { x: 0, z: 0 }, speed: 0, name: "Nenhum" },
         { minAlt: 100, maxAlt: 200, direction: { x: 1, z: 0 }, speed: 0.3, name: "Leste" },
-        { minAlt: 200, maxAlt: 300, direction: { x: 0, z: 1 }, speed: 0.3, name: "Sul" },
+        { minAlt: 200, maxAlt: 300, direction: { x: 0, z: 1 }, speed: 0.4, name: "Sul" },
         { minAlt: 300, maxAlt: 400, direction: { x: -1, z: 0 }, speed: 0.4, name: "Oeste" },
-        { minAlt: 400, maxAlt: 500, direction: { x: 0, z: -1 }, speed: 0.5, name: "Norte" }
+        { minAlt: 400, maxAlt: 500, direction: { x: 0, z: -1 }, speed: 0.6, name: "Norte" }
     ];
 
     const keys = { W: false, S: false, A: false, D: false, U: false, SHIFT_RIGHT: false };
@@ -171,25 +171,21 @@ export function initGame() {
         for (let i = 0; i < 6; i++) {
             const stepY = (i + 0.5) * stepHeight - standHeight / 2;
 
-            // Degraus Norte
             const northStepGeometry = new THREE.BoxGeometry(mapSize, stepHeight / 2, stepDepth);
             const northStep = new THREE.Mesh(northStepGeometry, stepMaterial);
             northStep.position.set(0, stepY, mapSize / 2 + (i + 0.5) * stepDepth);
             scene.add(northStep);
 
-            // Degraus Sul
             const southStepGeometry = new THREE.BoxGeometry(mapSize, stepHeight / 2, stepDepth);
             const southStep = new THREE.Mesh(southStepGeometry, stepMaterial);
             southStep.position.set(0, stepY, -mapSize / 2 - (i + 0.5) * stepDepth);
             scene.add(southStep);
 
-            // Degraus Leste
             const eastStepGeometry = new THREE.BoxGeometry(stepDepth, stepHeight / 2, mapSize);
             const eastStep = new THREE.Mesh(eastStepGeometry, stepMaterial);
             eastStep.position.set(mapSize / 2 + (i + 0.5) * stepDepth, stepY, 0);
             scene.add(eastStep);
 
-            // Degraus Oeste
             const westStepGeometry = new THREE.BoxGeometry(stepDepth, stepHeight / 2, mapSize);
             const westStep = new THREE.Mesh(westStepGeometry, stepMaterial);
             westStep.position.set(-mapSize / 2 - (i + 0.5) * stepDepth, stepY, 0);
@@ -198,74 +194,54 @@ export function initGame() {
 
         // Adicionar torcedores (cubos coloridos saltitantes)
         const spectatorSize = 4;
-        const spectatorColors = [0xFF0000, 0x00FF00, 0x0000FF, 0xFFFF00, 0xFF00FF]; // Vermelho, Verde, Azul, Amarelo, Magenta
-        const spectators = [];
+        const spectatorColors = [0xFF0000, 0x00FF00, 0x0000FF, 0xFFFF00, 0xFF00FF];
+        window.spectators = window.spectators || []; // Tornar spectators acessível globalmente
 
-        for (let i = 0; i < 6; i++) { // Para cada andar
+        for (let i = 0; i < 6; i++) {
             const yPos = (i + 0.5) * stepHeight;
 
-            // Torcedores Norte
             for (let x = -mapSize / 2 + spectatorSize; x < mapSize / 2; x += spectatorSize * 2) {
                 const spectatorGeometry = new THREE.BoxGeometry(spectatorSize, spectatorSize, spectatorSize);
                 const color = spectatorColors[Math.floor(Math.random() * spectatorColors.length)];
                 const spectatorMaterial = new THREE.MeshLambertMaterial({ color });
                 const spectator = new THREE.Mesh(spectatorGeometry, spectatorMaterial);
                 spectator.position.set(x, yPos, mapSize / 2 + (i + 0.5) * stepDepth);
-                spectators.push({ mesh: spectator, baseY: yPos, phase: Math.random() * Math.PI * 2 });
+                window.spectators.push({ mesh: spectator, baseY: yPos, phase: Math.random() * Math.PI * 2 });
                 scene.add(spectator);
             }
 
-            // Torcedores Sul
             for (let x = -mapSize / 2 + spectatorSize; x < mapSize / 2; x += spectatorSize * 2) {
                 const spectatorGeometry = new THREE.BoxGeometry(spectatorSize, spectatorSize, spectatorSize);
                 const color = spectatorColors[Math.floor(Math.random() * spectatorColors.length)];
                 const spectatorMaterial = new THREE.MeshLambertMaterial({ color });
                 const spectator = new THREE.Mesh(spectatorGeometry, spectatorMaterial);
                 spectator.position.set(x, yPos, -mapSize / 2 - (i + 0.5) * stepDepth);
-                spectators.push({ mesh: spectator, baseY: yPos, phase: Math.random() * Math.PI * 2 });
+                window.spectators.push({ mesh: spectator, baseY: yPos, phase: Math.random() * Math.PI * 2 });
                 scene.add(spectator);
             }
 
-            // Torcedores Leste
             for (let z = -mapSize / 2 + spectatorSize; z < mapSize / 2; z += spectatorSize * 2) {
                 const spectatorGeometry = new THREE.BoxGeometry(spectatorSize, spectatorSize, spectatorSize);
                 const color = spectatorColors[Math.floor(Math.random() * spectatorColors.length)];
                 const spectatorMaterial = new THREE.MeshLambertMaterial({ color });
                 const spectator = new THREE.Mesh(spectatorGeometry, spectatorMaterial);
                 spectator.position.set(mapSize / 2 + (i + 0.5) * stepDepth, yPos, z);
-                spectators.push({ mesh: spectator, baseY: yPos, phase: Math.random() * Math.PI * 2 });
+                window.spectators.push({ mesh: spectator, baseY: yPos, phase: Math.random() * Math.PI * 2 });
                 scene.add(spectator);
             }
 
-            // Torcedores Oeste
             for (let z = -mapSize / 2 + spectatorSize; z < mapSize / 2; z += spectatorSize * 2) {
                 const spectatorGeometry = new THREE.BoxGeometry(spectatorSize, spectatorSize, spectatorSize);
                 const color = spectatorColors[Math.floor(Math.random() * spectatorColors.length)];
                 const spectatorMaterial = new THREE.MeshLambertMaterial({ color });
                 const spectator = new THREE.Mesh(spectatorGeometry, spectatorMaterial);
                 spectator.position.set(-mapSize / 2 - (i + 0.5) * stepDepth, yPos, z);
-                spectators.push({ mesh: spectator, baseY: yPos, phase: Math.random() * Math.PI * 2 });
+                window.spectators.push({ mesh: spectator, baseY: yPos, phase: Math.random() * Math.PI * 2 });
                 scene.add(spectator);
             }
         }
 
-        // Animação dos torcedores
-        function animateSpectators() {
-            const time = performance.now() * 0.001; // Tempo em segundos
-            spectators.forEach(spectator => {
-                const yOffset = Math.sin(time + spectator.phase) * 2; // Amplitude do salto
-                spectator.mesh.position.y = spectator.baseY + yOffset;
-            });
-        }
-
-        // Modificar a função animate para incluir a animação dos torcedores
-        const originalAnimate = animate;
-        animate = function() {
-            originalAnimate.apply(this, arguments);
-            animateSpectators();
-        };
-
-        // Restante do código original (casas, vacas, estradas, lagos, texto)
+        // Restante do cenário
         for (let i = 0; i < 30; i++) {
             const houseGeometry = new THREE.BoxGeometry(15, 15, 15);
             const houseMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
@@ -314,6 +290,8 @@ export function initGame() {
             textMesh.rotation.x = -Math.PI / 2;
             textMesh.position.set(-400, 0.2, 0);
             scene.add(textMesh);
+        }, undefined, function(error) {
+            console.error('Erro ao carregar fonte para texto de divulgação:', error);
         });
     }
 
@@ -360,8 +338,9 @@ export function initGame() {
             group.add(rope);
         }
 
+        // Carregar fonte para o nome do jogador
         const loader = new THREE.FontLoader();
-        loader.load('https://threejs.org/examples/font/helvetiker_regular.typeface.json', function(font) {
+        loader.load('https://threejs.org/examples/fonts/optimer_regular.typeface.json', function(font) {
             const textGeometry = new THREE.TextGeometry(name || 'Jogador', {
                 font: font,
                 size: 7,
@@ -371,6 +350,16 @@ export function initGame() {
             const textMesh = new THREE.Mesh(textGeometry, textMaterial);
             textMesh.position.set(-15, 80, 0);
             group.add(textMesh);
+            console.log('Nome do jogador adicionado:', name);
+        }, undefined, function(error) {
+            console.error('Erro ao carregar fonte para nome do jogador:', error);
+            // Fallback: usar geometria simples se a fonte falhar
+            const fallbackGeometry = new THREE.BoxGeometry(5, 5, 5);
+            const fallbackMaterial = new THREE.MeshBasicMaterial({ color: 0xFF0000 });
+            const fallbackMesh = new THREE.Mesh(fallbackGeometry, fallbackMaterial);
+            fallbackMesh.position.set(-15, 80, 0);
+            group.add(fallbackMesh);
+            console.log('Fallback adicionado para nome do jogador');
         });
 
         group.position.set(0, altitude, 0);
@@ -537,7 +526,6 @@ export function initGame() {
         window.socket.emit('updatePosition', { x: window.balloon.position.x, y: window.balloon.position.y, z: window.balloon.position.z, mode: window.mode || 'world', roomName: window.roomName || null });
     };
 
-    // Suporte ao gamepad
     function handleGamepad() {
         const gamepads = navigator.getGamepads();
         const gamepad = gamepads[0];
@@ -601,6 +589,15 @@ export function initGame() {
         balloon.rotation.y += 0.001;
 
         window.socket.emit('updatePosition', { x: balloon.position.x, y: balloon.position.y, z: balloon.position.z, mode: window.mode || 'world', roomName: window.roomName || null });
+
+        // Animação dos torcedores
+        if (window.spectators && window.spectators.length > 0) {
+            const time = performance.now() * 0.001;
+            window.spectators.forEach(spectator => {
+                const yOffset = Math.sin(time + spectator.phase) * 2;
+                spectator.mesh.position.y = spectator.baseY + yOffset;
+            });
+        }
 
         document.getElementById('altitude').textContent = `${Math.floor(altitude)}m`;
         const dx = balloon.position.x - (window.targets[0]?.x || 0);
