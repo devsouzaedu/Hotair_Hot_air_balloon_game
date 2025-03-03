@@ -1,8 +1,4 @@
 // libraair_/backend/server.js
-app.use((req, res, next) => {
-    res.setHeader("Content-Security-Policy", "script-src 'self' https://apis.google.com https://www.gstatic.com 'unsafe-inline' 'unsafe-eval'");
-    next();
-});
 const express = require('express');
 const http = require('http');
 const socketIO = require('socket.io');
@@ -12,7 +8,7 @@ const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const mongoose = require('mongoose');
 const session = require('express-session');
 
-const app = express();
+const app = express(); // Primeiro definimos o app
 const server = http.createServer(app);
 const io = socketIO(server, {
     cors: {
@@ -23,7 +19,6 @@ const io = socketIO(server, {
 });
 
 const PORT = process.env.PORT || 3000;
-
 
 // Conexão ao MongoDB Atlas
 mongoose.connect(process.env.MONGODB_URI, {
@@ -51,6 +46,12 @@ app.use(session({
 }));
 app.use(passport.initialize());
 app.use(passport.session());
+
+// Middleware CSP (adicionado após a definição do app)
+app.use((req, res, next) => {
+    res.setHeader("Content-Security-Policy", "script-src 'self' https://apis.google.com https://www.gstatic.com 'unsafe-inline' 'unsafe-eval'");
+    next();
+});
 
 // Configuração do Google OAuth
 passport.use(new GoogleStrategy({
@@ -80,7 +81,7 @@ passport.deserializeUser(async (id, done) => {
     }
 });
 
-// Middleware
+// Middleware CORS
 app.use(cors({
     origin: 'https://devsouzaedu.github.io',
     methods: ['GET', 'POST'],
@@ -203,7 +204,6 @@ function updateMarkersGravity(state, roomName = null) {
                         player.score += score;
                         io.to(roomName || 'world').emit('targetHitUpdate', { targetIndex: state.currentTargetIndex });
                         state.currentTargetIndex++;
-                        // Atualizar perfil do jogador
                         User.findOne({ googleId: player.googleId }).then(user => {
                             if (user) {
                                 user.targetsHit += 1;
@@ -621,6 +621,8 @@ function resetRoomState(roomName) {
     room.lastTargetMoveTime = Date.now();
     return room;
 }
+
+
 
 function calculateScore(distance) {
     if (distance < 5) return 1000;
