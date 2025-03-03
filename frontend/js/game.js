@@ -134,102 +134,63 @@ export function initGame() {
         gridHelper.material.transparent = true;
         scene.add(gridHelper);
 
-        // Criar arquibancadas nos 4 lados
-        const standHeight = 6 * 10; // 6 andares, cada andar com 10 unidades de altura
-        const standDepth = 50; // Profundidade da arquibancada
+        // Criar arquibancadas como escadas com 6 andares
+        const stepHeight = 10; // Altura de cada degrau
+        const stepDepth = 20; // Profundidade de cada degrau
+        const totalHeight = stepHeight * 6; // Altura total da arquibancada
+        const totalDepth = stepDepth * 6; // Profundidade total da arquibancada
         const standMaterial = new THREE.MeshLambertMaterial({ color: 0x808080 }); // Cor cinza
 
-        const northStandGeometry = new THREE.BoxGeometry(mapSize, standHeight, standDepth);
-        const northStand = new THREE.Mesh(northStandGeometry, standMaterial);
-        northStand.position.set(0, standHeight / 2, mapSize / 2 + standDepth / 2);
-        scene.add(northStand);
-
-        const southStandGeometry = new THREE.BoxGeometry(mapSize, standHeight, standDepth);
-        const southStand = new THREE.Mesh(southStandGeometry, standMaterial);
-        southStand.position.set(0, standHeight / 2, -mapSize / 2 - standDepth / 2);
-        scene.add(southStand);
-
-        const eastStandGeometry = new THREE.BoxGeometry(standDepth, standHeight, mapSize);
-        const eastStand = new THREE.Mesh(eastStandGeometry, standMaterial);
-        eastStand.position.set(mapSize / 2 + standDepth / 2, standHeight / 2, 0);
-        scene.add(eastStand);
-
-        const westStandGeometry = new THREE.BoxGeometry(standDepth, standHeight, mapSize);
-        const westStand = new THREE.Mesh(westStandGeometry, standMaterial);
-        westStand.position.set(-mapSize / 2 - standDepth / 2, standHeight / 2, 0);
-        scene.add(westStand);
-
-        const stepHeight = standHeight / 6;
-        const stepDepth = standDepth / 6;
-        const stepMaterial = new THREE.MeshLambertMaterial({ color: 0x606060 });
-
+        // Norte
         for (let i = 0; i < 6; i++) {
-            const stepY = (i + 0.5) * stepHeight - standHeight / 2;
-
-            const northStepGeometry = new THREE.BoxGeometry(mapSize, stepHeight / 2, stepDepth);
-            const northStep = new THREE.Mesh(northStepGeometry, stepMaterial);
-            northStep.position.set(0, stepY, mapSize / 2 + (i + 0.5) * stepDepth);
-            scene.add(northStep);
-
-            const southStepGeometry = new THREE.BoxGeometry(mapSize, stepHeight / 2, stepDepth);
-            const southStep = new THREE.Mesh(southStepGeometry, stepMaterial);
-            southStep.position.set(0, stepY, -mapSize / 2 - (i + 0.5) * stepDepth);
-            scene.add(southStep);
-
-            const eastStepGeometry = new THREE.BoxGeometry(stepDepth, stepHeight / 2, mapSize);
-            const eastStep = new THREE.Mesh(eastStepGeometry, stepMaterial);
-            eastStep.position.set(mapSize / 2 + (i + 0.5) * stepDepth, stepY, 0);
-            scene.add(eastStep);
-
-            const westStepGeometry = new THREE.BoxGeometry(stepDepth, stepHeight / 2, mapSize);
-            const westStep = new THREE.Mesh(westStepGeometry, stepMaterial);
-            westStep.position.set(-mapSize / 2 - (i + 0.5) * stepDepth, stepY, 0);
-            scene.add(westStep);
+            const stepWidth = mapSize - (i * 20); // Reduzir largura levemente para efeito visual
+            const stepGeometry = new THREE.BoxGeometry(stepWidth, stepHeight, stepDepth);
+            const step = new THREE.Mesh(stepGeometry, standMaterial);
+            step.position.set(
+                0,
+                i * stepHeight + stepHeight / 2, // Altura acumulativa
+                mapSize / 2 + stepDepth / 2 + i * stepDepth // Profundidade escalonada
+            );
+            scene.add(step);
         }
 
-        // Adicionar torcedores (cubos vermelhos acima dos degraus)
-        const spectatorSize = 4;
-        const spectatorMaterial = new THREE.MeshLambertMaterial({ color: 0xFF0000 }); // Vermelho fixo
-        window.spectators = window.spectators || [];
-
+        // Sul
         for (let i = 0; i < 6; i++) {
-            const yPos = (i + 1) * stepHeight; // Posicionar acima do degrau
+            const stepWidth = mapSize - (i * 20);
+            const stepGeometry = new THREE.BoxGeometry(stepWidth, stepHeight, stepDepth);
+            const step = new THREE.Mesh(stepGeometry, standMaterial);
+            step.position.set(
+                0,
+                i * stepHeight + stepHeight / 2,
+                -mapSize / 2 - stepDepth / 2 - i * stepDepth
+            );
+            scene.add(step);
+        }
 
-            // Norte
-            for (let x = -mapSize / 2 + spectatorSize; x < mapSize / 2 - spectatorSize; x += spectatorSize) {
-                const spectatorGeometry = new THREE.BoxGeometry(spectatorSize, spectatorSize, spectatorSize);
-                const spectator = new THREE.Mesh(spectatorGeometry, spectatorMaterial);
-                spectator.position.set(x, yPos + spectatorSize / 2, mapSize / 2 + (i + 0.5) * stepDepth - stepDepth / 2);
-                window.spectators.push({ mesh: spectator, baseY: yPos + spectatorSize / 2, phase: Math.random() * Math.PI * 2 });
-                scene.add(spectator);
-            }
+        // Leste
+        for (let i = 0; i < 6; i++) {
+            const stepLength = mapSize - (i * 20);
+            const stepGeometry = new THREE.BoxGeometry(stepDepth, stepHeight, stepLength);
+            const step = new THREE.Mesh(stepGeometry, standMaterial);
+            step.position.set(
+                mapSize / 2 + stepDepth / 2 + i * stepDepth,
+                i * stepHeight + stepHeight / 2,
+                0
+            );
+            scene.add(step);
+        }
 
-            // Sul
-            for (let x = -mapSize / 2 + spectatorSize; x < mapSize / 2 - spectatorSize; x += spectatorSize) {
-                const spectatorGeometry = new THREE.BoxGeometry(spectatorSize, spectatorSize, spectatorSize);
-                const spectator = new THREE.Mesh(spectatorGeometry, spectatorMaterial);
-                spectator.position.set(x, yPos + spectatorSize / 2, -mapSize / 2 - (i + 0.5) * stepDepth + stepDepth / 2);
-                window.spectators.push({ mesh: spectator, baseY: yPos + spectatorSize / 2, phase: Math.random() * Math.PI * 2 });
-                scene.add(spectator);
-            }
-
-            // Leste
-            for (let z = -mapSize / 2 + spectatorSize; z < mapSize / 2 - spectatorSize; z += spectatorSize) {
-                const spectatorGeometry = new THREE.BoxGeometry(spectatorSize, spectatorSize, spectatorSize);
-                const spectator = new THREE.Mesh(spectatorGeometry, spectatorMaterial);
-                spectator.position.set(mapSize / 2 + (i + 0.5) * stepDepth - stepDepth / 2, yPos + spectatorSize / 2, z);
-                window.spectators.push({ mesh: spectator, baseY: yPos + spectatorSize / 2, phase: Math.random() * Math.PI * 2 });
-                scene.add(spectator);
-            }
-
-            // Oeste
-            for (let z = -mapSize / 2 + spectatorSize; z < mapSize / 2 - spectatorSize; z += spectatorSize) {
-                const spectatorGeometry = new THREE.BoxGeometry(spectatorSize, spectatorSize, spectatorSize);
-                const spectator = new THREE.Mesh(spectatorGeometry, spectatorMaterial);
-                spectator.position.set(-mapSize / 2 - (i + 0.5) * stepDepth + stepDepth / 2, yPos + spectatorSize / 2, z);
-                window.spectators.push({ mesh: spectator, baseY: yPos + spectatorSize / 2, phase: Math.random() * Math.PI * 2 });
-                scene.add(spectator);
-            }
+        // Oeste
+        for (let i = 0; i < 6; i++) {
+            const stepLength = mapSize - (i * 20);
+            const stepGeometry = new THREE.BoxGeometry(stepDepth, stepHeight, stepLength);
+            const step = new THREE.Mesh(stepGeometry, standMaterial);
+            step.position.set(
+                -mapSize / 2 - stepDepth / 2 - i * stepDepth,
+                i * stepHeight + stepHeight / 2,
+                0
+            );
+            scene.add(step);
         }
 
         // Restante do cenário
@@ -578,15 +539,6 @@ export function initGame() {
         balloon.rotation.y += 0.001;
 
         window.socket.emit('updatePosition', { x: balloon.position.x, y: balloon.position.y, z: balloon.position.z, mode: window.mode || 'world', roomName: window.roomName || null });
-
-        // Animação dos torcedores
-        if (window.spectators && window.spectators.length > 0) {
-            const time = performance.now() * 0.001;
-            window.spectators.forEach(spectator => {
-                const yOffset = Math.sin(time + spectator.phase) * 2;
-                spectator.mesh.position.y = spectator.baseY + yOffset;
-            });
-        }
 
         document.getElementById('altitude').textContent = `${Math.floor(altitude)}m`;
         const dx = balloon.position.x - (window.targets[0]?.x || 0);
