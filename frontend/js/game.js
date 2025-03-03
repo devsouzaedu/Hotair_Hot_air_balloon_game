@@ -1,4 +1,5 @@
-// game.js
+// libraair_/frontend/js/game.js
+
 export function initGame() {
     let scene, camera, renderer;
     let balloon;
@@ -110,7 +111,6 @@ export function initGame() {
                 if (!window.markerDropped && window.markersLeft > 0) dropMarker();
             });
 
-            // Prevenir zoom por double-tap
             [upButton, turboButton, downButton, dropButton].forEach(button => {
                 button.addEventListener('dblclick', (e) => e.preventDefault());
             });
@@ -134,11 +134,143 @@ export function initGame() {
         gridHelper.material.transparent = true;
         scene.add(gridHelper);
 
+        // Criar arquibancadas nos 4 lados
+        const standHeight = 6 * 10; // 6 andares, cada andar com 10 unidades de altura
+        const standDepth = 50; // Profundidade da arquibancada
+        const standMaterial = new THREE.MeshLambertMaterial({ color: 0x808080 }); // Cor cinza
+
+        // Arquibancada Norte
+        const northStandGeometry = new THREE.BoxGeometry(mapSize, standHeight, standDepth);
+        const northStand = new THREE.Mesh(northStandGeometry, standMaterial);
+        northStand.position.set(0, standHeight / 2, mapSize / 2 + standDepth / 2);
+        scene.add(northStand);
+
+        // Arquibancada Sul
+        const southStandGeometry = new THREE.BoxGeometry(mapSize, standHeight, standDepth);
+        const southStand = new THREE.Mesh(southStandGeometry, standMaterial);
+        southStand.position.set(0, standHeight / 2, -mapSize / 2 - standDepth / 2);
+        scene.add(southStand);
+
+        // Arquibancada Leste
+        const eastStandGeometry = new THREE.BoxGeometry(standDepth, standHeight, mapSize);
+        const eastStand = new THREE.Mesh(eastStandGeometry, standMaterial);
+        eastStand.position.set(mapSize / 2 + standDepth / 2, standHeight / 2, 0);
+        scene.add(eastStand);
+
+        // Arquibancada Oeste
+        const westStandGeometry = new THREE.BoxGeometry(standDepth, standHeight, mapSize);
+        const westStand = new THREE.Mesh(westStandGeometry, standMaterial);
+        westStand.position.set(-mapSize / 2 - standDepth / 2, standHeight / 2, 0);
+        scene.add(westStand);
+
+        // Adicionar "degraus" visíveis para os 6 andares
+        const stepHeight = standHeight / 6;
+        const stepDepth = standDepth / 6;
+        const stepMaterial = new THREE.MeshLambertMaterial({ color: 0x606060 }); // Cinza mais escuro para degraus
+
+        for (let i = 0; i < 6; i++) {
+            const stepY = (i + 0.5) * stepHeight - standHeight / 2;
+
+            // Degraus Norte
+            const northStepGeometry = new THREE.BoxGeometry(mapSize, stepHeight / 2, stepDepth);
+            const northStep = new THREE.Mesh(northStepGeometry, stepMaterial);
+            northStep.position.set(0, stepY, mapSize / 2 + (i + 0.5) * stepDepth);
+            scene.add(northStep);
+
+            // Degraus Sul
+            const southStepGeometry = new THREE.BoxGeometry(mapSize, stepHeight / 2, stepDepth);
+            const southStep = new THREE.Mesh(southStepGeometry, stepMaterial);
+            southStep.position.set(0, stepY, -mapSize / 2 - (i + 0.5) * stepDepth);
+            scene.add(southStep);
+
+            // Degraus Leste
+            const eastStepGeometry = new THREE.BoxGeometry(stepDepth, stepHeight / 2, mapSize);
+            const eastStep = new THREE.Mesh(eastStepGeometry, stepMaterial);
+            eastStep.position.set(mapSize / 2 + (i + 0.5) * stepDepth, stepY, 0);
+            scene.add(eastStep);
+
+            // Degraus Oeste
+            const westStepGeometry = new THREE.BoxGeometry(stepDepth, stepHeight / 2, mapSize);
+            const westStep = new THREE.Mesh(westStepGeometry, stepMaterial);
+            westStep.position.set(-mapSize / 2 - (i + 0.5) * stepDepth, stepY, 0);
+            scene.add(westStep);
+        }
+
+        // Adicionar torcedores (cubos coloridos saltitantes)
+        const spectatorSize = 4;
+        const spectatorColors = [0xFF0000, 0x00FF00, 0x0000FF, 0xFFFF00, 0xFF00FF]; // Vermelho, Verde, Azul, Amarelo, Magenta
+        const spectators = [];
+
+        for (let i = 0; i < 6; i++) { // Para cada andar
+            const yPos = (i + 0.5) * stepHeight;
+
+            // Torcedores Norte
+            for (let x = -mapSize / 2 + spectatorSize; x < mapSize / 2; x += spectatorSize * 2) {
+                const spectatorGeometry = new THREE.BoxGeometry(spectatorSize, spectatorSize, spectatorSize);
+                const color = spectatorColors[Math.floor(Math.random() * spectatorColors.length)];
+                const spectatorMaterial = new THREE.MeshLambertMaterial({ color });
+                const spectator = new THREE.Mesh(spectatorGeometry, spectatorMaterial);
+                spectator.position.set(x, yPos, mapSize / 2 + (i + 0.5) * stepDepth);
+                spectators.push({ mesh: spectator, baseY: yPos, phase: Math.random() * Math.PI * 2 });
+                scene.add(spectator);
+            }
+
+            // Torcedores Sul
+            for (let x = -mapSize / 2 + spectatorSize; x < mapSize / 2; x += spectatorSize * 2) {
+                const spectatorGeometry = new THREE.BoxGeometry(spectatorSize, spectatorSize, spectatorSize);
+                const color = spectatorColors[Math.floor(Math.random() * spectatorColors.length)];
+                const spectatorMaterial = new THREE.MeshLambertMaterial({ color });
+                const spectator = new THREE.Mesh(spectatorGeometry, spectatorMaterial);
+                spectator.position.set(x, yPos, -mapSize / 2 - (i + 0.5) * stepDepth);
+                spectators.push({ mesh: spectator, baseY: yPos, phase: Math.random() * Math.PI * 2 });
+                scene.add(spectator);
+            }
+
+            // Torcedores Leste
+            for (let z = -mapSize / 2 + spectatorSize; z < mapSize / 2; z += spectatorSize * 2) {
+                const spectatorGeometry = new THREE.BoxGeometry(spectatorSize, spectatorSize, spectatorSize);
+                const color = spectatorColors[Math.floor(Math.random() * spectatorColors.length)];
+                const spectatorMaterial = new THREE.MeshLambertMaterial({ color });
+                const spectator = new THREE.Mesh(spectatorGeometry, spectatorMaterial);
+                spectator.position.set(mapSize / 2 + (i + 0.5) * stepDepth, yPos, z);
+                spectators.push({ mesh: spectator, baseY: yPos, phase: Math.random() * Math.PI * 2 });
+                scene.add(spectator);
+            }
+
+            // Torcedores Oeste
+            for (let z = -mapSize / 2 + spectatorSize; z < mapSize / 2; z += spectatorSize * 2) {
+                const spectatorGeometry = new THREE.BoxGeometry(spectatorSize, spectatorSize, spectatorSize);
+                const color = spectatorColors[Math.floor(Math.random() * spectatorColors.length)];
+                const spectatorMaterial = new THREE.MeshLambertMaterial({ color });
+                const spectator = new THREE.Mesh(spectatorGeometry, spectatorMaterial);
+                spectator.position.set(-mapSize / 2 - (i + 0.5) * stepDepth, yPos, z);
+                spectators.push({ mesh: spectator, baseY: yPos, phase: Math.random() * Math.PI * 2 });
+                scene.add(spectator);
+            }
+        }
+
+        // Animação dos torcedores
+        function animateSpectators() {
+            const time = performance.now() * 0.001; // Tempo em segundos
+            spectators.forEach(spectator => {
+                const yOffset = Math.sin(time + spectator.phase) * 2; // Amplitude do salto
+                spectator.mesh.position.y = spectator.baseY + yOffset;
+            });
+        }
+
+        // Modificar a função animate para incluir a animação dos torcedores
+        const originalAnimate = animate;
+        animate = function() {
+            originalAnimate.apply(this, arguments);
+            animateSpectators();
+        };
+
+        // Restante do código original (casas, vacas, estradas, lagos, texto)
         for (let i = 0; i < 30; i++) {
             const houseGeometry = new THREE.BoxGeometry(15, 15, 15);
             const houseMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
             const house = new THREE.Mesh(houseGeometry, houseMaterial);
-            house.position.set(Math.random() * mapSize - mapSize / 2, 7.5, Math.random() * mapSize - mapSize / 2);
+            house.position.set(Math.random() * (mapSize - 100) - (mapSize - 100) / 2, 7.5, Math.random() * (mapSize - 100) - (mapSize - 100) / 2);
             scene.add(house);
         }
 
@@ -146,15 +278,15 @@ export function initGame() {
             const cowGeometry = new THREE.SphereGeometry(4.5, 16, 16);
             const cowMaterial = new THREE.MeshLambertMaterial({ color: 0xFFFFFF });
             const cow = new THREE.Mesh(cowGeometry, cowMaterial);
-            cow.position.set(Math.random() * mapSize - mapSize / 2, 2.25, Math.random() * mapSize - mapSize / 2);
+            cow.position.set(Math.random() * (mapSize - 100) - (mapSize - 100) / 2, 2.25, Math.random() * (mapSize - 100) - (mapSize - 100) / 2);
             scene.add(cow);
         }
 
         const roadMaterial = new THREE.LineBasicMaterial({ color: 0x808080 });
         for (let i = 0; i < 15; i++) {
             const roadGeometry = new THREE.BufferGeometry().setFromPoints([
-                new THREE.Vector3(Math.random() * mapSize - mapSize / 2, 0.2, Math.random() * mapSize - mapSize / 2),
-                new THREE.Vector3(Math.random() * mapSize - mapSize / 2, 0.2, Math.random() * mapSize - mapSize / 2)
+                new THREE.Vector3(Math.random() * (mapSize - 100) - (mapSize - 100) / 2, 0.2, Math.random() * (mapSize - 100) - (mapSize - 100) / 2),
+                new THREE.Vector3(Math.random() * (mapSize - 100) - (mapSize - 100) / 2, 0.2, Math.random() * (mapSize - 100) - (mapSize - 100) / 2)
             ]);
             const road = new THREE.Line(roadGeometry, roadMaterial);
             road.scale.set(1.5, 1, 1.5);
@@ -166,7 +298,7 @@ export function initGame() {
             const lakeMaterial = new THREE.MeshLambertMaterial({ color: 0x00BFFF, side: THREE.DoubleSide });
             const lake = new THREE.Mesh(lakeGeometry, lakeMaterial);
             lake.rotation.x = -Math.PI / 2;
-            lake.position.set(Math.random() * mapSize - mapSize / 2, 0.1, Math.random() * mapSize - mapSize / 2);
+            lake.position.set(Math.random() * (mapSize - 100) - (mapSize - 100) / 2, 0.1, Math.random() * (mapSize - 100) - (mapSize - 100) / 2);
             scene.add(lake);
         }
 
@@ -229,7 +361,7 @@ export function initGame() {
         }
 
         const loader = new THREE.FontLoader();
-        loader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', function(font) {
+        loader.load('https://threejs.org/examples/font/helvetiker_regular.typeface.json', function(font) {
             const textGeometry = new THREE.TextGeometry(name || 'Jogador', {
                 font: font,
                 size: 7,
@@ -432,7 +564,7 @@ export function initGame() {
             document.getElementById('fpsCount').textContent = fps;
         }
 
-        handleGamepad(); // Verifica o estado do controle a cada frame
+        handleGamepad();
 
         if (window.balloon && !balloon) {
             balloon = window.balloon;
