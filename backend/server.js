@@ -1,28 +1,136 @@
+// libraair_/backend/server.js
 const express = require('express');
 const http = require('http');
 const socketIO = require('socket.io');
 const cors = require('cors');
-const path = require('path');
+const passport = require('passport');
+const GoogleStrategy = require('passport-google-oauth20').Strategy;
+const mongoose = require('mongoose');
+const session = require('express-session');
+
 const app = express();
 const server = http.createServer(app);
-
 const io = socketIO(server, {
     cors: {
         origin: "https://devsouzaedu.github.io",
         methods: ["GET", "POST"],
-        credentials: false
+        credentials: true
     }
 });
 
 const PORT = process.env.PORT || 3000;
 
+// Conexão ao MongoDB Atlas
+mongoose.connect(process.env.MONGODB_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+}).then(() => console.log('Conectado ao MongoDB'))
+  .catch(err => console.error('Erro ao conectar ao MongoDB:', err));
+
+// Schema do Usuário
+const userSchema = new mongoose.Schema({
+    googleId: { type: String, required: true, unique: true },
+    nickname: { type: String, maxlength: 18, unique: true },
+    targetsHit: { type: Number, default: 0 },
+    totalPoints: { type: Number, default: 0 },
+    joinDate: { type: Date, default: Date.now }
+});
+const User = mongoose.model('User', userSchema);
+
+// Configuração da Sessão
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'your-secret-key',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { secure: process.env.NODE_ENV === 'production' }
+}));
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Configuração do Google OAuth
+passport.use(new GoogleStrategy({
+    clientID: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    callbackURL: 'https://hotair-backend.onrender.com/auth/google/callback'
+}, async (accessToken, refreshToken, profile, done) => {
+    try {
+        let user = await User.findOne({ googleId: profile.id });
+        if (!user) {
+            user = new User({ googleId: profile.id });
+            await user.save();
+        }
+        done(null, user);
+    } catch (err) {
+        done(err, null);
+    }
+}));
+
+passport.serializeUser((user, done) => done(null, user.id));
+passport.deserializeUser(async (id, done) => {
+    try {
+        const user = await User.findById(id);
+        done(null, user);
+    } catch (err) {
+        done(err, null);
+    }
+});
+
+// Middleware
 app.use(cors({
     origin: 'https://devsouzaedu.github.io',
     methods: ['GET', 'POST'],
-    allowedHeaders: ['Content-Type'],
-    credentials: false
+    credentials: true
 }));
+app.use(express.json());
 
+// Rotas de Autenticação
+app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+
+app.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/' }), (req, res) => {
+    res.redirect('https://devsouzaedu.github.io/?auth=success');
+});
+
+app.get('/auth/check', (req, res) => {
+    if (req.isAuthenticated()) {
+        res.json({ authenticated: true, user: { googleId: req.user.googleId, nickname: req.user.nickname } });
+    } else {
+        res.json({ authenticated: false });
+    }
+});
+
+app.post('/auth/set-nickname', async (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).json({ error: 'Não autenticado' });
+    const { nickname } = req.body;
+    if (!nickname || nickname.length > 18) return res.status(400).json({ error: 'Nickname inválido (máx. 18 caracteres)' });
+
+    try {
+        const existingUser = await User.findOne({ nickname });
+        if (existingUser) return res.status(400).json({ error: 'Nickname já em uso' });
+
+        const user = await User.findOne({ googleId: req.user.googleId });
+        if (user.nickname) return res.status(400).json({ error: 'Nickname já definido e não pode ser alterado' });
+
+        user.nickname = nickname;
+        await user.save();
+        res.json({ success: true, nickname });
+    } catch (err) {
+        res.status(500).json({ error: 'Erro ao salvar nickname' });
+    }
+});
+
+app.get('/profile', async (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).json({ error: 'Não autenticado' });
+    const user = await User.findOne({ googleId: req.user.googleId });
+    res.json({
+        googleId: user.googleId,
+        nickname: user.nickname,
+        targetsHit: user.targetsHit,
+        totalPoints: user.totalPoints,
+        joinDate: user.joinDate
+    });
+});
+
+// Lógica do Jogo
 let worldState = { 
     players: {}, 
     targets: [], 
@@ -46,7 +154,6 @@ function moveTarget(state) {
     const centralArea = 2600 / 4;
     const moveDistance = 300;
     const currentTarget = state.targets[0];
-
     const angle = Math.random() * 2 * Math.PI;
     let newX = currentTarget.x + Math.cos(angle) * moveDistance;
     let newZ = currentTarget.z + Math.sin(angle) * moveDistance;
@@ -56,9 +163,7 @@ function moveTarget(state) {
 
     currentTarget.x = newX;
     currentTarget.z = newZ;
-
     state.lastTargetMoveTime = Date.now();
-    console.log(`Alvo movido para: x=${newX}, z=${newZ}`);
 }
 
 function initializeTargets() {
@@ -67,10 +172,6 @@ function initializeTargets() {
 }
 
 initializeTargets();
-
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/index.html'));
-});
 
 function updateMarkersGravity(state, roomName = null) {
     for (const markerId in state.markers) {
@@ -92,11 +193,19 @@ function updateMarkersGravity(state, roomName = null) {
                 const distance = Math.sqrt(dx * dx + dz * dz);
                 if (distance < 40) {
                     const player = state.players[marker.playerId];
-                    if (player) {
+                    if (player && !player.isBot) {
                         const score = calculateScore(distance);
                         player.score += score;
                         io.to(roomName || 'world').emit('targetHitUpdate', { targetIndex: state.currentTargetIndex });
                         state.currentTargetIndex++;
+                        // Atualizar perfil do jogador
+                        User.findOne({ googleId: player.googleId }).then(user => {
+                            if (user) {
+                                user.targetsHit += 1;
+                                user.totalPoints += score;
+                                user.save();
+                            }
+                        });
                     }
                 }
             }
@@ -105,13 +214,7 @@ function updateMarkersGravity(state, roomName = null) {
 }
 
 function addBots() {
-    const botNames = [
-        "João Silva", 
-        "Maria Oliveira", 
-        "Pedro Santos", 
-        "Ana Costa", 
-        "Lucas Pereira"
-    ];
+    const botNames = ["Bot1", "Bot2", "Bot3", "Bot4", "Bot5"];
     const botColors = ["#FF4500", "#3498db", "#2ecc71", "#f1c40f", "#FFFFFF"];
     for (let i = 0; i < 5; i++) {
         const botId = `bot_${i}`;
@@ -176,7 +279,6 @@ function updateBots() {
                         bot.markers--;
                         worldState.markers[markerId] = markerData;
                         io.to('world').emit('markerDropped', { ...markerData, markers: bot.markers, score: bot.score, markerId });
-                        console.log(`Bot ${bot.name} soltou marcador: ${markerId}, restantes: ${bot.markers}`);
                         bot.state = 'climbNorth';
                         bot.targetAltitude = 500;
                     }
@@ -209,10 +311,20 @@ function updateBots() {
 io.on('connection', (socket) => {
     console.log(`Novo jogador conectado: ${socket.id}`);
 
-    socket.on('joinNow', (playerData) => {
+    socket.on('joinNow', async (playerData) => {
+        if (!socket.request.user) {
+            socket.emit('authRequired', 'Autenticação com Google necessária');
+            return;
+        }
+        const user = await User.findOne({ googleId: socket.request.user.googleId });
+        if (!user.nickname) {
+            socket.emit('setNicknameRequired', 'Defina seu nickname antes de jogar');
+            return;
+        }
         worldState.players[socket.id] = {
             id: socket.id,
-            name: playerData.name,
+            googleId: user.googleId,
+            name: user.nickname,
             color: playerData.color,
             x: 0,
             z: 0,
@@ -223,10 +335,19 @@ io.on('connection', (socket) => {
         };
         socket.join('world');
         socket.emit('gameState', { mode: 'world', state: worldState });
-        console.log(`Jogador ${playerData.name} entrou no mundo global`);
+        console.log(`Jogador ${user.nickname} entrou no mundo global`);
     });
 
-    socket.on('createRoom', (roomData) => {
+    socket.on('createRoom', async (roomData) => {
+        if (!socket.request.user) {
+            socket.emit('authRequired', 'Autenticação com Google necessária');
+            return;
+        }
+        const user = await User.findOne({ googleId: socket.request.user.googleId });
+        if (!user.nickname) {
+            socket.emit('setNicknameRequired', 'Defina seu nickname antes de criar uma sala');
+            return;
+        }
         const roomName = roomData.name;
         if (rooms[roomName]) {
             socket.emit('roomError', 'Uma sala com esse nome já existe');
@@ -245,7 +366,8 @@ io.on('connection', (socket) => {
         };
         rooms[roomName].players[socket.id] = {
             id: socket.id,
-            name: roomData.name,
+            googleId: user.googleId,
+            name: user.nickname,
             color: null,
             x: 0,
             z: 0,
@@ -255,14 +377,24 @@ io.on('connection', (socket) => {
             isBot: false
         };
         socket.emit('roomCreated', { roomName, creator: socket.id });
-        console.log(`Sala ${roomName} criada pelo jogador ${socket.id}`);
+        console.log(`Sala ${roomName} criada pelo jogador ${user.nickname}`);
     });
 
-    socket.on('joinRoom', ({ roomName, playerData }) => {
+    socket.on('joinRoom', async ({ roomName, playerData }) => {
+        if (!socket.request.user) {
+            socket.emit('authRequired', 'Autenticação com Google necessária');
+            return;
+        }
+        const user = await User.findOne({ googleId: socket.request.user.googleId });
+        if (!user.nickname) {
+            socket.emit('setNicknameRequired', 'Defina seu nickname antes de entrar em uma sala');
+            return;
+        }
         if (rooms[roomName]) {
             rooms[roomName].players[socket.id] = {
                 id: socket.id,
-                name: playerData.name,
+                googleId: user.googleId,
+                name: user.nickname,
                 color: playerData.color,
                 x: 0,
                 z: 0,
@@ -273,10 +405,9 @@ io.on('connection', (socket) => {
             };
             socket.join(roomName);
             io.to(roomName).emit('playerJoined', { players: rooms[roomName].players, creator: rooms[roomName].creator });
-            console.log(`Jogador ${playerData.name} entrou na sala ${roomName}`);
+            console.log(`Jogador ${user.nickname} entrou na sala ${roomName}`);
         } else {
             socket.emit('roomError', 'Sala não encontrada');
-            console.log(`Tentativa de entrar em sala inexistente: ${roomName}`);
         }
     });
 
@@ -284,7 +415,6 @@ io.on('connection', (socket) => {
         if (rooms[roomName] && rooms[roomName].players[socket.id]) {
             rooms[roomName].players[socket.id].color = color;
             io.to(roomName).emit('playerJoined', { players: rooms[roomName].players, creator: rooms[roomName].creator });
-            console.log(`Jogador ${socket.id} escolheu a cor ${color} na sala ${roomName}`);
         }
     });
 
@@ -301,7 +431,6 @@ io.on('connection', (socket) => {
                     io.to(roomName).emit('startGame', { state: rooms[roomName] });
                 }
             }, 1000);
-            console.log(`Sala ${roomName} iniciando contagem regressiva`);
         }
     });
 
@@ -318,7 +447,6 @@ io.on('connection', (socket) => {
     });
 
     socket.on('dropMarker', ({ x, y, z, mode, roomName, markerId }) => {
-        console.log('dropMarker recebido:', { x, y, z, mode, roomName, markerId });
         const player = mode === 'world' ? worldState.players[socket.id] : rooms[roomName]?.players[socket.id];
         if (player && player.markers > 0 && !player.isBot) {
             player.markers--;
@@ -329,38 +457,13 @@ io.on('connection', (socket) => {
             } else if (rooms[roomName]) {
                 rooms[roomName].markers[markerId] = markerData;
                 io.to(roomName).emit('markerDropped', { ...markerData, markers: player.markers, score: player.score, markerId });
-            } else {
-                console.error(`Sala ${roomName} não encontrada para mode: ${mode}`);
             }
-        } else {
-            console.warn(`Jogador ${socket.id} não pode soltar marcador:`, { markers: player?.markers, isBot: player?.isBot });
         }
     });
 
     socket.on('markerLanded', ({ x, y, z, mode, roomName, markerId }) => {
-        console.log('markerLanded recebido:', { x, y, z, mode, roomName, markerId });
         const state = mode === 'world' ? worldState : (rooms[roomName] || null);
-        if (!state) {
-            console.error(`Estado não encontrado para mode: ${mode}, roomName: ${roomName}. Usando worldState como fallback`);
-            if (worldState.markers[markerId]) {
-                worldState.markers[markerId].x = x;
-                worldState.markers[markerId].y = y;
-                worldState.markers[markerId].z = z;
-                io.to('world').emit('markerLanded', { x, y, z, playerId: worldState.markers[markerId].playerId, markerId });
-                const targets = worldState.targets;
-                const dx = x - targets[0].x;
-                const dz = z - targets[0].z;
-                const distance = Math.sqrt(dx * dx + dz * dz);
-                const player = worldState.players[worldState.markers[markerId].playerId];
-                if (distance < 40 && player) {
-                    const score = calculateScore(distance);
-                    player.score += score;
-                    io.to('world').emit('targetHitUpdate', { targetIndex: worldState.currentTargetIndex });
-                    worldState.currentTargetIndex++;
-                }
-            }
-            return;
-        }
+        if (!state) return;
         if (state.markers[markerId]) {
             state.markers[markerId].x = x;
             state.markers[markerId].y = y;
@@ -371,33 +474,19 @@ io.on('connection', (socket) => {
             const dz = z - targets[0].z;
             const distance = Math.sqrt(dx * dx + dz * dz);
             const player = state.players[state.markers[markerId].playerId];
-            if (distance < 40 && player) {
+            if (distance < 40 && player && !player.isBot) {
                 const score = calculateScore(distance);
                 player.score += score;
                 io.to(roomName || 'world').emit('targetHitUpdate', { targetIndex: state.currentTargetIndex });
                 state.currentTargetIndex++;
+                User.findOne({ googleId: player.googleId }).then(user => {
+                    if (user) {
+                        user.targetsHit += 1;
+                        user.totalPoints += score;
+                        user.save();
+                    }
+                });
             }
-        } else {
-            console.warn(`Marcador ${markerId} não encontrado em state.markers`);
-        }
-    });
-
-    socket.on('leaveWorld', () => {
-        delete worldState.players[socket.id];
-        socket.leave('world');
-        console.log(`Jogador ${socket.id} saiu do mundo`);
-    });
-
-    socket.on('leaveRoom', ({ roomName }) => {
-        if (rooms[roomName] && rooms[roomName].players[socket.id]) {
-            delete rooms[roomName].players[socket.id];
-            io.to(roomName).emit('playerLeft', socket.id);
-            if (rooms[roomName].creator === socket.id && !rooms[roomName].started) {
-                io.to(roomName).emit('roomClosed');
-                delete rooms[roomName];
-            }
-            socket.leave(roomName);
-            console.log(`Jogador ${socket.id} saiu da sala ${roomName}`);
         }
     });
 
@@ -413,7 +502,6 @@ io.on('connection', (socket) => {
                 }
             }
         }
-        console.log(`Jogador ${socket.id} desconectado`);
     });
 
     addBots();
@@ -435,8 +523,18 @@ setInterval(() => {
     if (elapsedWorld >= 300 && elapsedWorld < 307) {
         io.to('world').emit('showLeaderboard', { players: worldState.players });
     } else if (elapsedWorld >= 307) {
+        for (const id in worldState.players) {
+            const player = worldState.players[id];
+            if (!player.isBot) {
+                User.findOne({ googleId: player.googleId }).then(user => {
+                    if (user) {
+                        user.totalPoints += player.score;
+                        user.save();
+                    }
+                });
+            }
+        }
         io.to('world').emit('gameReset', { state: resetWorldState() });
-        console.log('Novo jogo iniciado no mundo aberto');
     }
 
     for (const roomName in rooms) {
@@ -456,8 +554,18 @@ setInterval(() => {
             if (elapsed >= 300 && elapsed < 307) {
                 io.to(roomName).emit('showLeaderboard', { players: room.players });
             } else if (elapsed >= 307) {
+                for (const id in room.players) {
+                    const player = room.players[id];
+                    if (!player.isBot) {
+                        User.findOne({ googleId: player.googleId }).then(user => {
+                            if (user) {
+                                user.totalPoints += player.score;
+                                user.save();
+                            }
+                        });
+                    }
+                }
                 io.to(roomName).emit('gameReset', { state: resetRoomState(roomName) });
-                console.log(`Novo jogo iniciado na sala ${roomName}`);
             }
         }
     }

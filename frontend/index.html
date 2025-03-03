@@ -1,10 +1,10 @@
-<!-- index.html -->
+<!-- libraair_/frontend/index.html -->
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hotair - Jogo de Balão de ar quente</title>
+    <title>Hotair - Jogo de Balão de Ar Quente</title>
     <link rel="stylesheet" href="css/styles.css">
     <style>
         #restartCountdown {
@@ -18,25 +18,37 @@
 </head>
 <body>
     <div id="nameScreen">
-        <h1>Hotair - Jogo de balão Competitivo - beta</h1>
+        <h1>Hotair - Jogo de Balão Competitivo - Beta</h1>
         <div id="nameForm">
-            <h2>Digite seu nome</h2>
-            <input type="text" id="playerName" placeholder="Seu nome aqui" required>
-            <button id="nameButton">OK</button>
+            <button id="googleLoginButton">Login com Google</button>
+            <div id="nicknameForm" style="display: none;">
+                <input type="text" id="nicknameInput" maxlength="18" placeholder="Escolha seu nickname (máx. 18)">
+                <button id="setNicknameButton">Definir Nickname</button>
+            </div>
             <p style="font-size: 0.9em; color: #666; margin-top: 10px;">
-                Controles: W (subir), S (descer), E (turbo subir), Q (lançar marca)<br>
+                Controles: W (subir), S (descer), U (turbo subir), Shift Direito (lançar marca)<br>
                 Regras: 5 minutos, 5 alvos, 5 marcas. Acerte os alvos para pontuar!
             </p>
         </div>
     </div>
-    <div id="modeScreen">
+    <div id="profileScreen" style="display: none;">
+        <h1>Perfil do Jogador</h1>
+        <div id="profileForm">
+            <p>Nickname: <span id="profileNickname"></span></p>
+            <p>Alvos Acertados: <span id="profileTargetsHit"></span></p>
+            <p>Pontos Totais: <span id="profileTotalPoints"></span></p>
+            <p>Data de Início: <span id="profileJoinDate"></span></p>
+            <button id="startGameButton">Jogar</button>
+        </div>
+    </div>
+    <div id="modeScreen" style="display: none;">
         <h1>Escolha o Modo</h1>
         <div id="modeForm">
             <button id="playNowButton">Jogue Agora</button>
             <button id="roomModeButton">Entrar ou Criar Sala</button>
         </div>
     </div>
-    <div id="colorScreen">
+    <div id="colorScreen" style="display: none;">
         <h1>Escolha a Cor do Balão</h1>
         <div id="colorForm">
             <button class="colorButton" style="background: #FF4500" data-color="#FF4500">Vermelho</button>
@@ -48,7 +60,7 @@
             <button id="okButton">OK</button>
         </div>
     </div>
-    <div id="roomScreen">
+    <div id="roomScreen" style="display: none;">
         <h1>Salas</h1>
         <div id="roomForm">
             <input type="text" id="roomName" placeholder="Nome da sala">
@@ -56,14 +68,14 @@
             <button id="joinRoomButton">Entrar em Sala</button>
         </div>
     </div>
-    <div id="lobbyScreen">
+    <div id="lobbyScreen" style="display: none;">
         <h1>Aguardando Jogadores</h1>
         <div id="lobbyForm">
             <div id="playersList"></div>
             <button id="startRoomButton" style="display: none;">Começar Agora</button>
         </div>
     </div>
-    <div id="gameScreen">
+    <div id="gameScreen" style="display: none;">
         <div id="info">
             <h2>Jogo de Balão</h2>
             <p>Piloto: <span id="playerNameDisplay">Aventureiro</span></p>
@@ -102,13 +114,13 @@
         <div id="countdown"></div>
         <div id="promoText">Desenvolvido por JMSOUZA - 11954997799</div>
     </div>
-    <div id="loseScreen">
+    <div id="loseScreen" style="display: none;">
         <h1>Você Tocou no Chão, Perdeu!</h1>
         <div id="loseForm">
             <button id="restartButton">Começar Novamente</button>
         </div>
     </div>
-    <div id="leaderboardScreen">
+    <div id="leaderboardScreen" style="display: none;">
         <h1>Placar Final</h1>
         <div id="leaderboardForm">
             <div id="leaderboardList"></div>
@@ -117,6 +129,7 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
     <script src="https://hotair-backend.onrender.com/socket.io/socket.io.js" defer></script>
+    <script src="https://apis.google.com/js/api.js" defer></script>
     <script src="js/game.js" type="module" defer></script>
     <script src="js/socket.js" type="module" defer></script>
     <script src="js/ui.js" type="module" defer></script>
