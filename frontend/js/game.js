@@ -191,10 +191,11 @@ export function initGame() {
             scene.add(step);
         }
 
-        // Adicionar NPCs (esferas alongadas vermelhas saltitantes)
+        // Adicionar NPCs (esferas alongadas vermelhas saltitantes) com logs
         const npcGeometry = new THREE.SphereGeometry(4, 16, 16); // Base da esfera
         const npcMaterial = new THREE.MeshLambertMaterial({ color: 0xFF0000 }); // Vermelho
         window.spectators = [];
+        let npcCount = 0;
 
         for (let i = 0; i < 6; i++) {
             const yPos = i * stepHeight + stepHeight; // Topo de cada degrau
@@ -205,11 +206,13 @@ export function initGame() {
                 npc.scale.y = 1.5; // Alongar verticalmente
                 npc.position.set(
                     x,
-                    yPos + 2, // Levantar um pouco acima do degrau
+                    yPos + 2,
                     mapSize / 2 + stepDepth / 2 + i * stepDepth
                 );
                 window.spectators.push({ mesh: npc, baseY: yPos + 2, phase: Math.random() * Math.PI * 2 });
                 scene.add(npc);
+                npcCount++;
+                console.log(`NPC criado (Norte, andar ${i}): x=${x}, y=${yPos + 2}, z=${mapSize / 2 + stepDepth / 2 + i * stepDepth}`);
             }
 
             // Sul
@@ -223,6 +226,8 @@ export function initGame() {
                 );
                 window.spectators.push({ mesh: npc, baseY: yPos + 2, phase: Math.random() * Math.PI * 2 });
                 scene.add(npc);
+                npcCount++;
+                console.log(`NPC criado (Sul, andar ${i}): x=${x}, y=${yPos + 2}, z=${-mapSize / 2 - stepDepth / 2 - i * stepDepth}`);
             }
 
             // Leste
@@ -236,6 +241,8 @@ export function initGame() {
                 );
                 window.spectators.push({ mesh: npc, baseY: yPos + 2, phase: Math.random() * Math.PI * 2 });
                 scene.add(npc);
+                npcCount++;
+                console.log(`NPC criado (Leste, andar ${i}): x=${mapSize / 2 + stepDepth / 2 + i * stepDepth}, y=${yPos + 2}, z=${z}`);
             }
 
             // Oeste
@@ -249,8 +256,12 @@ export function initGame() {
                 );
                 window.spectators.push({ mesh: npc, baseY: yPos + 2, phase: Math.random() * Math.PI * 2 });
                 scene.add(npc);
+                npcCount++;
+                console.log(`NPC criado (Oeste, andar ${i}): x=${-mapSize / 2 - stepDepth / 2 - i * stepDepth}, y=${yPos + 2}, z=${z}`);
             }
         }
+
+        console.log(`Total de NPCs criados: ${npcCount}`);
 
         // Restante do cenário
         for (let i = 0; i < 30; i++) {
@@ -603,7 +614,7 @@ export function initGame() {
         if (window.spectators && window.spectators.length > 0) {
             const time = performance.now() * 0.001;
             window.spectators.forEach(spectator => {
-                const yOffset = Math.sin(time + spectator.phase) * 3; // Amplitude de salto
+                const yOffset = Math.sin(time + spectator.phase) * 3;
                 spectator.mesh.position.y = spectator.baseY + yOffset;
             });
         }
