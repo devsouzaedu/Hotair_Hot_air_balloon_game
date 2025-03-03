@@ -1,26 +1,7 @@
+// libraair_/frontend/js/main.js
 import { initUI } from './ui.js';
 import { initGame } from './game.js';
 import { initSocket } from './socket.js';
-// Adicione isso antes das rotas existentes no server.js
-app.get('/auth/google/callback', (req, res, next) => {
-    passport.authenticate('google', { failureRedirect: '/' }, (err, user, info) => {
-        if (err) {
-            console.error('Erro na autenticação:', err);
-            return res.status(500).send('Erro na autenticação');
-        }
-        if (!user) {
-            console.error('Usuário não autenticado:', info);
-            return res.status(401).send('Falha na autenticação');
-        }
-        req.logIn(user, (loginErr) => {
-            if (loginErr) {
-                console.error('Erro ao logar:', loginErr);
-                return res.status(500).send('Erro ao logar');
-            }
-            res.redirect('https://devsouzaedu.github.io/?auth=success');
-        });
-    })(req, res, next);
-});
 
 // Carregar Google Auth2
 gapi.load('auth2', () => {
@@ -49,9 +30,9 @@ document.addEventListener('DOMContentLoaded', () => {
         googleLoginButton.addEventListener('click', () => {
             console.log('Botão de login clicado');
             const auth2 = gapi.auth2.getAuthInstance();
-            auth2.grantOfflineAccess().then(response => {
-                const idToken = response.code;
-                console.log('Código de autorização obtido:', idToken);
+            auth2.signIn({ prompt: 'select_account' }).then(googleUser => {
+                const idToken = googleUser.getAuthResponse().id_token;
+                console.log('ID Token obtido:', idToken);
                 window.location.href = `https://hotair-backend.onrender.com/auth/google/callback?code=${idToken}`;
             }).catch(err => console.error('Erro ao fazer login com Google:', err));
         });
