@@ -25,9 +25,9 @@ export function initGame() {
     const windLayers = [
         { minAlt: 0, maxAlt: 100, direction: { x: 0, z: 0 }, speed: 0, name: "Nenhum" },
         { minAlt: 100, maxAlt: 200, direction: { x: 1, z: 0 }, speed: 0.3, name: "Leste" },
-        { minAlt: 200, maxAlt: 300, direction: { x: 0, z: 1 }, speed: 0.4, name: "Sul" },
+        { minAlt: 200, maxAlt: 300, direction: { x: 0, z: 1 }, speed: 0.3, name: "Sul" },
         { minAlt: 300, maxAlt: 400, direction: { x: -1, z: 0 }, speed: 0.4, name: "Oeste" },
-        { minAlt: 400, maxAlt: 500, direction: { x: 0, z: -1 }, speed: 0.6, name: "Norte" }
+        { minAlt: 400, maxAlt: 500, direction: { x: 0, z: -1 }, speed: 0.5, name: "Norte" }
     ];
 
     const keys = { W: false, S: false, A: false, D: false, U: false, SHIFT_RIGHT: false };
@@ -139,34 +139,29 @@ export function initGame() {
         const standDepth = 50; // Profundidade da arquibancada
         const standMaterial = new THREE.MeshLambertMaterial({ color: 0x808080 }); // Cor cinza
 
-        // Arquibancada Norte
         const northStandGeometry = new THREE.BoxGeometry(mapSize, standHeight, standDepth);
         const northStand = new THREE.Mesh(northStandGeometry, standMaterial);
         northStand.position.set(0, standHeight / 2, mapSize / 2 + standDepth / 2);
         scene.add(northStand);
 
-        // Arquibancada Sul
         const southStandGeometry = new THREE.BoxGeometry(mapSize, standHeight, standDepth);
         const southStand = new THREE.Mesh(southStandGeometry, standMaterial);
         southStand.position.set(0, standHeight / 2, -mapSize / 2 - standDepth / 2);
         scene.add(southStand);
 
-        // Arquibancada Leste
         const eastStandGeometry = new THREE.BoxGeometry(standDepth, standHeight, mapSize);
         const eastStand = new THREE.Mesh(eastStandGeometry, standMaterial);
         eastStand.position.set(mapSize / 2 + standDepth / 2, standHeight / 2, 0);
         scene.add(eastStand);
 
-        // Arquibancada Oeste
         const westStandGeometry = new THREE.BoxGeometry(standDepth, standHeight, mapSize);
         const westStand = new THREE.Mesh(westStandGeometry, standMaterial);
         westStand.position.set(-mapSize / 2 - standDepth / 2, standHeight / 2, 0);
         scene.add(westStand);
 
-        // Adicionar "degraus" visíveis para os 6 andares
         const stepHeight = standHeight / 6;
         const stepDepth = standDepth / 6;
-        const stepMaterial = new THREE.MeshLambertMaterial({ color: 0x606060 }); // Cinza mais escuro para degraus
+        const stepMaterial = new THREE.MeshLambertMaterial({ color: 0x606060 });
 
         for (let i = 0; i < 6; i++) {
             const stepY = (i + 0.5) * stepHeight - standHeight / 2;
@@ -192,51 +187,47 @@ export function initGame() {
             scene.add(westStep);
         }
 
-        // Adicionar torcedores (cubos coloridos saltitantes)
+        // Adicionar torcedores (cubos vermelhos acima dos degraus)
         const spectatorSize = 4;
-        const spectatorColors = [0xFF0000, 0x00FF00, 0x0000FF, 0xFFFF00, 0xFF00FF];
-        window.spectators = window.spectators || []; // Tornar spectators acessível globalmente
+        const spectatorMaterial = new THREE.MeshLambertMaterial({ color: 0xFF0000 }); // Vermelho fixo
+        window.spectators = window.spectators || [];
 
         for (let i = 0; i < 6; i++) {
-            const yPos = (i + 0.5) * stepHeight;
+            const yPos = (i + 1) * stepHeight; // Posicionar acima do degrau
 
-            for (let x = -mapSize / 2 + spectatorSize; x < mapSize / 2; x += spectatorSize * 2) {
+            // Norte
+            for (let x = -mapSize / 2 + spectatorSize; x < mapSize / 2 - spectatorSize; x += spectatorSize) {
                 const spectatorGeometry = new THREE.BoxGeometry(spectatorSize, spectatorSize, spectatorSize);
-                const color = spectatorColors[Math.floor(Math.random() * spectatorColors.length)];
-                const spectatorMaterial = new THREE.MeshLambertMaterial({ color });
                 const spectator = new THREE.Mesh(spectatorGeometry, spectatorMaterial);
-                spectator.position.set(x, yPos, mapSize / 2 + (i + 0.5) * stepDepth);
-                window.spectators.push({ mesh: spectator, baseY: yPos, phase: Math.random() * Math.PI * 2 });
+                spectator.position.set(x, yPos + spectatorSize / 2, mapSize / 2 + (i + 0.5) * stepDepth - stepDepth / 2);
+                window.spectators.push({ mesh: spectator, baseY: yPos + spectatorSize / 2, phase: Math.random() * Math.PI * 2 });
                 scene.add(spectator);
             }
 
-            for (let x = -mapSize / 2 + spectatorSize; x < mapSize / 2; x += spectatorSize * 2) {
+            // Sul
+            for (let x = -mapSize / 2 + spectatorSize; x < mapSize / 2 - spectatorSize; x += spectatorSize) {
                 const spectatorGeometry = new THREE.BoxGeometry(spectatorSize, spectatorSize, spectatorSize);
-                const color = spectatorColors[Math.floor(Math.random() * spectatorColors.length)];
-                const spectatorMaterial = new THREE.MeshLambertMaterial({ color });
                 const spectator = new THREE.Mesh(spectatorGeometry, spectatorMaterial);
-                spectator.position.set(x, yPos, -mapSize / 2 - (i + 0.5) * stepDepth);
-                window.spectators.push({ mesh: spectator, baseY: yPos, phase: Math.random() * Math.PI * 2 });
+                spectator.position.set(x, yPos + spectatorSize / 2, -mapSize / 2 - (i + 0.5) * stepDepth + stepDepth / 2);
+                window.spectators.push({ mesh: spectator, baseY: yPos + spectatorSize / 2, phase: Math.random() * Math.PI * 2 });
                 scene.add(spectator);
             }
 
-            for (let z = -mapSize / 2 + spectatorSize; z < mapSize / 2; z += spectatorSize * 2) {
+            // Leste
+            for (let z = -mapSize / 2 + spectatorSize; z < mapSize / 2 - spectatorSize; z += spectatorSize) {
                 const spectatorGeometry = new THREE.BoxGeometry(spectatorSize, spectatorSize, spectatorSize);
-                const color = spectatorColors[Math.floor(Math.random() * spectatorColors.length)];
-                const spectatorMaterial = new THREE.MeshLambertMaterial({ color });
                 const spectator = new THREE.Mesh(spectatorGeometry, spectatorMaterial);
-                spectator.position.set(mapSize / 2 + (i + 0.5) * stepDepth, yPos, z);
-                window.spectators.push({ mesh: spectator, baseY: yPos, phase: Math.random() * Math.PI * 2 });
+                spectator.position.set(mapSize / 2 + (i + 0.5) * stepDepth - stepDepth / 2, yPos + spectatorSize / 2, z);
+                window.spectators.push({ mesh: spectator, baseY: yPos + spectatorSize / 2, phase: Math.random() * Math.PI * 2 });
                 scene.add(spectator);
             }
 
-            for (let z = -mapSize / 2 + spectatorSize; z < mapSize / 2; z += spectatorSize * 2) {
+            // Oeste
+            for (let z = -mapSize / 2 + spectatorSize; z < mapSize / 2 - spectatorSize; z += spectatorSize) {
                 const spectatorGeometry = new THREE.BoxGeometry(spectatorSize, spectatorSize, spectatorSize);
-                const color = spectatorColors[Math.floor(Math.random() * spectatorColors.length)];
-                const spectatorMaterial = new THREE.MeshLambertMaterial({ color });
                 const spectator = new THREE.Mesh(spectatorGeometry, spectatorMaterial);
-                spectator.position.set(-mapSize / 2 - (i + 0.5) * stepDepth, yPos, z);
-                window.spectators.push({ mesh: spectator, baseY: yPos, phase: Math.random() * Math.PI * 2 });
+                spectator.position.set(-mapSize / 2 - (i + 0.5) * stepDepth + stepDepth / 2, yPos + spectatorSize / 2, z);
+                window.spectators.push({ mesh: spectator, baseY: yPos + spectatorSize / 2, phase: Math.random() * Math.PI * 2 });
                 scene.add(spectator);
             }
         }
@@ -338,7 +329,6 @@ export function initGame() {
             group.add(rope);
         }
 
-        // Carregar fonte para o nome do jogador
         const loader = new THREE.FontLoader();
         loader.load('https://threejs.org/examples/fonts/optimer_regular.typeface.json', function(font) {
             const textGeometry = new THREE.TextGeometry(name || 'Jogador', {
@@ -353,7 +343,6 @@ export function initGame() {
             console.log('Nome do jogador adicionado:', name);
         }, undefined, function(error) {
             console.error('Erro ao carregar fonte para nome do jogador:', error);
-            // Fallback: usar geometria simples se a fonte falhar
             const fallbackGeometry = new THREE.BoxGeometry(5, 5, 5);
             const fallbackMaterial = new THREE.MeshBasicMaterial({ color: 0xFF0000 });
             const fallbackMesh = new THREE.Mesh(fallbackGeometry, fallbackMaterial);
