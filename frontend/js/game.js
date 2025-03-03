@@ -137,19 +137,17 @@ export function initGame() {
         // Criar arquibancadas como escadas com 6 andares
         const stepHeight = 10; // Altura de cada degrau
         const stepDepth = 20; // Profundidade de cada degrau
-        const totalHeight = stepHeight * 6; // Altura total da arquibancada
-        const totalDepth = stepDepth * 6; // Profundidade total da arquibancada
         const standMaterial = new THREE.MeshLambertMaterial({ color: 0x808080 }); // Cor cinza
 
         // Norte
         for (let i = 0; i < 6; i++) {
-            const stepWidth = mapSize - (i * 20); // Reduzir largura levemente para efeito visual
+            const stepWidth = mapSize - (i * 20);
             const stepGeometry = new THREE.BoxGeometry(stepWidth, stepHeight, stepDepth);
             const step = new THREE.Mesh(stepGeometry, standMaterial);
             step.position.set(
                 0,
-                i * stepHeight + stepHeight / 2, // Altura acumulativa
-                mapSize / 2 + stepDepth / 2 + i * stepDepth // Profundidade escalonada
+                i * stepHeight + stepHeight / 2,
+                mapSize / 2 + stepDepth / 2 + i * stepDepth
             );
             scene.add(step);
         }
@@ -191,6 +189,67 @@ export function initGame() {
                 0
             );
             scene.add(step);
+        }
+
+        // Adicionar NPCs (esferas alongadas vermelhas saltitantes)
+        const npcGeometry = new THREE.SphereGeometry(4, 16, 16); // Base da esfera
+        const npcMaterial = new THREE.MeshLambertMaterial({ color: 0xFF0000 }); // Vermelho
+        window.spectators = [];
+
+        for (let i = 0; i < 6; i++) {
+            const yPos = i * stepHeight + stepHeight; // Topo de cada degrau
+
+            // Norte
+            for (let x = -mapSize / 2 + 10; x < mapSize / 2 - 10; x += 10) {
+                const npc = new THREE.Mesh(npcGeometry, npcMaterial);
+                npc.scale.y = 1.5; // Alongar verticalmente
+                npc.position.set(
+                    x,
+                    yPos + 2, // Levantar um pouco acima do degrau
+                    mapSize / 2 + stepDepth / 2 + i * stepDepth
+                );
+                window.spectators.push({ mesh: npc, baseY: yPos + 2, phase: Math.random() * Math.PI * 2 });
+                scene.add(npc);
+            }
+
+            // Sul
+            for (let x = -mapSize / 2 + 10; x < mapSize / 2 - 10; x += 10) {
+                const npc = new THREE.Mesh(npcGeometry, npcMaterial);
+                npc.scale.y = 1.5;
+                npc.position.set(
+                    x,
+                    yPos + 2,
+                    -mapSize / 2 - stepDepth / 2 - i * stepDepth
+                );
+                window.spectators.push({ mesh: npc, baseY: yPos + 2, phase: Math.random() * Math.PI * 2 });
+                scene.add(npc);
+            }
+
+            // Leste
+            for (let z = -mapSize / 2 + 10; z < mapSize / 2 - 10; z += 10) {
+                const npc = new THREE.Mesh(npcGeometry, npcMaterial);
+                npc.scale.y = 1.5;
+                npc.position.set(
+                    mapSize / 2 + stepDepth / 2 + i * stepDepth,
+                    yPos + 2,
+                    z
+                );
+                window.spectators.push({ mesh: npc, baseY: yPos + 2, phase: Math.random() * Math.PI * 2 });
+                scene.add(npc);
+            }
+
+            // Oeste
+            for (let z = -mapSize / 2 + 10; z < mapSize / 2 - 10; z += 10) {
+                const npc = new THREE.Mesh(npcGeometry, npcMaterial);
+                npc.scale.y = 1.5;
+                npc.position.set(
+                    -mapSize / 2 - stepDepth / 2 - i * stepDepth,
+                    yPos + 2,
+                    z
+                );
+                window.spectators.push({ mesh: npc, baseY: yPos + 2, phase: Math.random() * Math.PI * 2 });
+                scene.add(npc);
+            }
         }
 
         // Restante do cenário
@@ -539,6 +598,15 @@ export function initGame() {
         balloon.rotation.y += 0.001;
 
         window.socket.emit('updatePosition', { x: balloon.position.x, y: balloon.position.y, z: balloon.position.z, mode: window.mode || 'world', roomName: window.roomName || null });
+
+        // Animação dos NPCs
+        if (window.spectators && window.spectators.length > 0) {
+            const time = performance.now() * 0.001;
+            window.spectators.forEach(spectator => {
+                const yOffset = Math.sin(time + spectator.phase) * 3; // Amplitude de salto
+                spectator.mesh.position.y = spectator.baseY + yOffset;
+            });
+        }
 
         document.getElementById('altitude').textContent = `${Math.floor(altitude)}m`;
         const dx = balloon.position.x - (window.targets[0]?.x || 0);
