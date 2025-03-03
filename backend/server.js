@@ -1,4 +1,8 @@
 // libraair_/backend/server.js
+app.use((req, res, next) => {
+    res.setHeader("Content-Security-Policy", "script-src 'self' https://apis.google.com https://www.gstatic.com 'unsafe-inline' 'unsafe-eval'");
+    next();
+});
 const express = require('express');
 const http = require('http');
 const socketIO = require('socket.io');
@@ -19,6 +23,7 @@ const io = socketIO(server, {
 });
 
 const PORT = process.env.PORT || 3000;
+
 
 // Conexão ao MongoDB Atlas
 mongoose.connect(process.env.MONGODB_URI, {

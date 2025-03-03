@@ -1,4 +1,3 @@
-// libraair_/frontend/js/main.js
 import { initUI } from './ui.js';
 import { initGame } from './game.js';
 import { initSocket } from './socket.js';
@@ -11,7 +10,6 @@ gapi.load('auth2', () => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Verificar autenticação ao carregar a página
     fetch('https://hotair-backend.onrender.com/auth/check', { credentials: 'include' })
         .then(response => response.json())
         .then(data => {
@@ -26,15 +24,14 @@ document.addEventListener('DOMContentLoaded', () => {
         })
         .catch(err => console.error('Erro ao verificar autenticação:', err));
 
-    // Login com Google
     const googleLoginButton = document.getElementById('googleLoginButton');
     if (googleLoginButton) {
         googleLoginButton.addEventListener('click', () => {
             console.log('Botão de login clicado');
             const auth2 = gapi.auth2.getAuthInstance();
-            auth2.signIn().then(googleUser => {
-                const idToken = googleUser.getAuthResponse().id_token;
-                console.log('ID Token obtido:', idToken);
+            auth2.grantOfflineAccess().then(response => {
+                const idToken = response.code;
+                console.log('Código de autorização obtido:', idToken);
                 window.location.href = `https://hotair-backend.onrender.com/auth/google/callback?code=${idToken}`;
             }).catch(err => console.error('Erro ao fazer login com Google:', err));
         });
@@ -42,7 +39,6 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error('Elemento googleLoginButton não encontrado');
     }
 
-    // Definir Nickname
     const setNicknameButton = document.getElementById('setNicknameButton');
     if (setNicknameButton) {
         setNicknameButton.addEventListener('click', () => {
@@ -65,7 +61,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Iniciar Jogo
     const startGameButton = document.getElementById('startGameButton');
     if (startGameButton) {
         startGameButton.addEventListener('click', () => {
@@ -73,11 +68,10 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('modeScreen').style.display = 'flex';
             initGame();
             initSocket();
-            initUI(); // Só chama initUI após o perfil estar carregado
+            initUI();
         });
     }
 
-    // Modo de Jogo
     const playNowButton = document.getElementById('playNowButton');
     if (playNowButton) {
         playNowButton.addEventListener('click', () => {
