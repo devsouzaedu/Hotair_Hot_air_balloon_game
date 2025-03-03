@@ -11,6 +11,7 @@ gapi.load('auth2', () => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Verificar autenticação ao carregar a página
     fetch('https://hotair-backend.onrender.com/auth/check', { credentials: 'include' })
         .then(response => response.json())
         .then(data => {
@@ -25,6 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
         })
         .catch(err => console.error('Erro ao verificar autenticação:', err));
 
+    // Login com Google
     const googleLoginButton = document.getElementById('googleLoginButton');
     if (googleLoginButton) {
         googleLoginButton.addEventListener('click', () => {
@@ -40,6 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error('Elemento googleLoginButton não encontrado');
     }
 
+    // Definir Nickname
     const setNicknameButton = document.getElementById('setNicknameButton');
     if (setNicknameButton) {
         setNicknameButton.addEventListener('click', () => {
@@ -62,6 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Iniciar Jogo
     const startGameButton = document.getElementById('startGameButton');
     if (startGameButton) {
         startGameButton.addEventListener('click', () => {
@@ -73,6 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Modo de Jogo
     const playNowButton = document.getElementById('playNowButton');
     if (playNowButton) {
         playNowButton.addEventListener('click', () => {
