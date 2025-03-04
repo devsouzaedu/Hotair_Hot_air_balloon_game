@@ -6,6 +6,7 @@ const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const mongoose = require('mongoose');
 const session = require('express-session');
+const cookieParser = require('cookie-parser'); // Adicionado
 
 // Suprimir aviso de strictQuery do Mongoose
 mongoose.set('strictQuery', false);
@@ -22,14 +23,14 @@ const io = socketIO(server, {
 
 const PORT = process.env.PORT || 10000;
 
-// Conexão ao MongoDB Atlas
+// Conexão ao MongoDB Atlas (inalterado)
 mongoose.connect(process.env.MONGODB_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true
 }).then(() => console.log('Conectado ao MongoDB'))
   .catch(err => console.error('Erro ao conectar ao MongoDB:', err));
 
-// Schema do Usuário
+// Schema do Usuário (inalterado)
 const userSchema = new mongoose.Schema({
     googleId: { type: String, required: true, unique: true },
     nickname: { type: String, maxlength: 18, unique: true },
@@ -39,7 +40,8 @@ const userSchema = new mongoose.Schema({
 });
 const User = mongoose.model('User', userSchema);
 
-// Configuração da Sessão
+// Middleware
+app.use(cookieParser()); // Adicionado antes de session
 app.use(session({
     secret: process.env.SESSION_SECRET || 'your-secret-key',
     resave: false,
@@ -54,7 +56,7 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Middleware CORS
+// Middleware CORS (inalterado)
 app.use(cors({
     origin: 'https://devsouzaedu.github.io',
     methods: ['GET', 'POST'],
@@ -64,7 +66,7 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Configuração do Google OAuth
+// Configuração do Google OAuth (inalterado)
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
@@ -124,7 +126,13 @@ app.get('/auth/google/callback',
     }),
     (req, res) => {
         console.log('Autenticação bem-sucedida para usuário:', req.user.googleId);
-        res.redirect('https://devsouzaedu.github.io/Hotair_Hot_air_balloon_game/?auth=success');
+        req.session.save((err) => { // Garante que a sessão seja salva antes do redirecionamento
+            if (err) {
+                console.error('Erro ao salvar sessão:', err);
+                return res.status(500).send('Erro interno');
+            }
+            res.redirect('https://devsouzaedu.github.io/Hotair_Hot_air_balloon_game/?auth=success');
+        });
     }
 );
 
