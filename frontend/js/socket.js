@@ -150,9 +150,10 @@ export function initSocket() {
     
         const player = currentState.players[socket.id];
         if (player && window.balloon) {
-            window.targetPosition = { x: player.x, y: player.y, z: player.z }; // Atualiza x, y, z do servidor
+            window.targetPosition = { x: player.x, y: player.y, z: player.z };
+            console.log(`[GameUpdate Debug] Received for ${socket.id}: x=${player.x}, y=${player.y}, z=${player.z}, timeLeft=${timeLeft}`);
         }
-    
+
         for (const id in currentState.players) {
             if (id !== socket.id) {
                 if (!window.otherPlayers[id] && currentState.players[id].color) {
@@ -185,9 +186,9 @@ export function initSocket() {
     
         document.getElementById('markersLeft').textContent = player?.markers || window.markersLeft;
         document.getElementById('points').textContent = player?.score || 0;
-        const minutes = Math.floor(timeLeft / 60);
-        const seconds = Math.floor(timeLeft % 60);
-        document.getElementById('timerDisplay').textContent = `Tempo Restante: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+       const minutes = Math.floor(timeLeft / 60);
+const seconds = Math.floor(timeLeft % 60);
+document.getElementById('timerDisplay').textContent = `Tempo Restante: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
     });
 
     socket.on('markerDropped', ({ playerId, x, y, z, markers, score, markerId }) => {

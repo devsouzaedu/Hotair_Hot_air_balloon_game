@@ -557,25 +557,25 @@ export function initGame() {
     
         // Processar controles locais (apenas altitude)
         // Processar controles locais (apenas altitude)
-if (keys.W) { altitude += 1; hasLiftedOff = true; }
-if (keys.U) { altitude += 5; hasLiftedOff = true; }
-if (keys.S) altitude = Math.max(20, altitude - 1);
-altitude = Math.min(altitude, 500);
-
-// Enviar a nova altitude ao servidor
-window.socket.emit('updatePosition', { 
-    x: balloon.position.x, 
-    y: altitude, 
-    z: balloon.position.z, 
-    mode: window.mode || 'world', 
-    roomName: window.roomName || null 
-});
-
-// Interpolar para a posição alvo (x e z do servidor, y local)
-const lerpFactor = 0.2; // Aumentado para mais suavidade
-balloon.position.x = THREE.MathUtils.lerp(balloon.position.x, targetPosition.x, lerpFactor);
-balloon.position.y = THREE.MathUtils.lerp(balloon.position.y, altitude, lerpFactor); // Prioriza altitude local
-balloon.position.z = THREE.MathUtils.lerp(balloon.position.z, targetPosition.z, lerpFactor);
+        if (keys.W) { altitude += 1; hasLiftedOff = true; }
+        if (keys.U) { altitude += 5; hasLiftedOff = true; }
+        if (keys.S) altitude = Math.max(20, altitude - 1);
+        altitude = Math.min(altitude, 500);
+        
+        window.socket.emit('updatePosition', { 
+            x: balloon.position.x, 
+            y: altitude, 
+            z: balloon.position.z, 
+            mode: window.mode || 'world', 
+            roomName: window.roomName || null 
+        });
+        
+        const lerpFactor = 0.2;
+        balloon.position.x = THREE.MathUtils.lerp(balloon.position.x, targetPosition.x, lerpFactor);
+        balloon.position.y = THREE.MathUtils.lerp(balloon.position.y, altitude, lerpFactor);
+        balloon.position.z = THREE.MathUtils.lerp(balloon.position.z, targetPosition.z, lerpFactor);
+        
+        console.log(`[Position Debug] Local: x=${balloon.position.x.toFixed(2)}, y=${balloon.position.y.toFixed(2)}, z=${balloon.position.z.toFixed(2)}, Target: x=${targetPosition.x.toFixed(2)}, y=${targetPosition.y.toFixed(2)}, z=${targetPosition.z.toFixed(2)}`);
     
         // Atualizar câmera
         window.camera.position.x = balloon.position.x;

@@ -534,15 +534,15 @@ io.on('connection', (socket) => {
 
     socket.on('updatePosition', ({ x, y, z, mode, roomName }) => {
         if (mode === 'world' && worldState.players[socket.id]) {
-            worldState.players[socket.id].x = x; // O servidor atualizará isso com vento
-            worldState.players[socket.id].y = y; // Respeita a altitude enviada pelo frontend
-            worldState.players[socket.id].z = z; // O servidor atualizará isso com vento
-            console.log(`[Server] UpdatePosition recebido para ${socket.id}: x=${x}, y=${y}, z=${z}`);
+            worldState.players[socket.id].x = x;
+            worldState.players[socket.id].y = y;
+            worldState.players[socket.id].z = z;
+            console.log(`[Server] UpdatePosition: ${socket.id} x=${x}, y=${y}, z=${z}`);
         } else if (mode === 'room' && rooms[roomName] && rooms[roomName].players[socket.id]) {
             rooms[roomName].players[socket.id].x = x;
             rooms[roomName].players[socket.id].y = y;
             rooms[roomName].players[socket.id].z = z;
-            console.log(`[Server] UpdatePosition recebido para ${socket.id} na sala ${roomName}: x=${x}, y=${y}, z=${z}`);
+            console.log(`[Server] UpdatePosition Room ${roomName}: ${socket.id} x=${x}, y=${y}, z=${z}`);
         }
     });
 
@@ -621,13 +621,15 @@ setInterval(() => {
         const currentLayer = windLayers.find(layer => player.y >= layer.minAlt && player.y < layer.maxAlt) || windLayers[0];
         player.x += currentLayer.direction.x * currentLayer.speed;
         player.z += currentLayer.direction.z * currentLayer.speed;
-        console.log(`[Server] Player ${id}: x=${player.x.toFixed(2)}, y=${player.y.toFixed(2)}, z=${player.z.toFixed(2)}, Wind: ${currentLayer.direction.x},${currentLayer.direction.z}`);
+        console.log(`[Wind Debug] Player ${id}: x=${player.x.toFixed(2)}, y=${player.y.toFixed(2)}, z=${player.z.toFixed(2)}, Wind: ${currentLayer.name}`);
     }
+    
     updateMarkersGravity(worldState);
     updateBots();
     const elapsedWorld = (Date.now() - worldState.startTime) / 1000;
-    const timeLeft = Math.max(300 - elapsedWorld, 0);
-    io.to('world').emit('gameUpdate', { state: worldState, timeLeft });
+const timeLeft = Math.max(300 - elapsedWorld, 0);
+if (timeLeft <= 0) io.to('world').emit('gameEnd', { players: worldState.players });
+io.to('world').emit('gameUpdate', { state: worldState, timeLeft });
 
     for (const roomName in rooms) {
         const room = rooms[roomName];
