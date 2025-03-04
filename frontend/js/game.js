@@ -1,6 +1,5 @@
 console.log('game.js carregado');
 export function initGame() {
-    let scene, camera, renderer;
     let balloon;
     let marker, tail;
     let altitude = 100;
@@ -123,117 +122,117 @@ export function initGame() {
         const ground = new THREE.Mesh(groundGeometry, groundMaterial);
         ground.rotation.x = -Math.PI / 2;
         ground.position.y = 0;
-        scene.add(ground);
-
+        window.scene.add(ground); // Alterado de scene.add
+    
         const gridHelper = new THREE.GridHelper(mapSize, 26, 0x000000, 0x000000);
         gridHelper.position.y = 0.1;
         gridHelper.material.opacity = 0.2;
         gridHelper.material.transparent = true;
-        scene.add(gridHelper);
-
+        window.scene.add(gridHelper); // Alterado de scene.add
+    
         const stepHeight = 10;
         const stepDepth = 20;
         const standMaterial = new THREE.MeshLambertMaterial({ color: 0x808080 });
-
+    
         for (let i = 0; i < 6; i++) {
             const stepWidth = mapSize - (i * 20);
             const stepGeometry = new THREE.BoxGeometry(stepWidth, stepHeight, stepDepth);
             const step = new THREE.Mesh(stepGeometry, standMaterial);
             step.position.set(0, i * stepHeight + stepHeight / 2, mapSize / 2 + stepDepth / 2 + i * stepDepth);
-            scene.add(step);
+            window.scene.add(step); // Alterado de scene.add
         }
-
+    
         for (let i = 0; i < 6; i++) {
             const stepWidth = mapSize - (i * 20);
             const stepGeometry = new THREE.BoxGeometry(stepWidth, stepHeight, stepDepth);
             const step = new THREE.Mesh(stepGeometry, standMaterial);
             step.position.set(0, i * stepHeight + stepHeight / 2, -mapSize / 2 - stepDepth / 2 - i * stepDepth);
-            scene.add(step);
+            window.scene.add(step); // Alterado de scene.add
         }
-
+    
         for (let i = 0; i < 6; i++) {
             const stepLength = mapSize - (i * 20);
             const stepGeometry = new THREE.BoxGeometry(stepDepth, stepHeight, stepLength);
             const step = new THREE.Mesh(stepGeometry, standMaterial);
             step.position.set(mapSize / 2 + stepDepth / 2 + i * stepDepth, i * stepHeight + stepHeight / 2, 0);
-            scene.add(step);
+            window.scene.add(step); // Alterado de scene.add
         }
-
+    
         for (let i = 0; i < 6; i++) {
             const stepLength = mapSize - (i * 20);
             const stepGeometry = new THREE.BoxGeometry(stepDepth, stepHeight, stepLength);
             const step = new THREE.Mesh(stepGeometry, standMaterial);
             step.position.set(-mapSize / 2 - stepDepth / 2 - i * stepDepth, i * stepHeight + stepHeight / 2, 0);
-            scene.add(step);
+            window.scene.add(step); // Alterado de scene.add
         }
-
+    
         const npcGeometry = new THREE.SphereGeometry(4, 16, 16);
         const npcMaterial = new THREE.MeshLambertMaterial({ color: 0xFF0000 });
         window.spectators = [];
         let npcCount = 0;
-
+    
         for (let i = 0; i < 6; i++) {
             const yPos = i * stepHeight + stepHeight;
-
+    
             for (let x = -mapSize / 2 + 10; x < mapSize / 2 - 10; x += 10) {
                 const npc = new THREE.Mesh(npcGeometry, npcMaterial);
                 npc.scale.y = 1.5;
                 npc.position.set(x, yPos + 2, mapSize / 2 + stepDepth / 2 + i * stepDepth);
                 window.spectators.push({ mesh: npc, baseY: yPos + 2, phase: Math.random() * Math.PI * 2 });
-                scene.add(npc);
+                window.scene.add(npc); // Alterado de scene.add
                 npcCount++;
                 console.log(`NPC criado (Norte, andar ${i}): x=${x}, y=${yPos + 2}, z=${mapSize / 2 + stepDepth / 2 + i * stepDepth}`);
             }
-
+    
             for (let x = -mapSize / 2 + 10; x < mapSize / 2 - 10; x += 10) {
                 const npc = new THREE.Mesh(npcGeometry, npcMaterial);
                 npc.scale.y = 1.5;
                 npc.position.set(x, yPos + 2, -mapSize / 2 - stepDepth / 2 - i * stepDepth);
                 window.spectators.push({ mesh: npc, baseY: yPos + 2, phase: Math.random() * Math.PI * 2 });
-                scene.add(npc);
+                window.scene.add(npc); // Alterado de scene.add
                 npcCount++;
                 console.log(`NPC criado (Sul, andar ${i}): x=${x}, y=${yPos + 2}, z=${-mapSize / 2 - stepDepth / 2 - i * stepDepth}`);
             }
-
+    
             for (let z = -mapSize / 2 + 10; z < mapSize / 2 - 10; z += 10) {
                 const npc = new THREE.Mesh(npcGeometry, npcMaterial);
                 npc.scale.y = 1.5;
                 npc.position.set(mapSize / 2 + stepDepth / 2 + i * stepDepth, yPos + 2, z);
                 window.spectators.push({ mesh: npc, baseY: yPos + 2, phase: Math.random() * Math.PI * 2 });
-                scene.add(npc);
+                window.scene.add(npc); // Alterado de scene.add
                 npcCount++;
                 console.log(`NPC criado (Leste, andar ${i}): x=${mapSize / 2 + stepDepth / 2 + i * stepDepth}, y=${yPos + 2}, z=${z}`);
             }
-
+    
             for (let z = -mapSize / 2 + 10; z < mapSize / 2 - 10; z += 10) {
                 const npc = new THREE.Mesh(npcGeometry, npcMaterial);
                 npc.scale.y = 1.5;
                 npc.position.set(-mapSize / 2 - stepDepth / 2 - i * stepDepth, yPos + 2, z);
                 window.spectators.push({ mesh: npc, baseY: yPos + 2, phase: Math.random() * Math.PI * 2 });
-                scene.add(npc);
+                window.scene.add(npc); // Alterado de scene.add
                 npcCount++;
                 console.log(`NPC criado (Oeste, andar ${i}): x=${-mapSize / 2 - stepDepth / 2 - i * stepDepth}, y=${yPos + 2}, z=${z}`);
             }
         }
-
+    
         console.log(`Total de NPCs criados: ${npcCount}`);
-
+    
         for (let i = 0; i < 30; i++) {
             const houseGeometry = new THREE.BoxGeometry(15, 15, 15);
             const houseMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
             const house = new THREE.Mesh(houseGeometry, houseMaterial);
             house.position.set(Math.random() * (mapSize - 100) - (mapSize - 100) / 2, 7.5, Math.random() * (mapSize - 100) - (mapSize - 100) / 2);
-            scene.add(house);
+            window.scene.add(house); // Alterado de scene.add
         }
-
+    
         for (let i = 0; i < 45; i++) {
             const cowGeometry = new THREE.SphereGeometry(4.5, 16, 16);
             const cowMaterial = new THREE.MeshLambertMaterial({ color: 0xFFFFFF });
             const cow = new THREE.Mesh(cowGeometry, cowMaterial);
             cow.position.set(Math.random() * (mapSize - 100) - (mapSize - 100) / 2, 2.25, Math.random() * (mapSize - 100) - (mapSize - 100) / 2);
-            scene.add(cow);
+            window.scene.add(cow); // Alterado de scene.add
         }
-
+    
         const roadMaterial = new THREE.LineBasicMaterial({ color: 0x808080 });
         for (let i = 0; i < 15; i++) {
             const roadGeometry = new THREE.BufferGeometry().setFromPoints([
@@ -242,18 +241,18 @@ export function initGame() {
             ]);
             const road = new THREE.Line(roadGeometry, roadMaterial);
             road.scale.set(1.5, 1, 1.5);
-            scene.add(road);
+            window.scene.add(road); // Alterado de scene.add
         }
-
+    
         for (let i = 0; i < 10; i++) {
             const lakeGeometry = new THREE.CircleGeometry(30, 32);
             const lakeMaterial = new THREE.MeshLambertMaterial({ color: 0x00BFFF, side: THREE.DoubleSide });
             const lake = new THREE.Mesh(lakeGeometry, lakeMaterial);
             lake.rotation.x = -Math.PI / 2;
             lake.position.set(Math.random() * (mapSize - 100) - (mapSize - 100) / 2, 0.1, Math.random() * (mapSize - 100) - (mapSize - 100) / 2);
-            scene.add(lake);
+            window.scene.add(lake); // Alterado de scene.add
         }
-
+    
         const loader = new THREE.FontLoader();
         loader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', function(font) {
             const textGeometry = new THREE.TextGeometry("ESPAÇOS PARA DIVULGAÇÃO", {
@@ -265,7 +264,7 @@ export function initGame() {
             const textMesh = new THREE.Mesh(textGeometry, textMaterial);
             textMesh.rotation.x = -Math.PI / 2;
             textMesh.position.set(-400, 0.2, 0);
-            scene.add(textMesh);
+            window.scene.add(textMesh); // Alterado de scene.add
         }, undefined, function(error) {
             console.error('Erro ao carregar fonte para texto de divulgação:', error);
         });
@@ -672,7 +671,7 @@ export function initGame() {
 
     window.initGameScene = function(state) {
         console.log('Inicializando cena com estado:', state);
-        if (!scene) {
+        if (!window.scene) { // Alterado de scene
             console.log('Cena não existe, chamando initThreeJS');
             initThreeJS();
         } else {
@@ -680,12 +679,12 @@ export function initGame() {
         }
     
         // Limpa alvos existentes
-        scene.children.filter(obj => obj instanceof THREE.Group && obj.userData?.type === 'target').forEach(obj => scene.remove(obj));
+        window.scene.children.filter(obj => obj instanceof THREE.Group && obj.userData?.type === 'target').forEach(obj => window.scene.remove(obj)); // Alterado de scene
         window.setTargets(state.targets || []);
         window.targets.forEach(target => {
             const targetMesh = window.createTarget(target.x, target.z);
             targetMesh.userData = { type: 'target' };
-            scene.add(targetMesh);
+            window.scene.add(targetMesh); // Alterado de scene
         });
     
         const player = state.players[window.socket.id];
@@ -706,11 +705,11 @@ export function initGame() {
             const playerNameDisplay = document.getElementById('playerNameDisplay');
             if (playerNameDisplay) playerNameDisplay.textContent = player.name;
     
-            if (!balloon || !scene.children.includes(balloon)) {
+            if (!balloon || !window.scene.children.includes(balloon)) { // Alterado de scene
                 console.log('Criando novo balão para o jogador:', player);
                 window.setBalloon(window.createBalloon(window.balloonColor || '#FF4500', player.name));
                 balloon.position.set(player.x, player.y, player.z);
-                scene.add(balloon);
+                window.scene.add(balloon); // Alterado de scene
                 console.log('Balão adicionado à cena:', balloon);
             } else {
                 console.log('Atualizando posição do balão existente:', balloon.position);
@@ -726,7 +725,7 @@ export function initGame() {
                 const otherBalloon = window.createBalloon(state.players[id].color, state.players[id].name);
                 otherBalloon.position.set(state.players[id].x, state.players[id].y, state.players[id].z);
                 window.otherPlayers[id] = otherBalloon;
-                scene.add(otherBalloon);
+                window.scene.add(otherBalloon); // Alterado de scene
             }
         }
     
@@ -745,15 +744,15 @@ export function initGame() {
             tailMesh.userData = { playerId: markerData.playerId, type: 'tail', markerId };
             markerMesh.position.set(markerData.x, markerData.y, markerData.z);
             tailMesh.position.set(markerData.x, markerData.y, markerData.z);
-            scene.add(markerMesh);
-            scene.add(tailMesh);
+            window.scene.add(markerMesh); // Alterado de scene
+            window.scene.add(tailMesh); // Alterado de scene
             window.markers.push({ marker: markerMesh, tail: tailMesh, playerId: markerData.playerId });
         }
     
         window.lastTargetMoveTime = state.lastTargetMoveTime || Date.now();
         gameStarted = true;
         console.log('Cena inicializada, iniciando animação');
-        animate(); // Inicia o loop de animação explicitamente
+        animate();
     };
 
     window.addEventListener('gamepadconnected', (e) => console.log('Controle conectado:', e.gamepad));
