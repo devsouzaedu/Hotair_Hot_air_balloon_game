@@ -1,4 +1,3 @@
-// libraair_/backend/server.js
 const express = require('express');
 const http = require('http');
 const socketIO = require('socket.io');
@@ -42,12 +41,16 @@ app.use(session({
     secret: process.env.SESSION_SECRET || 'your-secret-key',
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: process.env.NODE_ENV === 'production' }
+    cookie: { 
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax', // Adicionado para melhor compatibilidade com cookies cross-site
+        maxAge: 24 * 60 * 60 * 1000 // 24 horas
+    }
 }));
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Middleware CORS e parsing
+// Middleware CORS
 app.use(cors({
     origin: 'https://devsouzaedu.github.io',
     methods: ['GET', 'POST'],
@@ -56,59 +59,62 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Configuração do Google OAuth para GIS
+// Configuração do Google OAuth
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     callbackURL: 'https://hotair-backend.onrender.com/auth/google/callback',
-    userProfileURL: 'https://www.googleapis.com/oauth2/v3/userinfo'
+    scope: ['profile', 'email'] // Especificando escopos explicitamente
 }, async (accessToken, refreshToken, profile, done) => {
     console.log('Perfil recebido do Google:', profile);
     try {
         let user = await User.findOne({ googleId: profile.id });
         if (!user) {
-            user = new User({ googleId: profile.id });
+            user = new User({ 
+                googleId: profile.id,
+                nickname: profile.displayName.substring(0, 18) // Nome padrão inicial
+            });
             await user.save();
             console.log('Novo usuário criado:', user.googleId);
-        } else {
-            console.log('Usuário existente encontrado:', user.googleId);
         }
         done(null, user);
     } catch (err) {
-        console.error('Erro ao salvar/buscar usuário:', err);
+        console.error('Erro ao processar usuário:', err);
         done(err, null);
     }
 }));
 
 passport.serializeUser((user, done) => {
-    console.log('Serializando usuário:', user.id);
     done(null, user.id);
 });
 
 passport.deserializeUser(async (id, done) => {
     try {
         const user = await User.findById(id);
-        console.log('Desserializando usuário:', user ? user.googleId : 'não encontrado');
         done(null, user);
     } catch (err) {
-        console.error('Erro ao desserializar usuário:', err);
         done(err, null);
     }
 });
 
 // Rotas de Autenticação
-app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
-
-app.get('/auth/google/callback', 
+app.get('/auth/google', 
     passport.authenticate('google', { 
-        failureRedirect: 'https://devsouzaedu.github.io/?auth=failed' 
-    }), 
+        scope: ['profile', 'email'],
+        prompt: 'select_account' // Força a seleção de conta
+    })
+);
+
+app.get('/auth/google/callback',
+    passport.authenticate('google', { 
+        failureRedirect: 'https://devsouzaedu.github.io/?auth=failed',
+        session: true
+    }),
     (req, res) => {
-        console.log('Callback recebido com código:', req.query.code);
+        console.log('Autenticação bem-sucedida para usuário:', req.user.googleId);
         res.redirect('https://devsouzaedu.github.io/?auth=success');
     }
 );
-
 app.get('/auth/check', (req, res) => {
     if (req.isAuthenticated()) {
         console.log('Verificação de autenticação: Usuário autenticado', req.user.googleId);

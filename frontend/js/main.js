@@ -1,11 +1,13 @@
-// libraair_/frontend/js/main.js
 import { initUI } from './ui.js';
 import { initGame } from './game.js';
 import { initSocket } from './socket.js';
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Verificar autenticação ao carregar a página
-    fetch('https://hotair-backend.onrender.com/auth/check', { credentials: 'include' })
+    // Verificar autenticação
+    fetch('https://hotair-backend.onrender.com/auth/check', { 
+        credentials: 'include',
+        mode: 'cors'
+    })
         .then(response => response.json())
         .then(data => {
             if (data.authenticated) {
@@ -19,32 +21,11 @@ document.addEventListener('DOMContentLoaded', () => {
         })
         .catch(err => console.error('Erro ao verificar autenticação:', err));
 
-    // Login com Google
     const googleLoginButton = document.getElementById('googleLoginButton');
     if (googleLoginButton) {
         googleLoginButton.addEventListener('click', () => {
-            console.log('Botão de login clicado');
-            // Inicializar o Google Identity Services apenas quando o botão é clicado
-            if (typeof google === 'undefined') {
-                console.error('Google Identity Services não carregado ainda');
-                return;
-            }
-            const client = google.accounts.oauth2.initCodeClient({
-                client_id: '977819867201-unkn3raoa1evunhpcrm6ipqtejbnec0n.apps.googleusercontent.com',
-                scope: 'profile email',
-                ux_mode: 'popup',
-                callback: (response) => {
-                    console.log('Código de autorização obtido:', response.code);
-                    window.location.href = `https://hotair-backend.onrender.com/auth/google/callback?code=${response.code}`;
-                },
-                error_callback: (error) => {
-                    console.error('Erro ao fazer login com Google:', error);
-                }
-            });
-            client.requestCode();
+            window.location.href = 'https://hotair-backend.onrender.com/auth/google';
         });
-    } else {
-        console.error('Elemento googleLoginButton não encontrado');
     }
 
     // Definir Nickname
@@ -56,7 +37,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ nickname }),
-                credentials: 'include'
+                credentials: 'include',
+                mode: 'cors'
             })
             .then(response => response.json())
             .then(data => {
