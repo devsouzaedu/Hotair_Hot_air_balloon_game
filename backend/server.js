@@ -6,9 +6,8 @@ const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const mongoose = require('mongoose');
 const session = require('express-session');
-const cookieParser = require('cookie-parser'); // Adicionado
+const cookieParser = require('cookie-parser');
 
-// Suprimir aviso de strictQuery do Mongoose
 mongoose.set('strictQuery', false);
 
 const app = express();
@@ -23,14 +22,12 @@ const io = socketIO(server, {
 
 const PORT = process.env.PORT || 10000;
 
-// Conexão ao MongoDB Atlas (inalterado)
 mongoose.connect(process.env.MONGODB_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true
 }).then(() => console.log('Conectado ao MongoDB'))
   .catch(err => console.error('Erro ao conectar ao MongoDB:', err));
 
-// Schema do Usuário (inalterado)
 const userSchema = new mongoose.Schema({
     googleId: { type: String, required: true, unique: true },
     nickname: { type: String, maxlength: 18, unique: true },
@@ -41,32 +38,32 @@ const userSchema = new mongoose.Schema({
 const User = mongoose.model('User', userSchema);
 
 // Middleware
-app.use(cookieParser()); // Adicionado antes de session
+app.use(cookieParser());
 app.use(session({
     secret: process.env.SESSION_SECRET || 'your-secret-key',
     resave: false,
     saveUninitialized: false,
     cookie: { 
-        secure: true, // Necessário para SameSite=None em produção (HTTPS)
-        sameSite: 'none', // Permite cookies cross-site
-        maxAge: 24 * 60 * 60 * 1000, // 24 horas
-        httpOnly: true // Segurança
+        secure: true,
+        sameSite: 'none',
+        maxAge: 24 * 60 * 60 * 1000,
+        httpOnly: true,
+        path: '/' // Explicitamente definido
     }
 }));
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Middleware CORS (inalterado)
 app.use(cors({
     origin: 'https://devsouzaedu.github.io',
     methods: ['GET', 'POST'],
     credentials: true,
-    allowedHeaders: ['Content-Type', 'Authorization']
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    exposedHeaders: ['Set-Cookie'] // Permite que o cookie seja visto pelo frontend
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Configuração do Google OAuth (inalterado)
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
@@ -126,11 +123,21 @@ app.get('/auth/google/callback',
     }),
     (req, res) => {
         console.log('Autenticação bem-sucedida para usuário:', req.user.googleId);
-        req.session.save((err) => { // Garante que a sessão seja salva antes do redirecionamento
+        console.log('Sessão antes de salvar:', req.session);
+        req.session.save((err) => {
             if (err) {
                 console.error('Erro ao salvar sessão:', err);
                 return res.status(500).send('Erro interno');
             }
+            console.log('Sessão salva com sucesso:', req.session);
+            // Definir cookie explicitamente no response
+            res.cookie('connect.sid', req.sessionID, {
+                secure: true,
+                sameSite: 'none',
+                httpOnly: true,
+                maxAge: 24 * 60 * 60 * 1000,
+                path: '/'
+            });
             res.redirect('https://devsouzaedu.github.io/Hotair_Hot_air_balloon_game/?auth=success');
         });
     }
@@ -138,7 +145,8 @@ app.get('/auth/google/callback',
 
 app.get('/auth/check', (req, res) => {
     console.log('Cookies recebidos:', req.cookies);
-    console.log('Sessão:', req.session);
+    console.log('Sessão completa:', req.session);
+    console.log('Usuário na sessão:', req.session.passport);
     if (req.isAuthenticated()) {
         console.log('Verificação de autenticação: Usuário autenticado', req.user.googleId);
         res.json({ authenticated: true, user: { googleId: req.user.googleId, nickname: req.user.nickname } });
