@@ -1,11 +1,19 @@
-// socket.js
 export function initSocket() {
     if (typeof io === 'undefined') {
         console.error('Socket.IO não foi carregado corretamente.');
         return;
     }
 
-    window.socket = io('https://hotair-backend.onrender.com');
+    const token = localStorage.getItem('jwtToken');
+    if (!token) {
+        console.error('Nenhum token JWT encontrado no localStorage');
+        return;
+    }
+
+    window.socket = io('https://hotair-backend.onrender.com', {
+        auth: { token },
+        transports: ['websocket', 'polling']
+    });
     const socket = window.socket;
 
     if (!socket) {
@@ -19,8 +27,56 @@ export function initSocket() {
     window.balloonColor = window.balloonColor || '#FF4500';
     window.markersLeft = 5;
 
+    function initThreeJS() {
+        window.scene = new THREE.Scene();
+        window.scene.background = new THREE.Color(0x87CEEB);
+
+        window.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
+        window.camera.position.set(0, 300, 300);
+        window.camera.lookAt(0, 100, 0);
+
+        window.renderer = new THREE.WebGLRenderer({ antialias: true });
+        window.renderer.setSize(window.innerWidth, window.innerHeight);
+        document.getElementById('gameScreen').appendChild(window.renderer.domElement);
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        window.scene.add(ambientLight);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(100, 300, 50);
+        window.scene.add(directionalLight);
+
+        createGround();
+    }
+
+    function createGround() {
+        const mapSize = 2600;
+        const groundGeometry = new THREE.PlaneGeometry(mapSize, mapSize, 50, 50);
+        const groundMaterial = new THREE.MeshLambertMaterial({ color: 0x7CFC00 });
+        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+        ground.rotation.x = -Math.PI / 2;
+        ground.position.y = 0;
+        window.scene.add(ground);
+
+        const gridHelper = new THREE.GridHelper(mapSize, 26, 0x000000, 0x000000);
+        gridHelper.position.y = 0.1;
+        gridHelper.material.opacity = 0.2;
+        gridHelper.material.transparent = true;
+        window.scene.add(gridHelper);
+    }
+
+    function animate() {
+        requestAnimationFrame(animate);
+        if (window.renderer && window.scene && window.camera) {
+            window.renderer.render(window.scene, window.camera);
+        }
+    }
+
     socket.on('connect', () => {
         console.log('Conectado ao backend via Socket.IO');
+        if (!window.scene) {
+            initThreeJS();
+            animate();
+        }
     });
 
     socket.on('connect_error', (err) => {
@@ -120,41 +176,15 @@ export function initSocket() {
     socket.on('gameState', ({ mode: gameMode, state }) => {
         console.log('gameState recebido:', state);
         if (gameMode === 'world') {
-            if (typeof window.setTargets === 'function') {
-                window.setTargets(state.targets || []);
+            window.mode = 'world';
+            if (typeof window.initGameScene === 'function') {
+                window.initGameScene(state);
             } else {
-                console.error('window.setTargets não está definido ainda');
-                window.targets = state.targets || [];
+                console.error('window.initGameScene não está definido ainda');
+                setTimeout(() => window.initGameScene(state), 100);
             }
-            window.lastTargetMoveTime = state.lastTargetMoveTime || Date.now();
-            if (Array.isArray(window.targets)) {
-                window.targets.forEach(target => {
-                    const targetMesh = window.createTarget(target.x, target.z);
-                    window.scene.add(targetMesh);
-                });
-            }
-            const playerName = document.getElementById('playerName').value || 'Jogador';
-            window.setBalloon(window.createBalloon(window.balloonColor, playerName));
-            if (window.balloon) {
-                console.log('Adicionando balão à cena via gameState:', window.balloon);
-                window.balloon.position.set(0, 100, 0);
-                window.scene.add(window.balloon);
-            } else {
-                console.error('Falha ao criar balão do jogador em gameState');
-            }
-            document.getElementById('playerNameDisplay').textContent = playerName;
-            document.getElementById('markersLeft').textContent = window.markersLeft;
             document.getElementById('colorScreen').style.display = 'none';
             document.getElementById('gameScreen').style.display = 'block';
-            for (const id in state.players) {
-                if (id !== socket.id && state.players[id].color) {
-                    const otherBalloon = window.createBalloon(state.players[id].color, state.players[id].name);
-                    otherBalloon.position.set(state.players[id].x, state.players[id].y, state.players[id].z);
-                    window.otherPlayers[id] = otherBalloon;
-                    window.scene.add(otherBalloon);
-                }
-            }
-            window.gameStarted();
         }
     });
 

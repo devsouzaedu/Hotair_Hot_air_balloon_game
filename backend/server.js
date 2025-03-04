@@ -15,7 +15,8 @@ const io = socketIO(server, {
     cors: {
         origin: "https://devsouzaedu.github.io",
         methods: ["GET", "POST"],
-        credentials: true
+        credentials: true,
+        allowedHeaders: ['Authorization']
     }
 });
 
@@ -39,7 +40,8 @@ const User = mongoose.model('User', userSchema);
 app.use(cors({
     origin: 'https://devsouzaedu.github.io',
     methods: ['GET', 'POST'],
-    credentials: true
+    credentials: true,
+    allowedHeaders: ['Authorization', 'Content-Type']
 }));
 app.use(express.json());
 app.use(passport.initialize());
@@ -298,6 +300,10 @@ function updateBots() {
     for (const id in worldState.players) {
         if (worldState.players[id].isBot) {
             const bot = worldState.players[id];
+            if (!worldState.targets || !worldState.targets[0]) {
+                console.error('Nenhum alvo definido para bots, gerando novo alvo');
+                worldState.targets = [generateTarget()];
+            }
             const target = worldState.targets[0];
             const speed = 0.8;
 

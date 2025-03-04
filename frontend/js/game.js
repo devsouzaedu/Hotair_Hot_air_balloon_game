@@ -1,5 +1,3 @@
-// libraair_/frontend/js/game.js
-
 export function initGame() {
     let scene, camera, renderer;
     let balloon;
@@ -46,8 +44,6 @@ export function initGame() {
         if (mobileControls) mobileControls.style.display = 'flex';
         if (controlsInfo) controlsInfo.textContent = 'Use os botões para jogar';
     }
-
-    initThreeJS();
 
     function detectMobile() {
         const userAgent = navigator.userAgent || navigator.vendor || window.opera;
@@ -115,8 +111,6 @@ export function initGame() {
                 button.addEventListener('dblclick', (e) => e.preventDefault());
             });
         }
-
-        animate();
     }
 
     function createGround() {
@@ -134,126 +128,84 @@ export function initGame() {
         gridHelper.material.transparent = true;
         scene.add(gridHelper);
 
-        // Criar arquibancadas como escadas com 6 andares
-        const stepHeight = 10; // Altura de cada degrau
-        const stepDepth = 20; // Profundidade de cada degrau
-        const standMaterial = new THREE.MeshLambertMaterial({ color: 0x808080 }); // Cor cinza
+        const stepHeight = 10;
+        const stepDepth = 20;
+        const standMaterial = new THREE.MeshLambertMaterial({ color: 0x808080 });
 
-        // Norte
         for (let i = 0; i < 6; i++) {
             const stepWidth = mapSize - (i * 20);
             const stepGeometry = new THREE.BoxGeometry(stepWidth, stepHeight, stepDepth);
             const step = new THREE.Mesh(stepGeometry, standMaterial);
-            step.position.set(
-                0,
-                i * stepHeight + stepHeight / 2,
-                mapSize / 2 + stepDepth / 2 + i * stepDepth
-            );
+            step.position.set(0, i * stepHeight + stepHeight / 2, mapSize / 2 + stepDepth / 2 + i * stepDepth);
             scene.add(step);
         }
 
-        // Sul
         for (let i = 0; i < 6; i++) {
             const stepWidth = mapSize - (i * 20);
             const stepGeometry = new THREE.BoxGeometry(stepWidth, stepHeight, stepDepth);
             const step = new THREE.Mesh(stepGeometry, standMaterial);
-            step.position.set(
-                0,
-                i * stepHeight + stepHeight / 2,
-                -mapSize / 2 - stepDepth / 2 - i * stepDepth
-            );
+            step.position.set(0, i * stepHeight + stepHeight / 2, -mapSize / 2 - stepDepth / 2 - i * stepDepth);
             scene.add(step);
         }
 
-        // Leste
         for (let i = 0; i < 6; i++) {
             const stepLength = mapSize - (i * 20);
             const stepGeometry = new THREE.BoxGeometry(stepDepth, stepHeight, stepLength);
             const step = new THREE.Mesh(stepGeometry, standMaterial);
-            step.position.set(
-                mapSize / 2 + stepDepth / 2 + i * stepDepth,
-                i * stepHeight + stepHeight / 2,
-                0
-            );
+            step.position.set(mapSize / 2 + stepDepth / 2 + i * stepDepth, i * stepHeight + stepHeight / 2, 0);
             scene.add(step);
         }
 
-        // Oeste
         for (let i = 0; i < 6; i++) {
             const stepLength = mapSize - (i * 20);
             const stepGeometry = new THREE.BoxGeometry(stepDepth, stepHeight, stepLength);
             const step = new THREE.Mesh(stepGeometry, standMaterial);
-            step.position.set(
-                -mapSize / 2 - stepDepth / 2 - i * stepDepth,
-                i * stepHeight + stepHeight / 2,
-                0
-            );
+            step.position.set(-mapSize / 2 - stepDepth / 2 - i * stepDepth, i * stepHeight + stepHeight / 2, 0);
             scene.add(step);
         }
 
-        // Adicionar NPCs (esferas alongadas vermelhas saltitantes) com logs
-        const npcGeometry = new THREE.SphereGeometry(4, 16, 16); // Base da esfera
-        const npcMaterial = new THREE.MeshLambertMaterial({ color: 0xFF0000 }); // Vermelho
+        const npcGeometry = new THREE.SphereGeometry(4, 16, 16);
+        const npcMaterial = new THREE.MeshLambertMaterial({ color: 0xFF0000 });
         window.spectators = [];
         let npcCount = 0;
 
         for (let i = 0; i < 6; i++) {
-            const yPos = i * stepHeight + stepHeight; // Topo de cada degrau
+            const yPos = i * stepHeight + stepHeight;
 
-            // Norte
             for (let x = -mapSize / 2 + 10; x < mapSize / 2 - 10; x += 10) {
                 const npc = new THREE.Mesh(npcGeometry, npcMaterial);
-                npc.scale.y = 1.5; // Alongar verticalmente
-                npc.position.set(
-                    x,
-                    yPos + 2,
-                    mapSize / 2 + stepDepth / 2 + i * stepDepth
-                );
+                npc.scale.y = 1.5;
+                npc.position.set(x, yPos + 2, mapSize / 2 + stepDepth / 2 + i * stepDepth);
                 window.spectators.push({ mesh: npc, baseY: yPos + 2, phase: Math.random() * Math.PI * 2 });
                 scene.add(npc);
                 npcCount++;
                 console.log(`NPC criado (Norte, andar ${i}): x=${x}, y=${yPos + 2}, z=${mapSize / 2 + stepDepth / 2 + i * stepDepth}`);
             }
 
-            // Sul
             for (let x = -mapSize / 2 + 10; x < mapSize / 2 - 10; x += 10) {
                 const npc = new THREE.Mesh(npcGeometry, npcMaterial);
                 npc.scale.y = 1.5;
-                npc.position.set(
-                    x,
-                    yPos + 2,
-                    -mapSize / 2 - stepDepth / 2 - i * stepDepth
-                );
+                npc.position.set(x, yPos + 2, -mapSize / 2 - stepDepth / 2 - i * stepDepth);
                 window.spectators.push({ mesh: npc, baseY: yPos + 2, phase: Math.random() * Math.PI * 2 });
                 scene.add(npc);
                 npcCount++;
                 console.log(`NPC criado (Sul, andar ${i}): x=${x}, y=${yPos + 2}, z=${-mapSize / 2 - stepDepth / 2 - i * stepDepth}`);
             }
 
-            // Leste
             for (let z = -mapSize / 2 + 10; z < mapSize / 2 - 10; z += 10) {
                 const npc = new THREE.Mesh(npcGeometry, npcMaterial);
                 npc.scale.y = 1.5;
-                npc.position.set(
-                    mapSize / 2 + stepDepth / 2 + i * stepDepth,
-                    yPos + 2,
-                    z
-                );
+                npc.position.set(mapSize / 2 + stepDepth / 2 + i * stepDepth, yPos + 2, z);
                 window.spectators.push({ mesh: npc, baseY: yPos + 2, phase: Math.random() * Math.PI * 2 });
                 scene.add(npc);
                 npcCount++;
                 console.log(`NPC criado (Leste, andar ${i}): x=${mapSize / 2 + stepDepth / 2 + i * stepDepth}, y=${yPos + 2}, z=${z}`);
             }
 
-            // Oeste
             for (let z = -mapSize / 2 + 10; z < mapSize / 2 - 10; z += 10) {
                 const npc = new THREE.Mesh(npcGeometry, npcMaterial);
                 npc.scale.y = 1.5;
-                npc.position.set(
-                    -mapSize / 2 - stepDepth / 2 - i * stepDepth,
-                    yPos + 2,
-                    z
-                );
+                npc.position.set(-mapSize / 2 - stepDepth / 2 - i * stepDepth, yPos + 2, z);
                 window.spectators.push({ mesh: npc, baseY: yPos + 2, phase: Math.random() * Math.PI * 2 });
                 scene.add(npc);
                 npcCount++;
@@ -263,7 +215,6 @@ export function initGame() {
 
         console.log(`Total de NPCs criados: ${npcCount}`);
 
-        // Restante do cenário
         for (let i = 0; i < 30; i++) {
             const houseGeometry = new THREE.BoxGeometry(15, 15, 15);
             const houseMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
@@ -447,7 +398,7 @@ export function initGame() {
             y: window.balloon.position.y - 10, 
             z: window.balloon.position.z 
         };
-        const markerId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        const markerId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
         window.socket.emit('dropMarker', { 
             x: markerStartPos.x, 
             y: markerStartPos.y, 
@@ -461,6 +412,10 @@ export function initGame() {
         marker.visible = true;
         tail.position.set(markerStartPos.x, markerStartPos.y, markerStartPos.z);
         tail.visible = true;
+        setTimeout(() => {
+            marker.visible = false;
+            tail.visible = false;
+        }, 100);
     }
 
     function showNoMarkersMessage() {
@@ -562,6 +517,7 @@ export function initGame() {
 
     function animate() {
         requestAnimationFrame(animate);
+        if (!gameStarted) return;
 
         const currentTime = performance.now();
         frameCount++;
@@ -610,7 +566,6 @@ export function initGame() {
 
         window.socket.emit('updatePosition', { x: balloon.position.x, y: balloon.position.y, z: balloon.position.z, mode: window.mode || 'world', roomName: window.roomName || null });
 
-        // Animação dos NPCs
         if (window.spectators && window.spectators.length > 0) {
             const time = performance.now() * 0.001;
             window.spectators.forEach(spectator => {
@@ -668,6 +623,75 @@ export function initGame() {
 
         renderer.render(scene, camera);
     }
+
+    window.initGameScene = function(state) {
+        console.log('Inicializando cena com estado:', state);
+        if (!scene) {
+            console.error('Cena não inicializada antes de initGameScene');
+            initThreeJS();
+        }
+
+        scene.children.filter(obj => obj instanceof THREE.Group && obj.userData?.type === 'target').forEach(obj => scene.remove(obj));
+        window.setTargets(state.targets || []);
+        window.targets.forEach(target => {
+            const targetMesh = window.createTarget(target.x, target.z);
+            targetMesh.userData = { type: 'target' };
+            scene.add(targetMesh);
+        });
+
+        const player = state.players[window.socket.id];
+        if (player) {
+            altitude = player.y;
+            window.markersLeft = player.markers;
+            points = player.score;
+            document.getElementById('markersLeft').textContent = window.markersLeft;
+            document.getElementById('points').textContent = points;
+            if (!balloon || !scene.children.includes(balloon)) {
+                console.log('Criando balão do jogador:', player);
+                window.setBalloon(window.createBalloon(window.balloonColor || '#FF4500', player.name));
+                balloon.position.set(player.x, player.y, player.z);
+                scene.add(balloon);
+                console.log('Balão adicionado à cena:', balloon, 'Crianças da cena:', scene.children);
+            } else {
+                balloon.position.set(player.x, player.y, player.z);
+            }
+        } else {
+            console.error('Jogador não encontrado no estado:', window.socket.id, state.players);
+        }
+
+        window.setOtherPlayers({});
+        for (const id in state.players) {
+            if (id !== window.socket.id && state.players[id].color) {
+                const otherBalloon = window.createBalloon(state.players[id].color, state.players[id].name);
+                otherBalloon.position.set(state.players[id].x, state.players[id].y, state.players[id].z);
+                window.otherPlayers[id] = otherBalloon;
+                scene.add(otherBalloon);
+            }
+        }
+
+        window.setMarkers([]);
+        for (const markerId in state.markers) {
+            const markerData = state.markers[markerId];
+            const markerMesh = new THREE.Mesh(
+                new THREE.SphereGeometry(4.5, 16, 16),
+                new THREE.MeshLambertMaterial({ color: 0x0000FF })
+            );
+            const tailMesh = new THREE.Line(
+                new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, -45, 0)]),
+                new THREE.LineBasicMaterial({ color: 0xFFFFFF })
+            );
+            markerMesh.userData = { playerId: markerData.playerId, type: 'marker', markerId };
+            tailMesh.userData = { playerId: markerData.playerId, type: 'tail', markerId };
+            markerMesh.position.set(markerData.x, markerData.y, markerData.z);
+            tailMesh.position.set(markerData.x, markerData.y, markerData.z);
+            scene.add(markerMesh);
+            scene.add(tailMesh);
+            window.markers.push({ marker: markerMesh, tail: tailMesh, playerId: markerData.playerId });
+        }
+
+        window.lastTargetMoveTime = state.lastTargetMoveTime || Date.now();
+        gameStarted = true;
+    };
 
     window.addEventListener('gamepadconnected', (e) => console.log('Controle conectado:', e.gamepad));
     window.addEventListener('gamepaddisconnected', (e) => console.log('Controle desconectado:', e.gamepad));
