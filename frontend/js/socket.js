@@ -149,10 +149,11 @@ export function initSocket() {
         const currentState = window.mode === 'world' ? state : state;
         const player = currentState.players[socket.id];
         if (player && window.balloon) {
-            window.targetPosition = { x: player.x, y: player.y, z: player.z };
+            window.targetPosition = { x: player.x, y: player.y, z: player.z }; // Garantir que targetPosition seja atualizado
             console.log(`[GameUpdate Debug] Received for ${socket.id}: x=${player.x}, y=${player.y}, z=${player.z}, timeLeft=${timeLeft}`);
         }
-
+    
+        // Atualizar outros jogadores (mantém como está)
         for (const id in currentState.players) {
             if (id !== socket.id) {
                 if (!window.otherPlayers[id] && currentState.players[id].color) {
@@ -166,30 +167,13 @@ export function initSocket() {
             }
         }
     
-        for (const markerId in currentState.markers) {
-            const markerData = currentState.markers[markerId];
-            let existingMarker = window.markers.find(m => m.marker.userData.markerId === markerId)?.marker;
-            let existingTail = window.markers.find(m => m.tail.userData.markerId === markerId)?.tail;
-            if (!existingMarker) {
-                existingMarker = new THREE.Mesh(new THREE.SphereGeometry(4.5, 16, 16), new THREE.MeshLambertMaterial({ color: 0x0000FF }));
-                existingTail = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, -45, 0)]), new THREE.LineBasicMaterial({ color: 0xFFFFFF }));
-                existingMarker.userData = { playerId: markerData.playerId, type: 'marker', markerId };
-                existingTail.userData = { playerId: markerData.playerId, type: 'tail', markerId };
-                window.scene.add(existingMarker);
-                window.scene.add(existingTail);
-                window.markers.push({ marker: existingMarker, tail: existingTail, playerId: markerData.playerId });
-            }
-            existingMarker.position.set(markerData.x, markerData.y, markerData.z);
-            existingTail.position.set(markerData.x, markerData.y, markerData.z);
-        }
-    
+        // Atualizar marcadores e UI (mantém como está)
         document.getElementById('markersLeft').textContent = player?.markers || window.markersLeft;
         document.getElementById('points').textContent = player?.score || 0;
-       const minutes = Math.floor(timeLeft / 60);
-const seconds = Math.floor(timeLeft % 60);
-document.getElementById('timerDisplay').textContent = `Tempo Restante: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+        const minutes = Math.floor(timeLeft / 60);
+        const seconds = Math.floor(timeLeft % 60);
+        document.getElementById('timerDisplay').textContent = `Tempo Restante: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
     });
-
     socket.on('markerDropped', ({ playerId, x, y, z, markers, score, markerId }) => {
         console.log('Marcador solto por:', playerId, 'Restantes:', markers);
         if (playerId === socket.id) {

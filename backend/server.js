@@ -615,21 +615,28 @@ setInterval(() => {
         { minAlt: 300, maxAlt: 400, direction: { x: -1, z: 0 }, speed: 0.4 },
         { minAlt: 400, maxAlt: 500, direction: { x: 0, z: -1 }, speed: 0.6 }
     ];
-
     for (const id in worldState.players) {
         const player = worldState.players[id];
         const currentLayer = windLayers.find(layer => player.y >= layer.minAlt && player.y < layer.maxAlt) || windLayers[0];
         player.x += currentLayer.direction.x * currentLayer.speed;
         player.z += currentLayer.direction.z * currentLayer.speed;
-        console.log(`[Wind Debug] Player ${id}: x=${player.x.toFixed(2)}, y=${player.y.toFixed(2)}, z=${player.z.toFixed(2)}, Wind: ${currentLayer.direction.x},${currentLayer.direction.z}`);
     }
-    
     updateMarkersGravity(worldState);
     updateBots();
+
     const elapsedWorld = (Date.now() - worldState.startTime) / 1000;
-const timeLeft = Math.max(300 - elapsedWorld, 0);
-if (timeLeft <= 0) io.to('world').emit('gameEnd', { players: worldState.players });
-io.to('world').emit('gameUpdate', { state: worldState, timeLeft });
+    const timeLeft = Math.max(300 - elapsedWorld, 0);
+    io.to('world').emit('gameUpdate', { state: worldState, timeLeft });
+
+    if (timeLeft <= 0 && !worldState.resetScheduled) {
+        io.to('world').emit('gameEnd', { players: worldState.players });
+        worldState.resetScheduled = true;
+        setTimeout(() => {
+            resetWorldState();
+            io.to('world').emit('gameReset', { state: worldState });
+            worldState.resetScheduled = false;
+        }, 7000); // 7 segundos de espera
+    }
 
     for (const roomName in rooms) {
         const room = rooms[roomName];
