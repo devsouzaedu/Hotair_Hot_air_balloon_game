@@ -47,7 +47,7 @@ const sessionMiddleware = session({
         mongoUrl: process.env.MONGODB_URI,
         collectionName: 'sessions',
         ttl: 24 * 60 * 60, // 24 horas em segundos
-        autoRemove: 'native' // Remove sessões expiradas automaticamente
+        autoRemove: 'native'
     }),
     cookie: { 
         secure: true,
@@ -71,12 +71,11 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization'],
     exposedHeaders: ['Set-Cookie']
 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-// Adicionar log para verificar inicialização do Passport
+// Log para verificar a cadeia de middlewares
 app.use((req, res, next) => {
     console.log('Middleware chain - Session:', req.session);
+    console.log('Middleware chain - SessionID:', req.sessionID);
     console.log('Middleware chain - Passport inicializado:', !!req._passport);
     next();
 });
@@ -147,6 +146,7 @@ app.get('/auth/google/callback',
         console.log('Autenticação bem-sucedida para usuário:', req.user.googleId);
         console.log('Sessão antes de salvar:', req.session);
         req.session.passport = { user: req.user.id };
+        console.log('SessionID antes de salvar:', req.sessionID);
         req.session.save((err) => {
             if (err) {
                 console.error('Erro ao salvar sessão:', err);
