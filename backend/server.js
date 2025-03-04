@@ -94,9 +94,14 @@ passport.serializeUser((user, done) => {
 });
 
 passport.deserializeUser(async (id, done) => {
+    console.log('Tentando desserializar usuário com ID:', id);
     try {
         const user = await User.findById(id);
-        console.log('Desserializando usuário:', user ? user.googleId : 'não encontrado');
+        if (!user) {
+            console.log('Usuário não encontrado no banco para ID:', id);
+            return done(null, false);
+        }
+        console.log('Desserializando usuário:', user.googleId);
         done(null, user);
     } catch (err) {
         console.error('Erro ao desserializar usuário:', err);
@@ -124,7 +129,6 @@ app.get('/auth/google/callback',
     (req, res) => {
         console.log('Autenticação bem-sucedida para usuário:', req.user.googleId);
         console.log('Sessão antes de salvar:', req.session);
-        // Forçar a associação do usuário à sessão
         req.session.passport = { user: req.user.id };
         req.session.save((err) => {
             if (err) {
