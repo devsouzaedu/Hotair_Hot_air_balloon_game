@@ -63,6 +63,14 @@ const sessionMiddleware = session({
 
 // Middleware
 app.use(cookieParser());
+app.use((req, res, next) => {
+    const sessionIdFromCookie = req.cookies['connect.sid'];
+    if (sessionIdFromCookie) {
+        console.log('Forçando sessionID do cookie:', sessionIdFromCookie);
+        req.sessionID = sessionIdFromCookie; // Define o sessionID manualmente antes do sessionMiddleware
+    }
+    next();
+});
 app.use(sessionMiddleware);
 app.use(passport.initialize());
 app.use(passport.session());
