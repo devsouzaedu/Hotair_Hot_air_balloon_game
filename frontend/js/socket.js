@@ -150,7 +150,7 @@ export function initSocket() {
     
         const player = currentState.players[socket.id];
         if (player && window.balloon) {
-            window.targetPosition = { x: player.x, y: player.y, z: player.z }; // Atualiza a posição alvo para interpolação
+            window.targetPosition = { x: player.x, y: player.y, z: player.z }; // Atualiza x, y, z do servidor
         }
     
         for (const id in currentState.players) {

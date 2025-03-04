@@ -556,25 +556,26 @@ export function initGame() {
         }
     
         // Processar controles locais (apenas altitude)
-        if (keys.W) { altitude += 1; hasLiftedOff = true; }
-        if (keys.U) { altitude += 5; hasLiftedOff = true; }
-        if (keys.S) altitude = Math.max(20, altitude - 1);
-        altitude = Math.min(altitude, 500);
+        // Processar controles locais (apenas altitude)
+if (keys.W) { altitude += 1; hasLiftedOff = true; }
+if (keys.U) { altitude += 5; hasLiftedOff = true; }
+if (keys.S) altitude = Math.max(20, altitude - 1);
+altitude = Math.min(altitude, 500);
 
-        // Enviar a nova altitude ao servidor
-        window.socket.emit('updatePosition', { 
-            x: balloon.position.x, 
-            y: altitude, 
-            z: balloon.position.z, 
-            mode: window.mode || 'world', 
-            roomName: window.roomName || null 
-        });
+// Enviar a nova altitude ao servidor
+window.socket.emit('updatePosition', { 
+    x: balloon.position.x, 
+    y: altitude, 
+    z: balloon.position.z, 
+    mode: window.mode || 'world', 
+    roomName: window.roomName || null 
+});
 
-        // Interpolar para a posição alvo (x e z do servidor, y local)
-        const lerpFactor = 0.2; // Aumentado para mais suavidade
-        balloon.position.x = THREE.MathUtils.lerp(balloon.position.x, targetPosition.x, lerpFactor);
-        balloon.position.y = THREE.MathUtils.lerp(balloon.position.y, altitude, lerpFactor); // Prioriza altitude local
-        balloon.position.z = THREE.MathUtils.lerp(balloon.position.z, targetPosition.z, lerpFactor);
+// Interpolar para a posição alvo (x e z do servidor, y local)
+const lerpFactor = 0.2; // Aumentado para mais suavidade
+balloon.position.x = THREE.MathUtils.lerp(balloon.position.x, targetPosition.x, lerpFactor);
+balloon.position.y = THREE.MathUtils.lerp(balloon.position.y, altitude, lerpFactor); // Prioriza altitude local
+balloon.position.z = THREE.MathUtils.lerp(balloon.position.z, targetPosition.z, lerpFactor);
     
         // Atualizar câmera
         window.camera.position.x = balloon.position.x;
@@ -663,34 +664,32 @@ export function initGame() {
             window.markersLeft = player.markers;
             points = player.score;
             console.log('Dados do jogador recebidos:', player);
-    
+            
             const markersLeftElement = document.getElementById('markersLeft');
             if (markersLeftElement) markersLeftElement.textContent = window.markersLeft;
             else console.error('Elemento markersLeft não encontrado');
-    
+            
             const pointsElement = document.getElementById('points');
             if (pointsElement) pointsElement.textContent = points;
             else console.error('Elemento points não encontrado');
-    
+            
             const playerNameDisplay = document.getElementById('playerNameDisplay');
             if (playerNameDisplay) playerNameDisplay.textContent = player.name;
-    
+            
             if (!balloon || !window.scene.children.includes(balloon)) {
                 console.log('Criando novo balão com cor do servidor:', player.color);
                 window.setBalloon(window.createBalloon(player.color || window.balloonColor || '#FF4500', player.name));
                 balloon.position.set(player.x, player.y, player.z);
-                targetPosition = { x: player.x, y: player.y, z: player.z }; // Inicializa a posição alvo
+                targetPosition = { x: player.x, y: player.y, z: player.z }; // Inicializa com valores do servidor
                 window.scene.add(balloon);
                 console.log('Balão adicionado à cena:', balloon);
             } else {
                 console.log('Atualizando posição do balão existente:', balloon.position);
                 balloon.position.set(player.x, player.y, player.z);
-                targetPosition = { x: player.x, y: player.y, z: player.z };
+                targetPosition = { x: player.x, y: player.y, z: player.z }; // Atualiza com valores do servidor
             }
-        } else {
-            console.error('Jogador não encontrado no estado:', window.socket.id, state.players);
         }
-    
+        
         window.setOtherPlayers({});
         for (const id in state.players) {
             if (id !== window.socket.id && state.players[id].color) {
