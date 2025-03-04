@@ -54,27 +54,25 @@ export function initGame() {
 
     function initThreeJS() {
         console.log('Inicializando Three.js');
-        scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x87CEEB); // Fundo azul
+        window.scene = new THREE.Scene(); // Use window.scene
+        window.scene.background = new THREE.Color(0x87CEEB);
     
-        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
-        camera.position.set(0, 300, 300);
-        camera.lookAt(0, 100, 0);
+        window.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000); // Use window.camera
+        window.camera.position.set(0, 300, 300);
+        window.camera.lookAt(0, 100, 0);
     
-        renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        document.getElementById('gameScreen').appendChild(renderer.domElement);
+        window.renderer = new THREE.WebGLRenderer({ antialias: true }); // Use window.renderer
+        window.renderer.setSize(window.innerWidth, window.innerHeight);
+        document.getElementById('gameScreen').appendChild(window.renderer.domElement);
     
-        // Adicionar luzes
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-        scene.add(ambientLight);
+        window.scene.add(ambientLight);
         const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
         directionalLight.position.set(100, 300, 50);
-        scene.add(directionalLight);
+        window.scene.add(directionalLight);
     
-        createGround(); // Chama a criação do chão e elementos
+        createGround();
     
-        // Adicionar eventos de teclado
         window.addEventListener('keydown', handleKeyDown);
         window.addEventListener('keyup', handleKeyUp);
 
@@ -402,6 +400,25 @@ export function initGame() {
             z: window.balloon.position.z 
         };
         const markerId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+        
+        // Criar marcador localmente
+        const markerMesh = new THREE.Mesh(
+            new THREE.SphereGeometry(4.5, 16, 16),
+            new THREE.MeshLambertMaterial({ color: 0x0000FF })
+        );
+        const tailMesh = new THREE.Line(
+            new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, -45, 0)]),
+            new THREE.LineBasicMaterial({ color: 0xFFFFFF })
+        );
+        markerMesh.userData = { playerId: window.socket.id, type: 'marker', markerId };
+        tailMesh.userData = { playerId: window.socket.id, type: 'tail', markerId };
+        markerMesh.position.set(markerStartPos.x, markerStartPos.y, markerStartPos.z);
+        tailMesh.position.set(markerStartPos.x, markerStartPos.y, markerStartPos.z);
+        
+        window.scene.add(markerMesh);
+        window.scene.add(tailMesh);
+        window.markers.push({ marker: markerMesh, tail: tailMesh, playerId: window.socket.id });
+    
         window.socket.emit('dropMarker', { 
             x: markerStartPos.x, 
             y: markerStartPos.y, 
@@ -525,8 +542,13 @@ export function initGame() {
             return;
         }
     
-        if (!scene || !camera || !renderer || !balloon) {
-            console.error('Animação abortada: elementos essenciais da cena não estão prontos', { scene, camera, renderer, balloon });
+        if (!window.scene || !window.camera || !window.renderer || !balloon) {
+            console.error('Animação abortada: elementos essenciais da cena não estão prontos', { 
+                scene: window.scene, 
+                camera: window.camera, 
+                renderer: window.renderer, 
+                balloon 
+            });
             return;
         }
     
@@ -538,48 +560,57 @@ export function initGame() {
             lastTime = currentTime;
             document.getElementById('fpsCount').textContent = fps;
         }
-
-        handleGamepad();
-
-        if (window.balloon && !balloon) {
-            balloon = window.balloon;
-            console.log('Sincronizando balloon local com window.balloon:', balloon);
+    
+        // Processar controles
+        if (keys.W) { altitude += 1; hasLiftedOff = true; }
+        if (keys.U) { altitude += 5; hasLiftedOff = true; }
+        if (keys.S) altitude = Math.max(20, altitude - 1);
+        if (keys.ShiftRight && !window.markerDropped && window.markersLeft > 0) {
+            dropMarker();
+            keys.ShiftRight = false;
         }
-
-        if (!gameStarted || gameOver || !balloon) {
-            if (gameOver && !gameEnded) {
-                document.getElementById('gameScreen').style.display = 'none';
-                document.getElementById('loseScreen').style.display = 'flex';
+    
+        altitude = Math.min(altitude, 500);
+        balloon.position.y = altitude;
+    
+        // Aplicar gravidade aos marcadores
+        window.markers.forEach(markerObj => {
+            if (markerObj.marker.position.y > 0) {
+                markerObj.marker.position.y -= 5.0; // Velocidade de queda (sincroniza com backend)
+                markerObj.tail.position.y = markerObj.marker.position.y;
+                if (markerObj.marker.position.y <= 0) {
+                    markerObj.marker.position.y = 0;
+                    markerObj.tail.position.y = 0;
+                    window.socket.emit('markerLanded', {
+                        x: markerObj.marker.position.x,
+                        y: markerObj.marker.position.y,
+                        z: markerObj.marker.position.z,
+                        mode: window.mode || 'world',
+                        roomName: window.roomName || null,
+                        markerId: markerObj.marker.userData.markerId
+                    });
+                }
             }
-            renderer.render(scene, camera);
-            return;
-        }
-
-      if (keys.W) { altitude += 1; hasLiftedOff = true; }
-    if (keys.U) { altitude += 5; hasLiftedOff = true; }
-    if (keys.S) altitude = Math.max(20, altitude - 1);
-    if (keys.SHIFT_RIGHT && !window.markerDropped && window.markersLeft > 0) {
-        dropMarker();
-        keys.SHIFT_RIGHT = false; // Evita repetição
-    }
-
-    altitude = Math.min(altitude, 500);
-    balloon.position.y = altitude;
-
-        const currentLayerIndex = getCurrentWindLayer();
-        const currentLayer = windLayers[currentLayerIndex];
-
-        balloon.position.x += currentLayer.direction.x * currentLayer.speed;
-        balloon.position.z += currentLayer.direction.z * currentLayer.speed;
-
-        if (keys.A) balloon.position.x -= 0.5;
-        if (keys.D) balloon.position.x += 0.5;
-
-        balloon.rotation.y += 0.001;
-
-        window.socket.emit('updatePosition', { x: balloon.position.x, y: balloon.position.y, z: balloon.position.z, mode: window.mode || 'world', roomName: window.roomName || null });
-        renderer.render(scene, camera);
-    console.log('Renderizando cena: FPS', fps, 'Altitude:', altitude);
+        });
+    
+        // Atualizar câmera
+        window.camera.position.x = balloon.position.x;
+        window.camera.position.z = balloon.position.z + 200;
+        window.camera.position.y = balloon.position.y + 200;
+        window.camera.lookAt(balloon.position.x, balloon.position.y, balloon.position.z);
+    
+        // Enviar posição ao servidor
+        window.socket.emit('updatePosition', { 
+            x: balloon.position.x, 
+            y: balloon.position.y, 
+            z: balloon.position.z, 
+            mode: window.mode || 'world', 
+            roomName: window.roomName || null 
+        });
+    
+        window.renderer.render(window.scene, window.camera);
+        console.log('Renderizando cena: FPS', fps, 'Altitude:', altitude);
+    
 
         if (window.spectators && window.spectators.length > 0) {
             const time = performance.now() * 0.001;

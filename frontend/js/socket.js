@@ -227,29 +227,39 @@ export function initSocket() {
                 window.showNoMarkersMessage();
             }
         }
+
+        const markerMesh = new THREE.Mesh(
+            new THREE.SphereGeometry(4.5, 16, 16),
+            new THREE.MeshLambertMaterial({ color: 0x0000FF })
+        );
+        const tailMesh = new THREE.Line(
+            new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, -45, 0)]),
+            new THREE.LineBasicMaterial({ color: 0xFFFFFF })
+        );
+        markerMesh.userData = { playerId, type: 'marker', markerId };
+        tailMesh.userData = { playerId, type: 'tail', markerId };
+        markerMesh.position.set(x, y, z);
+        tailMesh.position.set(x, y, z);
+    
+        if (window.scene) {
+            window.scene.add(markerMesh);
+            window.scene.add(tailMesh);
+            window.markers.push({ marker: markerMesh, tail: tailMesh, playerId });
+        } else {
+            console.error('window.scene não está definido ao adicionar marcador');
+        }
     });
+
 
     socket.on('markerLanded', ({ x, y, z, playerId, markerId }) => {
         console.log('Marcador pousou em:', { x, y, z }, 'por:', playerId);
-        let existingMarker = window.markers.find(m => m.marker.userData.markerId === markerId)?.marker;
-        let existingTail = window.markers.find(m => m.tail.userData.markerId === markerId)?.tail;
-
-        if (!existingMarker) {
-            existingMarker = new THREE.Mesh(new THREE.SphereGeometry(4.5, 16, 16), new THREE.MeshLambertMaterial({ color: 0x0000FF }));
-            existingTail = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, -45, 0)]), new THREE.LineBasicMaterial({ color: 0xFFFFFF }));
-            existingMarker.userData = { playerId, type: 'marker', markerId };
-            existingTail.userData = { playerId, type: 'tail', markerId };
-            if (window.scene) {
-                window.scene.add(existingMarker);
-                window.scene.add(existingTail);
-            } else {
-                console.error('window.scene não está definido ao adicionar marcador');
-            }
-            window.markers.push({ marker: existingMarker, tail: existingTail, playerId });
+        const existingMarkerObj = window.markers.find(m => m.marker.userData.markerId === markerId);
+        if (existingMarkerObj) {
+            existingMarkerObj.marker.position.set(x, y, z);
+            existingMarkerObj.tail.position.set(x, y, z);
+        } else {
+            console.warn('Marcador não encontrado para markerId:', markerId);
         }
-
-        existingMarker.position.set(x, y, z);
-        existingTail.position.set(x, y, z);
     });
 
     socket.on('targetHitUpdate', ({ targetIndex }) => {
