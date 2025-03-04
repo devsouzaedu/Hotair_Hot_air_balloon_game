@@ -21,14 +21,12 @@ const io = socketIO(server, {
 
 const PORT = process.env.PORT || 10000;
 
-// Conexão com MongoDB
 mongoose.connect(process.env.MONGODB_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true
 }).then(() => console.log('Conectado ao MongoDB'))
   .catch(err => console.error('Erro ao conectar ao MongoDB:', err));
 
-// Schema do usuário
 const userSchema = new mongoose.Schema({
     googleId: { type: String, required: true, unique: true },
     nickname: { type: String, maxlength: 18, unique: true },
@@ -38,7 +36,6 @@ const userSchema = new mongoose.Schema({
 });
 const User = mongoose.model('User', userSchema);
 
-// Middleware
 app.use(cors({
     origin: 'https://devsouzaedu.github.io',
     methods: ['GET', 'POST'],
@@ -47,7 +44,6 @@ app.use(cors({
 app.use(express.json());
 app.use(passport.initialize());
 
-// Configuração do Google OAuth
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
@@ -72,7 +68,6 @@ passport.use(new GoogleStrategy({
     }
 }));
 
-// Rotas de autenticação
 app.get('/auth/google', 
     passport.authenticate('google', { 
         scope: ['profile', 'email'],
@@ -86,22 +81,19 @@ app.get('/auth/google/callback',
         const user = req.user;
         console.log('Autenticação bem-sucedida para usuário:', user.googleId);
 
-        // Gera o token JWT
         const token = jwt.sign(
             { id: user._id, googleId: user.googleId },
             process.env.JWT_SECRET || 'seu-segredo-super-seguro',
-            { expiresIn: '24h' } // Token expira em 24 horas
+            { expiresIn: '24h' }
         );
 
-        // Redireciona com o token na URL (ou pode enviar como JSON se preferir)
         res.redirect(`https://devsouzaedu.github.io/Hotair_Hot_air_balloon_game/?auth=success&token=${token}`);
     }
 );
 
-// Middleware para verificar o token JWT
 const authenticateToken = (req, res, next) => {
     const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1]; // Espera "Bearer TOKEN"
+    const token = authHeader && authHeader.split(' ')[1];
 
     if (!token) {
         console.log('Nenhum token fornecido');
@@ -114,12 +106,11 @@ const authenticateToken = (req, res, next) => {
             return res.status(403).json({ authenticated: false, message: 'Token inválido' });
         }
 
-        req.user = decoded; // Adiciona os dados do usuário ao request
+        req.user = decoded;
         next();
     });
 };
 
-// Rota para verificar autenticação
 app.get('/auth/check', authenticateToken, async (req, res) => {
     try {
         const user = await User.findById(req.user.id);
@@ -134,11 +125,26 @@ app.get('/auth/check', authenticateToken, async (req, res) => {
     }
 });
 
-// ... (o resto do código permanece igual)
-
-// ... (o resto do código permanece igual)
-
-// ... (o resto do código permanece igual)
+// Nova rota para o perfil
+app.get('/profile', authenticateToken, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id);
+        if (!user) {
+            return res.status(404).json({ message: 'Usuário não encontrado' });
+        }
+        console.log('Perfil retornado para usuário:', user.googleId);
+        res.json({
+            googleId: user.googleId,
+            nickname: user.nickname,
+            targetsHit: user.targetsHit,
+            totalPoints: user.totalPoints,
+            joinDate: user.joinDate
+        });
+    } catch (err) {
+        console.error('Erro ao carregar perfil:', err);
+        res.status(500).json({ message: 'Erro interno' });
+    }
+});
 
 app.post('/auth/set-nickname', async (req, res) => {
     if (!req.isAuthenticated()) {

@@ -5,19 +5,18 @@ import { initSocket } from './socket.js';
 const BASE_URL = 'https://devsouzaedu.github.io/Hotair_Hot_air_balloon_game/';
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Verifica parâmetros da URL para capturar o token JWT
     const urlParams = new URLSearchParams(window.location.search);
     const authStatus = urlParams.get('auth');
     const token = urlParams.get('token');
 
     if (authStatus === 'success' && token) {
-        localStorage.setItem('jwtToken', token); // Armazena o token no localStorage
+        localStorage.setItem('jwtToken', token);
         checkAuthentication();
     } else if (authStatus === 'failed') {
         alert('Falha na autenticação com Google. Tente novamente.');
         window.history.replaceState({}, document.title, BASE_URL);
     } else {
-        checkAuthentication(); // Verifica autenticação ao carregar a página
+        checkAuthentication();
     }
 
     const googleLoginButton = document.getElementById('googleLoginButton');
@@ -40,12 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
                 body: JSON.stringify({ nickname })
             })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`Erro HTTP: ${response.status}`);
-                }
-                return response.json();
-            })
+            .then(response => response.json())
             .then(data => {
                 if (data.success) {
                     showProfile({ googleId: data.googleId, nickname: data.nickname });
@@ -68,7 +62,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Modo de Jogo
     const playNowButton = document.getElementById('playNowButton');
     if (playNowButton) {
         playNowButton.addEventListener('click', () => {
@@ -108,7 +101,7 @@ function checkAuthentication() {
         return response.json();
     })
     .then(data => {
-        document.getElementById('nameScreen').style.display = 'none'; // Esconde a tela inicial
+        document.getElementById('nameScreen').style.display = 'none';
         if (data.authenticated) {
             if (!data.user.nickname) {
                 document.getElementById('nicknameForm').style.display = 'block';
@@ -117,14 +110,14 @@ function checkAuthentication() {
                 showProfile(data.user);
             }
         } else {
-            localStorage.removeItem('jwtToken'); // Remove token inválido
+            localStorage.removeItem('jwtToken');
             document.getElementById('nameScreen').style.display = 'block';
         }
-        window.history.replaceState({}, document.title, BASE_URL); // Limpa os parâmetros da URL
+        window.history.replaceState({}, document.title, BASE_URL);
     })
     .catch(err => {
         console.error('Erro ao verificar autenticação:', err);
-        localStorage.removeItem('jwtToken'); // Remove token em caso de erro
+        localStorage.removeItem('jwtToken');
         document.getElementById('nameScreen').style.display = 'block';
         window.history.replaceState({}, document.title, BASE_URL);
     });
@@ -154,7 +147,7 @@ function showProfile(user) {
     })
     .catch(err => {
         console.error('Erro ao carregar perfil:', err);
-        localStorage.removeItem('jwtToken'); // Remove token em caso de erro
+        localStorage.removeItem('jwtToken');
         document.getElementById('nameScreen').style.display = 'block';
     });
 }
