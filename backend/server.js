@@ -58,6 +58,10 @@ const sessionMiddleware = session({
         maxAge: 24 * 60 * 60 * 1000,
         httpOnly: true,
         path: '/'
+    },
+    // Forçar uso do sessionID do cookie
+    genid: (req) => {
+        return req.cookies['connect.sid'] || undefined; // Usa o sessionID do cookie se existir
     }
 });
 
@@ -75,13 +79,12 @@ app.use(cors({
     exposedHeaders: ['Set-Cookie']
 }));
 
-// Middleware para verificar e sincronizar a sessão
 app.use((req, res, next) => {
     console.log('Middleware chain - Session antes:', req.session);
     console.log('Middleware chain - SessionID:', req.sessionID);
+    console.log('Middleware chain - Cookie enviado:', req.cookies['connect.sid']);
     console.log('Middleware chain - Passport inicializado:', !!req._passport);
-    // Forçar a sincronização da sessão do MongoStore
-    sessionStore.get(req.sessionID, (err, sessionData) => {
+    sessionStore.get(req.cookies['connect.sid'], (err, sessionData) => {
         if (err) {
             console.error('Erro ao recuperar sessão do MongoStore:', err);
             return next();
@@ -89,6 +92,7 @@ app.use((req, res, next) => {
         console.log('Dados da sessão no MongoStore:', sessionData);
         if (sessionData) {
             req.session = Object.assign(req.session, sessionData);
+            console.log('Sessão sincronizada com MongoStore:', req.session);
         }
         next();
     });
@@ -192,6 +196,8 @@ app.get('/auth/check', (req, res) => {
         res.json({ authenticated: false });
     }
 });
+
+// ... (o resto do código permanece igual)
 
 app.post('/auth/set-nickname', async (req, res) => {
     if (!req.isAuthenticated()) {
