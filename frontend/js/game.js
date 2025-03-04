@@ -19,14 +19,13 @@ export function initGame() {
     window.markers = window.markers || [];
     let lastTargetMoveTime = Date.now();
     let gameEnded = false;
-    
 
     const windLayers = [
         { minAlt: 0, maxAlt: 100, direction: { x: 0, z: 0 }, speed: 0, name: "Nenhum" },
         { minAlt: 100, maxAlt: 200, direction: { x: 1, z: 0 }, speed: 0.3, name: "Leste" },
-        { minAlt: 200, maxAlt: 300, direction: { x: 0, z: 1 }, speed: 0.3, name: "Sul" },
+        { minAlt: 200, maxAlt: 300, direction: { x: 0, z: 1 }, speed: 0.4, name: "Sul" },
         { minAlt: 300, maxAlt: 400, direction: { x: -1, z: 0 }, speed: 0.4, name: "Oeste" },
-        { minAlt: 400, maxAlt: 500, direction: { x: 0, z: -1 }, speed: 0.5, name: "Norte" }
+        { minAlt: 400, maxAlt: 500, direction: { x: 0, z: -1 }, speed: 0.6, name: "Norte" }
     ];
 
     const keys = { W: false, S: false, A: false, D: false, U: false, SHIFT_RIGHT: false };
@@ -53,14 +52,14 @@ export function initGame() {
 
     function initThreeJS() {
         console.log('Inicializando Three.js');
-        window.scene = new THREE.Scene(); // Use window.scene
+        window.scene = new THREE.Scene();
         window.scene.background = new THREE.Color(0x87CEEB);
     
-        window.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000); // Use window.camera
+        window.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
         window.camera.position.set(0, 300, 300);
         window.camera.lookAt(0, 100, 0);
     
-        window.renderer = new THREE.WebGLRenderer({ antialias: true }); // Use window.renderer
+        window.renderer = new THREE.WebGLRenderer({ antialias: true });
         window.renderer.setSize(window.innerWidth, window.innerHeight);
         document.getElementById('gameScreen').appendChild(window.renderer.domElement);
     
@@ -79,7 +78,7 @@ export function initGame() {
         const markerMaterial = new THREE.MeshLambertMaterial({ color: 0x0000FF });
         marker = new THREE.Mesh(markerGeometry, markerMaterial);
         marker.visible = false;
-        scene.add(marker);
+        window.scene.add(marker);
 
         const tailGeometry = new THREE.BufferGeometry().setFromPoints([
             new THREE.Vector3(0, 0, 0),
@@ -88,7 +87,7 @@ export function initGame() {
         const tailMaterial = new THREE.LineBasicMaterial({ color: 0xFFFFFF });
         tail = new THREE.Line(tailGeometry, tailMaterial);
         tail.visible = false;
-        scene.add(tail);
+        window.scene.add(tail);
 
         window.addEventListener('resize', onWindowResize);
 
@@ -122,13 +121,13 @@ export function initGame() {
         const ground = new THREE.Mesh(groundGeometry, groundMaterial);
         ground.rotation.x = -Math.PI / 2;
         ground.position.y = 0;
-        window.scene.add(ground); // Alterado de scene.add
+        window.scene.add(ground);
     
         const gridHelper = new THREE.GridHelper(mapSize, 26, 0x000000, 0x000000);
         gridHelper.position.y = 0.1;
         gridHelper.material.opacity = 0.2;
         gridHelper.material.transparent = true;
-        window.scene.add(gridHelper); // Alterado de scene.add
+        window.scene.add(gridHelper);
     
         const stepHeight = 10;
         const stepDepth = 20;
@@ -139,7 +138,7 @@ export function initGame() {
             const stepGeometry = new THREE.BoxGeometry(stepWidth, stepHeight, stepDepth);
             const step = new THREE.Mesh(stepGeometry, standMaterial);
             step.position.set(0, i * stepHeight + stepHeight / 2, mapSize / 2 + stepDepth / 2 + i * stepDepth);
-            window.scene.add(step); // Alterado de scene.add
+            window.scene.add(step);
         }
     
         for (let i = 0; i < 6; i++) {
@@ -147,7 +146,7 @@ export function initGame() {
             const stepGeometry = new THREE.BoxGeometry(stepWidth, stepHeight, stepDepth);
             const step = new THREE.Mesh(stepGeometry, standMaterial);
             step.position.set(0, i * stepHeight + stepHeight / 2, -mapSize / 2 - stepDepth / 2 - i * stepDepth);
-            window.scene.add(step); // Alterado de scene.add
+            window.scene.add(step);
         }
     
         for (let i = 0; i < 6; i++) {
@@ -155,7 +154,7 @@ export function initGame() {
             const stepGeometry = new THREE.BoxGeometry(stepDepth, stepHeight, stepLength);
             const step = new THREE.Mesh(stepGeometry, standMaterial);
             step.position.set(mapSize / 2 + stepDepth / 2 + i * stepDepth, i * stepHeight + stepHeight / 2, 0);
-            window.scene.add(step); // Alterado de scene.add
+            window.scene.add(step);
         }
     
         for (let i = 0; i < 6; i++) {
@@ -163,7 +162,7 @@ export function initGame() {
             const stepGeometry = new THREE.BoxGeometry(stepDepth, stepHeight, stepLength);
             const step = new THREE.Mesh(stepGeometry, standMaterial);
             step.position.set(-mapSize / 2 - stepDepth / 2 - i * stepDepth, i * stepHeight + stepHeight / 2, 0);
-            window.scene.add(step); // Alterado de scene.add
+            window.scene.add(step);
         }
     
         const npcGeometry = new THREE.SphereGeometry(4, 16, 16);
@@ -179,7 +178,7 @@ export function initGame() {
                 npc.scale.y = 1.5;
                 npc.position.set(x, yPos + 2, mapSize / 2 + stepDepth / 2 + i * stepDepth);
                 window.spectators.push({ mesh: npc, baseY: yPos + 2, phase: Math.random() * Math.PI * 2 });
-                window.scene.add(npc); // Alterado de scene.add
+                window.scene.add(npc);
                 npcCount++;
                 console.log(`NPC criado (Norte, andar ${i}): x=${x}, y=${yPos + 2}, z=${mapSize / 2 + stepDepth / 2 + i * stepDepth}`);
             }
@@ -189,7 +188,7 @@ export function initGame() {
                 npc.scale.y = 1.5;
                 npc.position.set(x, yPos + 2, -mapSize / 2 - stepDepth / 2 - i * stepDepth);
                 window.spectators.push({ mesh: npc, baseY: yPos + 2, phase: Math.random() * Math.PI * 2 });
-                window.scene.add(npc); // Alterado de scene.add
+                window.scene.add(npc);
                 npcCount++;
                 console.log(`NPC criado (Sul, andar ${i}): x=${x}, y=${yPos + 2}, z=${-mapSize / 2 - stepDepth / 2 - i * stepDepth}`);
             }
@@ -199,7 +198,7 @@ export function initGame() {
                 npc.scale.y = 1.5;
                 npc.position.set(mapSize / 2 + stepDepth / 2 + i * stepDepth, yPos + 2, z);
                 window.spectators.push({ mesh: npc, baseY: yPos + 2, phase: Math.random() * Math.PI * 2 });
-                window.scene.add(npc); // Alterado de scene.add
+                window.scene.add(npc);
                 npcCount++;
                 console.log(`NPC criado (Leste, andar ${i}): x=${mapSize / 2 + stepDepth / 2 + i * stepDepth}, y=${yPos + 2}, z=${z}`);
             }
@@ -209,7 +208,7 @@ export function initGame() {
                 npc.scale.y = 1.5;
                 npc.position.set(-mapSize / 2 - stepDepth / 2 - i * stepDepth, yPos + 2, z);
                 window.spectators.push({ mesh: npc, baseY: yPos + 2, phase: Math.random() * Math.PI * 2 });
-                window.scene.add(npc); // Alterado de scene.add
+                window.scene.add(npc);
                 npcCount++;
                 console.log(`NPC criado (Oeste, andar ${i}): x=${-mapSize / 2 - stepDepth / 2 - i * stepDepth}, y=${yPos + 2}, z=${z}`);
             }
@@ -222,7 +221,7 @@ export function initGame() {
             const houseMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
             const house = new THREE.Mesh(houseGeometry, houseMaterial);
             house.position.set(Math.random() * (mapSize - 100) - (mapSize - 100) / 2, 7.5, Math.random() * (mapSize - 100) - (mapSize - 100) / 2);
-            window.scene.add(house); // Alterado de scene.add
+            window.scene.add(house);
         }
     
         for (let i = 0; i < 45; i++) {
@@ -230,7 +229,7 @@ export function initGame() {
             const cowMaterial = new THREE.MeshLambertMaterial({ color: 0xFFFFFF });
             const cow = new THREE.Mesh(cowGeometry, cowMaterial);
             cow.position.set(Math.random() * (mapSize - 100) - (mapSize - 100) / 2, 2.25, Math.random() * (mapSize - 100) - (mapSize - 100) / 2);
-            window.scene.add(cow); // Alterado de scene.add
+            window.scene.add(cow);
         }
     
         const roadMaterial = new THREE.LineBasicMaterial({ color: 0x808080 });
@@ -241,7 +240,7 @@ export function initGame() {
             ]);
             const road = new THREE.Line(roadGeometry, roadMaterial);
             road.scale.set(1.5, 1, 1.5);
-            window.scene.add(road); // Alterado de scene.add
+            window.scene.add(road);
         }
     
         for (let i = 0; i < 10; i++) {
@@ -250,7 +249,7 @@ export function initGame() {
             const lake = new THREE.Mesh(lakeGeometry, lakeMaterial);
             lake.rotation.x = -Math.PI / 2;
             lake.position.set(Math.random() * (mapSize - 100) - (mapSize - 100) / 2, 0.1, Math.random() * (mapSize - 100) - (mapSize - 100) / 2);
-            window.scene.add(lake); // Alterado de scene.add
+            window.scene.add(lake);
         }
     
         const loader = new THREE.FontLoader();
@@ -264,40 +263,40 @@ export function initGame() {
             const textMesh = new THREE.Mesh(textGeometry, textMaterial);
             textMesh.rotation.x = -Math.PI / 2;
             textMesh.position.set(-400, 0.2, 0);
-            window.scene.add(textMesh); // Alterado de scene.add
+            window.scene.add(textMesh);
         }, undefined, function(error) {
             console.error('Erro ao carregar fonte para texto de divulgação:', error);
         });
     }
 
-   window.createBalloon = function(color, name) {
-    console.log('Criando balão com cor:', color, 'e nome:', name);
-    color = color || '#FF4500';
-    const group = new THREE.Group();
-    const basketGeometry = new THREE.BoxGeometry(15, 12, 15);
-    const basketMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
-    const basket = new THREE.Mesh(basketGeometry, basketMaterial);
-    basket.position.y = -15;
-    group.add(basket);
+    window.createBalloon = function(color, name) {
+        console.log('Criando balão com cor:', color, 'e nome:', name);
+        color = color || '#FF4500';
+        const group = new THREE.Group();
+        const basketGeometry = new THREE.BoxGeometry(15, 12, 15);
+        const basketMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
+        const basket = new THREE.Mesh(basketGeometry, basketMaterial);
+        basket.position.y = -15;
+        group.add(basket);
 
-    const balloonGeometry = new THREE.SphereGeometry(30, 32, 32);
-    let balloonMaterial;
-    if (color === 'rainbow') {
-        balloonMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff, vertexColors: true });
-        const colors = new Float32Array(balloonGeometry.attributes.position.count * 3);
-        for (let i = 0; i < balloonGeometry.attributes.position.count; i++) {
-            colors[i * 3] = Math.random();
-            colors[i * 3 + 1] = Math.random();
-            colors[i * 3 + 2] = Math.random();
+        const balloonGeometry = new THREE.SphereGeometry(30, 32, 32);
+        let balloonMaterial;
+        if (color === 'rainbow') {
+            balloonMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff, vertexColors: true });
+            const colors = new Float32Array(balloonGeometry.attributes.position.count * 3);
+            for (let i = 0; i < balloonGeometry.attributes.position.count; i++) {
+                colors[i * 3] = Math.random();
+                colors[i * 3 + 1] = Math.random();
+                colors[i * 3 + 2] = Math.random();
+            }
+            balloonGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+        } else {
+            balloonMaterial = new THREE.MeshLambertMaterial({ color: parseInt(color.replace('#', '0x'), 16) });
         }
-        balloonGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-    } else {
-        balloonMaterial = new THREE.MeshLambertMaterial({ color: parseInt(color.replace('#', '0x'), 16) });
-    }
-    const balloonMesh = new THREE.Mesh(balloonGeometry, balloonMaterial);
-    balloonMesh.scale.y = 1.2;
-    balloonMesh.position.y = 30;
-    group.add(balloonMesh);
+        const balloonMesh = new THREE.Mesh(balloonGeometry, balloonMaterial);
+        balloonMesh.scale.y = 1.2;
+        balloonMesh.position.y = 30;
+        group.add(balloonMesh);
 
         const ropeMaterial = new THREE.LineBasicMaterial({ color: 0x000000 });
         for (let i = 0; i < 4; i++) {
@@ -400,7 +399,6 @@ export function initGame() {
         };
         const markerId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
         
-        // Criar marcador localmente
         const markerMesh = new THREE.Mesh(
             new THREE.SphereGeometry(4.5, 16, 16),
             new THREE.MeshLambertMaterial({ color: 0x0000FF })
@@ -487,9 +485,9 @@ export function initGame() {
     }
 
     function onWindowResize() {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
+        window.camera.aspect = window.innerWidth / window.innerHeight;
+        window.camera.updateProjectionMatrix();
+        window.renderer.setSize(window.innerWidth, window.innerHeight);
     }
 
     function getDirectionToTarget(balloonX, balloonZ, targetX, targetZ) {
@@ -512,10 +510,10 @@ export function initGame() {
         points = 0;
         document.getElementById('loseScreen').style.display = 'none';
         document.getElementById('gameScreen').style.display = 'block';
-        if (window.balloon) scene.remove(window.balloon);
+        if (window.balloon) window.scene.remove(window.balloon);
         window.balloon = window.createBalloon(window.balloonColor, document.getElementById('playerName').value);
         window.balloon.position.set(0, altitude, 0);
-        scene.add(window.balloon);
+        window.scene.add(window.balloon);
         document.getElementById('markersLeft').textContent = window.markersLeft;
         window.socket.emit('updatePosition', { x: window.balloon.position.x, y: window.balloon.position.y, z: window.balloon.position.z, mode: window.mode || 'world', roomName: window.roomName || null });
     };
@@ -560,57 +558,28 @@ export function initGame() {
             document.getElementById('fpsCount').textContent = fps;
         }
     
-        // Processar controles
+        // Processar controles locais (apenas altitude)
         if (keys.W) { altitude += 1; hasLiftedOff = true; }
         if (keys.U) { altitude += 5; hasLiftedOff = true; }
         if (keys.S) altitude = Math.max(20, altitude - 1);
-        if (keys.ShiftRight && !window.markerDropped && window.markersLeft > 0) {
-            dropMarker();
-            keys.ShiftRight = false;
-        }
-    
         altitude = Math.min(altitude, 500);
-        balloon.position.y = altitude;
-    
-        // Aplicar gravidade aos marcadores
-        window.markers.forEach(markerObj => {
-            if (markerObj.marker.position.y > 0) {
-                markerObj.marker.position.y -= 5.0; // Velocidade de queda (sincroniza com backend)
-                markerObj.tail.position.y = markerObj.marker.position.y;
-                if (markerObj.marker.position.y <= 0) {
-                    markerObj.marker.position.y = 0;
-                    markerObj.tail.position.y = 0;
-                    window.socket.emit('markerLanded', {
-                        x: markerObj.marker.position.x,
-                        y: markerObj.marker.position.y,
-                        z: markerObj.marker.position.z,
-                        mode: window.mode || 'world',
-                        roomName: window.roomName || null,
-                        markerId: markerObj.marker.userData.markerId
-                    });
-                }
-            }
+
+        // Enviar posição atualizada ao servidor (o vento será aplicado lá)
+        window.socket.emit('updatePosition', { 
+            x: balloon.position.x, 
+            y: altitude, 
+            z: balloon.position.z, 
+            mode: window.mode || 'world', 
+            roomName: window.roomName || null 
         });
-    
+
         // Atualizar câmera
         window.camera.position.x = balloon.position.x;
         window.camera.position.z = balloon.position.z + 200;
         window.camera.position.y = balloon.position.y + 200;
         window.camera.lookAt(balloon.position.x, balloon.position.y, balloon.position.z);
-    
-        // Enviar posição ao servidor
-        window.socket.emit('updatePosition', { 
-            x: balloon.position.x, 
-            y: balloon.position.y, 
-            z: balloon.position.z, 
-            mode: window.mode || 'world', 
-            roomName: window.roomName || null 
-        });
-    
-        window.renderer.render(window.scene, window.camera);
-        console.log('Renderizando cena: FPS', fps, 'Altitude:', altitude);
-    
 
+        // Atualizar espectadores
         if (window.spectators && window.spectators.length > 0) {
             const time = performance.now() * 0.001;
             window.spectators.forEach(spectator => {
@@ -619,21 +588,19 @@ export function initGame() {
             });
         }
 
+        // Atualizar UI com base na altitude local
+        const currentLayerIndex = getCurrentWindLayer();
         document.getElementById('altitude').textContent = `${Math.floor(altitude)}m`;
+        document.getElementById('windDirection').textContent = getWindDirectionText(currentLayerIndex);
+        document.getElementById('windSpeed').textContent = windLayers[currentLayerIndex].speed.toFixed(1);
+        document.getElementById('windIndicator').textContent = `Vento: ${windLayers[currentLayerIndex].name.charAt(0)}`;
+        updateLayerIndicator(currentLayerIndex);
+
+        // Atualizar GPS
         const dx = balloon.position.x - (window.targets[0]?.x || 0);
         const dz = balloon.position.z - (window.targets[0]?.z || 0);
         const distance = Math.sqrt(dx * dx + dz * dz);
         document.getElementById('distanceToTarget').textContent = `${Math.floor(distance)}m`;
-        document.getElementById('windDirection').textContent = getWindDirectionText(currentLayerIndex);
-        document.getElementById('windSpeed').textContent = currentLayer.speed.toFixed(1);
-        document.getElementById('windIndicator').textContent = `Vento: ${currentLayer.name.charAt(0)}`;
-
-        updateLayerIndicator(currentLayerIndex);
-
-        camera.position.x = balloon.position.x;
-        camera.position.z = balloon.position.z + 200;
-        camera.position.y = balloon.position.y + 200;
-        camera.lookAt(balloon.position.x, balloon.position.y, balloon.position.z);
 
         const gpsCanvas = document.getElementById('gpsCanvas');
         const gpsContext = gpsCanvas.getContext('2d');
@@ -666,25 +633,25 @@ export function initGame() {
             centerZ - (window.targets[0]?.z * gpsScale) || centerZ);
         document.getElementById('gpsDirection').textContent = `Direção: ${direction}`;
 
-        renderer.render(scene, camera);
+        window.renderer.render(window.scene, window.camera);
+        console.log('Renderizando cena: FPS', fps, 'Altitude:', altitude);
     }
 
     window.initGameScene = function(state) {
         console.log('Inicializando cena com estado:', state);
-        if (!window.scene) { // Alterado de scene
+        if (!window.scene) {
             console.log('Cena não existe, chamando initThreeJS');
             initThreeJS();
         } else {
             console.log('Cena já existe, reutilizando');
         }
     
-        // Limpa alvos existentes
-        window.scene.children.filter(obj => obj instanceof THREE.Group && obj.userData?.type === 'target').forEach(obj => window.scene.remove(obj)); // Alterado de scene
+        window.scene.children.filter(obj => obj instanceof THREE.Group && obj.userData?.type === 'target').forEach(obj => window.scene.remove(obj));
         window.setTargets(state.targets || []);
         window.targets.forEach(target => {
             const targetMesh = window.createTarget(target.x, target.z);
             targetMesh.userData = { type: 'target' };
-            window.scene.add(targetMesh); // Alterado de scene
+            window.scene.add(targetMesh);
         });
     
         const player = state.players[window.socket.id];
@@ -705,11 +672,11 @@ export function initGame() {
             const playerNameDisplay = document.getElementById('playerNameDisplay');
             if (playerNameDisplay) playerNameDisplay.textContent = player.name;
     
-            if (!balloon || !window.scene.children.includes(balloon)) { // Alterado de scene
-                console.log('Criando novo balão para o jogador:', player);
-                window.setBalloon(window.createBalloon(window.balloonColor || '#FF4500', player.name));
+            if (!balloon || !window.scene.children.includes(balloon)) {
+                console.log('Criando novo balão com cor do servidor:', player.color);
+                window.setBalloon(window.createBalloon(player.color || window.balloonColor || '#FF4500', player.name));
                 balloon.position.set(player.x, player.y, player.z);
-                window.scene.add(balloon); // Alterado de scene
+                window.scene.add(balloon);
                 console.log('Balão adicionado à cena:', balloon);
             } else {
                 console.log('Atualizando posição do balão existente:', balloon.position);
@@ -725,7 +692,7 @@ export function initGame() {
                 const otherBalloon = window.createBalloon(state.players[id].color, state.players[id].name);
                 otherBalloon.position.set(state.players[id].x, state.players[id].y, state.players[id].z);
                 window.otherPlayers[id] = otherBalloon;
-                window.scene.add(otherBalloon); // Alterado de scene
+                window.scene.add(otherBalloon);
             }
         }
     
@@ -744,8 +711,8 @@ export function initGame() {
             tailMesh.userData = { playerId: markerData.playerId, type: 'tail', markerId };
             markerMesh.position.set(markerData.x, markerData.y, markerData.z);
             tailMesh.position.set(markerData.x, markerData.y, markerData.z);
-            window.scene.add(markerMesh); // Alterado de scene
-            window.scene.add(tailMesh); // Alterado de scene
+            window.scene.add(markerMesh);
+            window.scene.add(tailMesh);
             window.markers.push({ marker: markerMesh, tail: tailMesh, playerId: markerData.playerId });
         }
     
@@ -765,14 +732,14 @@ export function initGame() {
         console.log('Definindo balão:', b);
         balloon = b;
         window.balloon = b;
-        if (b && !scene.children.includes(b)) {
+        if (b && !window.scene.children.includes(b)) {
             console.log('Re-adicionando balão à cena:', b);
-            scene.add(b);
+            window.scene.add(b);
         }
     };
     window.setTargets = (t) => window.targets = t;
     window.setOtherPlayers = (op) => window.otherPlayers = op;
     window.setMarkers = (m) => window.markers = m;
     window.showNoMarkersMessage = showNoMarkersMessage;
-    window.scene = scene;
+    window.scene = window.scene; // Mantém a referência global
 }

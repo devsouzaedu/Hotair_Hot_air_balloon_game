@@ -132,16 +132,13 @@ export function initSocket() {
         if (gameMode === 'world') {
             window.mode = 'world';
             if (typeof window.initGameScene !== 'function') {
-                console.error('initGameScene não está definido. Aguardando carregamento...');
                 const waitForGameScene = setInterval(() => {
                     if (typeof window.initGameScene === 'function') {
-                        console.log('initGameScene disponível, inicializando cena');
                         window.initGameScene(state);
                         clearInterval(waitForGameScene);
                     }
                 }, 100);
             } else {
-                console.log('initGameScene disponível, inicializando cena imediatamente');
                 window.initGameScene(state);
             }
             document.getElementById('colorScreen').style.display = 'none';
@@ -151,25 +148,15 @@ export function initSocket() {
 
     socket.on('gameUpdate', ({ state, timeLeft }) => {
         const currentState = window.mode === 'world' ? state : state;
-
-        if (state.targets && Array.isArray(state.targets) && 
-            (!window.targets.length || state.targets[0].x !== window.targets[0]?.x || state.targets[0].z !== window.targets[0]?.z)) {
-            window.lastTargetMoveTime = Date.now();
-            if (window.scene && window.scene.children) {
-                window.scene.children.filter(obj => 
-                    obj instanceof THREE.Group && 
-                    obj.position.x === window.targets[0]?.x && 
-                    obj.position.z === window.targets[0]?.z
-                ).forEach(obj => window.scene.remove(obj));
-            }
-            window.setTargets(state.targets);
-            const newTargetMesh = window.createTarget(window.targets[0].x, window.targets[0].z);
-            if (window.scene) window.scene.add(newTargetMesh);
+    
+        // Atualizar balão do jogador
+        const player = currentState.players[socket.id];
+        if (player && window.balloon) {
+            window.balloon.position.set(player.x, player.y, player.z);
+            altitude = player.y; // Sincroniza altitude local com o servidor
         }
-
-        const secondsLeftInMinute = Math.ceil(60 - (timeLeft % 60));
-        document.getElementById('targetMoveTimer').textContent = `Próxima mudança de alvo: ${secondsLeftInMinute}s`;
-
+    
+        // Atualizar outros jogadores
         for (const id in currentState.players) {
             if (id !== socket.id) {
                 if (!window.otherPlayers[id] && currentState.players[id].color) {
@@ -182,19 +169,12 @@ export function initSocket() {
                 }
             }
         }
-
-        for (const id in window.otherPlayers) {
-            if (!currentState.players[id]) {
-                window.scene.remove(window.otherPlayers[id]);
-                delete window.otherPlayers[id];
-            }
-        }
-
+    
+        // Atualizar marcadores
         for (const markerId in currentState.markers) {
             const markerData = currentState.markers[markerId];
             let existingMarker = window.markers.find(m => m.marker.userData.markerId === markerId)?.marker;
             let existingTail = window.markers.find(m => m.tail.userData.markerId === markerId)?.tail;
-
             if (!existingMarker) {
                 existingMarker = new THREE.Mesh(new THREE.SphereGeometry(4.5, 16, 16), new THREE.MeshLambertMaterial({ color: 0x0000FF }));
                 existingTail = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, -45, 0)]), new THREE.LineBasicMaterial({ color: 0xFFFFFF }));
@@ -204,13 +184,12 @@ export function initSocket() {
                 window.scene.add(existingTail);
                 window.markers.push({ marker: existingMarker, tail: existingTail, playerId: markerData.playerId });
             }
-
             existingMarker.position.set(markerData.x, markerData.y, markerData.z);
             existingTail.position.set(markerData.x, markerData.y, markerData.z);
         }
-
-        document.getElementById('markersLeft').textContent = currentState.players[socket.id]?.markers || window.markersLeft;
-        document.getElementById('points').textContent = currentState.players[socket.id]?.score || 0;
+    
+        document.getElementById('markersLeft').textContent = player?.markers || window.markersLeft;
+        document.getElementById('points').textContent = player?.score || 0;
         const minutes = Math.floor(timeLeft / 60);
         const seconds = Math.floor(timeLeft % 60);
         document.getElementById('timerDisplay').textContent = `Tempo Restante: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;

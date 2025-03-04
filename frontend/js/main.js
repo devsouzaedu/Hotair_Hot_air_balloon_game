@@ -93,10 +93,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (okButton) {
         okButton.addEventListener('click', () => {
             console.log('okButton clicado, cor selecionada:', selectedColor);
+            window.balloonColor = selectedColor; // Define a cor globalmente antes de prosseguir
             document.getElementById('colorScreen').style.display = 'none';
             document.getElementById('gameScreen').style.display = 'block';
-            initSocket(); // Inicializa o socket aqui, quando o jogo realmente começa
-            initUI();     // Inicializa a UI aqui
+            initSocket();
+            initUI();
             const token = localStorage.getItem('jwtToken');
             fetch('https://hotair-backend.onrender.com/auth/check', {
                 method: 'GET',

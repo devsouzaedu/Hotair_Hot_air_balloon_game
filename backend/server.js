@@ -606,73 +606,44 @@ io.on('connection', (socket) => {
 });
 
 setInterval(() => {
-    try {
-        const elapsedWorld = (Date.now() - worldState.startTime) / 1000;
-        const timeLeft = Math.max(300 - elapsedWorld, 0);
+    const windLayers = [
+        { minAlt: 0, maxAlt: 100, direction: { x: 0, z: 0 }, speed: 0 },
+        { minAlt: 100, maxAlt: 200, direction: { x: 1, z: 0 }, speed: 0.3 },
+        { minAlt: 200, maxAlt: 300, direction: { x: 0, z: 1 }, speed: 0.4 },
+        { minAlt: 300, maxAlt: 400, direction: { x: -1, z: 0 }, speed: 0.4 },
+        { minAlt: 400, maxAlt: 500, direction: { x: 0, z: -1 }, speed: 0.6 }
+    ];
 
-        const secondsElapsed = elapsedWorld % 60;
-        if (secondsElapsed < 0.1 && elapsedWorld < 290 && Date.now() - worldState.lastTargetMoveTime >= 59 * 1000) {
-            moveTarget(worldState);
-        }
-
-        updateMarkersGravity(worldState);
-        updateBots();
-        console.log('Enviando gameUpdate:', worldState);
-        io.to('world').emit('gameUpdate', { state: worldState, timeLeft });
-
-        if (elapsedWorld >= 300 && elapsedWorld < 307) {
-            io.to('world').emit('showLeaderboard', { players: worldState.players });
-        } else if (elapsedWorld >= 307) {
-            for (const id in worldState.players) {
-                const player = worldState.players[id];
-                if (!player.isBot) {
-                    User.findOne({ googleId: player.googleId }).then(user => {
-                        if (user) {
-                            user.totalPoints += player.score;
-                            user.save();
-                        }
-                    }).catch(err => console.error('Erro ao salvar pontos:', err));
-                }
-            }
-            io.to('world').emit('gameReset', { state: resetWorldState() });
-        }
-
-        for (const roomName in rooms) {
-            const room = rooms[roomName];
-            if (room.started) {
-                const elapsed = (Date.now() - room.startTime) / 1000;
-                const roomTimeLeft = Math.max(300 - elapsed, 0);
-
-                const roomSecondsElapsed = elapsed % 60;
-                if (roomSecondsElapsed < 0.1 && elapsed < 290 && Date.now() - room.lastTargetMoveTime >= 59 * 1000) {
-                    moveTarget(room);
-                }
-
-                updateMarkersGravity(room, roomName);
-                io.to(roomName).emit('gameUpdate', { state: room, timeLeft: roomTimeLeft });
-
-                if (elapsed >= 300 && elapsed < 307) {
-                    io.to(roomName).emit('showLeaderboard', { players: room.players });
-                } else if (elapsed >= 307) {
-                    for (const id in room.players) {
-                        const player = room.players[id];
-                        if (!player.isBot) {
-                            User.findOne({ googleId: player.googleId }).then(user => {
-                                if (user) {
-                                    user.totalPoints += player.score;
-                                    user.save();
-                                }
-                            }).catch(err => console.error('Erro ao salvar pontos da sala:', err));
-                        }
-                    }
-                    io.to(roomName).emit('gameReset', { state: resetRoomState(roomName) });
-                }
-            }
-        }
-    } catch (err) {
-        console.error('Erro no loop do jogo:', err);
+    // Atualizar mundo global
+    for (const id in worldState.players) {
+        const player = worldState.players[id];
+        const currentLayer = windLayers.find(layer => player.y >= layer.minAlt && player.y < layer.maxAlt) || windLayers[0];
+        player.x += currentLayer.direction.x * currentLayer.speed;
+        player.z += currentLayer.direction.z * currentLayer.speed;
     }
-}, 100);
+    updateMarkersGravity(worldState);
+    updateBots();
+    const elapsedWorld = (Date.now() - worldState.startTime) / 1000;
+    const timeLeft = Math.max(300 - elapsedWorld, 0);
+    io.to('world').emit('gameUpdate', { state: worldState, timeLeft });
+
+    // Atualizar salas
+    for (const roomName in rooms) {
+        const room = rooms[roomName];
+        if (room.started) {
+            for (const id in room.players) {
+                const player = room.players[id];
+                const currentLayer = windLayers.find(layer => player.y >= layer.minAlt && player.y < layer.maxAlt) || windLayers[0];
+                player.x += currentLayer.direction.x * currentLayer.speed;
+                player.z += currentLayer.direction.z * currentLayer.speed;
+            }
+            updateMarkersGravity(room, roomName);
+            const elapsed = (Date.now() - room.startTime) / 1000;
+            const roomTimeLeft = Math.max(300 - elapsed, 0);
+            io.to(roomName).emit('gameUpdate', { state: room, timeLeft: roomTimeLeft });
+        }
+    }
+}, 100); // Executa a cada 100ms
 
 function resetWorldState() {
     const mapSize = 2600;
