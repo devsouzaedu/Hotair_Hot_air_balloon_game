@@ -5,10 +5,13 @@ import { initSocket } from './socket.js';
 const BASE_URL = 'https://devsouzaedu.github.io/Hotair_Hot_air_balloon_game/';
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Verifica parâmetros da URL
+    // Verifica parâmetros da URL para capturar o token JWT
     const urlParams = new URLSearchParams(window.location.search);
     const authStatus = urlParams.get('auth');
-    if (authStatus === 'success') {
+    const token = urlParams.get('token');
+
+    if (authStatus === 'success' && token) {
+        localStorage.setItem('jwtToken', token); // Armazena o token no localStorage
         checkAuthentication();
     } else if (authStatus === 'failed') {
         alert('Falha na autenticação com Google. Tente novamente.');
@@ -28,14 +31,21 @@ document.addEventListener('DOMContentLoaded', () => {
     if (setNicknameButton) {
         setNicknameButton.addEventListener('click', () => {
             const nickname = document.getElementById('nicknameInput').value;
+            const token = localStorage.getItem('jwtToken');
             fetch('https://hotair-backend.onrender.com/auth/set-nickname', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ nickname }),
-                credentials: 'include',
-                mode: 'cors'
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ nickname })
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Erro HTTP: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.success) {
                     showProfile({ googleId: data.googleId, nickname: data.nickname });
@@ -78,55 +88,73 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function checkAuthentication() {
-    fetch('https://hotair-backend.onrender.com/auth/check', { 
-        credentials: 'include',
-        mode: 'cors'
+    const token = localStorage.getItem('jwtToken');
+    if (!token) {
+        document.getElementById('nameScreen').style.display = 'block';
+        window.history.replaceState({}, document.title, BASE_URL);
+        return;
+    }
+
+    fetch('https://hotair-backend.onrender.com/auth/check', {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${token}`
+        }
     })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`Erro HTTP: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            document.getElementById('nameScreen').style.display = 'none'; // Esconde a tela inicial
-            if (data.authenticated) {
-                if (!data.user.nickname) {
-                    document.getElementById('nicknameForm').style.display = 'block';
-                    document.getElementById('googleLoginButton').style.display = 'none';
-                } else {
-                    showProfile(data.user);
-                }
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`Erro HTTP: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        document.getElementById('nameScreen').style.display = 'none'; // Esconde a tela inicial
+        if (data.authenticated) {
+            if (!data.user.nickname) {
+                document.getElementById('nicknameForm').style.display = 'block';
+                document.getElementById('googleLoginButton').style.display = 'none';
             } else {
-                document.getElementById('nameScreen').style.display = 'block';
+                showProfile(data.user);
             }
-            window.history.replaceState({}, document.title, BASE_URL); // Limpa os parâmetros da URL
-        })
-        .catch(err => {
-            console.error('Erro ao verificar autenticação:', err);
+        } else {
+            localStorage.removeItem('jwtToken'); // Remove token inválido
             document.getElementById('nameScreen').style.display = 'block';
-            window.history.replaceState({}, document.title, BASE_URL);
-        });
+        }
+        window.history.replaceState({}, document.title, BASE_URL); // Limpa os parâmetros da URL
+    })
+    .catch(err => {
+        console.error('Erro ao verificar autenticação:', err);
+        localStorage.removeItem('jwtToken'); // Remove token em caso de erro
+        document.getElementById('nameScreen').style.display = 'block';
+        window.history.replaceState({}, document.title, BASE_URL);
+    });
 }
 
 function showProfile(user) {
-    fetch('https://hotair-backend.onrender.com/profile', { 
-        credentials: 'include',
-        mode: 'cors'
+    const token = localStorage.getItem('jwtToken');
+    fetch('https://hotair-backend.onrender.com/profile', {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${token}`
+        }
     })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`Erro HTTP: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(profile => {
-            document.getElementById('nameScreen').style.display = 'none';
-            document.getElementById('profileScreen').style.display = 'flex';
-            document.getElementById('profileNickname').textContent = profile.nickname;
-            document.getElementById('profileTargetsHit').textContent = profile.targetsHit;
-            document.getElementById('profileTotalPoints').textContent = profile.totalPoints;
-            document.getElementById('profileJoinDate').textContent = new Date(profile.joinDate).toLocaleDateString();
-        })
-        .catch(err => console.error('Erro ao carregar perfil:', err));
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`Erro HTTP: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(profile => {
+        document.getElementById('nameScreen').style.display = 'none';
+        document.getElementById('profileScreen').style.display = 'flex';
+        document.getElementById('profileNickname').textContent = profile.nickname;
+        document.getElementById('profileTargetsHit').textContent = profile.targetsHit;
+        document.getElementById('profileTotalPoints').textContent = profile.totalPoints;
+        document.getElementById('profileJoinDate').textContent = new Date(profile.joinDate).toLocaleDateString();
+    })
+    .catch(err => {
+        console.error('Erro ao carregar perfil:', err);
+        localStorage.removeItem('jwtToken'); // Remove token em caso de erro
+        document.getElementById('nameScreen').style.display = 'block';
+    });
 }

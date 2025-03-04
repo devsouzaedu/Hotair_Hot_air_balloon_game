@@ -5,9 +5,7 @@ const cors = require('cors');
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const mongoose = require('mongoose');
-const session = require('express-session');
-const cookieParser = require('cookie-parser');
-const MongoStore = require('connect-mongo');
+const jwt = require('jsonwebtoken');
 
 mongoose.set('strictQuery', false);
 
@@ -23,12 +21,14 @@ const io = socketIO(server, {
 
 const PORT = process.env.PORT || 10000;
 
+// Conexão com MongoDB
 mongoose.connect(process.env.MONGODB_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true
 }).then(() => console.log('Conectado ao MongoDB'))
   .catch(err => console.error('Erro ao conectar ao MongoDB:', err));
 
+// Schema do usuário
 const userSchema = new mongoose.Schema({
     googleId: { type: String, required: true, unique: true },
     nickname: { type: String, maxlength: 18, unique: true },
@@ -38,59 +38,16 @@ const userSchema = new mongoose.Schema({
 });
 const User = mongoose.model('User', userSchema);
 
-// Configuração da sessão
-const sessionStore = MongoStore.create({
-    mongoUrl: process.env.MONGODB_URI,
-    collectionName: 'sessions',
-    ttl: 24 * 60 * 60,
-    autoRemove: 'native',
-    stringify: false
-});
-
-const sessionMiddleware = session({
-    secret: process.env.SESSION_SECRET || 'your-secret-key',
-    resave: false,
-    saveUninitialized: false,
-    store: sessionStore,
-    cookie: { 
-        secure: true,
-        sameSite: 'none',
-        maxAge: 24 * 60 * 60 * 1000,
-        httpOnly: true,
-        path: '/'
-    }
-});
-
 // Middleware
-app.use(cookieParser());
-app.use((req, res, next) => {
-    const sessionIdFromCookie = req.cookies['connect.sid'];
-    if (sessionIdFromCookie) {
-        console.log('Forçando sessionID do cookie:', sessionIdFromCookie);
-        req.sessionID = sessionIdFromCookie; // Define o sessionID manualmente antes do sessionMiddleware
-    }
-    next();
-});
-app.use(sessionMiddleware);
-app.use(passport.initialize());
-app.use(passport.session());
-
 app.use(cors({
     origin: 'https://devsouzaedu.github.io',
     methods: ['GET', 'POST'],
-    credentials: true,
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    exposedHeaders: ['Set-Cookie']
+    credentials: true
 }));
+app.use(express.json());
+app.use(passport.initialize());
 
-app.use((req, res, next) => {
-    console.log('Middleware chain - Session antes:', req.session);
-    console.log('Middleware chain - SessionID:', req.sessionID);
-    console.log('Middleware chain - Cookie enviado:', req.cookies['connect.sid']);
-    console.log('Middleware chain - Passport inicializado:', !!req._passport);
-    next();
-});
-
+// Configuração do Google OAuth
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
@@ -115,28 +72,7 @@ passport.use(new GoogleStrategy({
     }
 }));
 
-passport.serializeUser((user, done) => {
-    console.log('Serializando usuário:', user.id);
-    done(null, user.id);
-});
-
-passport.deserializeUser(async (id, done) => {
-    console.log('Tentando desserializar usuário com ID:', id);
-    try {
-        const user = await User.findById(id);
-        if (!user) {
-            console.log('Usuário não encontrado no banco para ID:', id);
-            return done(null, false);
-        }
-        console.log('Desserializando usuário:', user.googleId);
-        done(null, user);
-    } catch (err) {
-        console.error('Erro ao desserializar usuário:', err);
-        done(err, null);
-    }
-});
-
-// Rotas de Autenticação
+// Rotas de autenticação
 app.get('/auth/google', 
     passport.authenticate('google', { 
         scope: ['profile', 'email'],
@@ -145,48 +81,56 @@ app.get('/auth/google',
 );
 
 app.get('/auth/google/callback',
-    (req, res, next) => {
-        console.log('Callback recebido:', req.query);
-        next();
-    },
-    passport.authenticate('google', { 
-        failureRedirect: 'https://devsouzaedu.github.io/Hotair_Hot_air_balloon_game/?auth=failed',
-        session: true
-    }),
+    passport.authenticate('google', { session: false, failureRedirect: 'https://devsouzaedu.github.io/Hotair_Hot_air_balloon_game/?auth=failed' }),
     (req, res) => {
-        console.log('Autenticação bem-sucedida para usuário:', req.user.googleId);
-        console.log('Sessão antes de salvar:', req.session);
-        req.session.passport = { user: req.user.id };
-        console.log('SessionID antes de salvar:', req.sessionID);
-        req.session.save((err) => {
-            if (err) {
-                console.error('Erro ao salvar sessão:', err);
-                return res.status(500).send('Erro interno');
-            }
-            console.log('Sessão salva com sucesso no MongoDB:', req.session);
-            console.log('Cookie que será enviado:', req.sessionID);
-            res.cookie('connect.sid', req.sessionID, {
-                secure: true,
-                sameSite: 'none',
-                httpOnly: true,
-                maxAge: 24 * 60 * 60 * 1000,
-                path: '/'
-            });
-            res.redirect('https://devsouzaedu.github.io/Hotair_Hot_air_balloon_game/?auth=success');
-        });
+        const user = req.user;
+        console.log('Autenticação bem-sucedida para usuário:', user.googleId);
+
+        // Gera o token JWT
+        const token = jwt.sign(
+            { id: user._id, googleId: user.googleId },
+            process.env.JWT_SECRET || 'seu-segredo-super-seguro',
+            { expiresIn: '24h' } // Token expira em 24 horas
+        );
+
+        // Redireciona com o token na URL (ou pode enviar como JSON se preferir)
+        res.redirect(`https://devsouzaedu.github.io/Hotair_Hot_air_balloon_game/?auth=success&token=${token}`);
     }
 );
 
-app.get('/auth/check', (req, res) => {
-    console.log('Cookies recebidos:', req.cookies);
-    console.log('Sessão completa:', req.session);
-    console.log('Usuário na sessão:', req.session.passport);
-    if (req.isAuthenticated()) {
-        console.log('Verificação de autenticação: Usuário autenticado', req.user.googleId);
-        res.json({ authenticated: true, user: { googleId: req.user.googleId, nickname: req.user.nickname } });
-    } else {
-        console.log('Verificação de autenticação: Não autenticado');
-        res.json({ authenticated: false });
+// Middleware para verificar o token JWT
+const authenticateToken = (req, res, next) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1]; // Espera "Bearer TOKEN"
+
+    if (!token) {
+        console.log('Nenhum token fornecido');
+        return res.status(401).json({ authenticated: false, message: 'Token não fornecido' });
+    }
+
+    jwt.verify(token, process.env.JWT_SECRET || 'seu-segredo-super-seguro', (err, decoded) => {
+        if (err) {
+            console.log('Token inválido:', err);
+            return res.status(403).json({ authenticated: false, message: 'Token inválido' });
+        }
+
+        req.user = decoded; // Adiciona os dados do usuário ao request
+        next();
+    });
+};
+
+// Rota para verificar autenticação
+app.get('/auth/check', authenticateToken, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id);
+        if (!user) {
+            return res.status(404).json({ authenticated: false, message: 'Usuário não encontrado' });
+        }
+        console.log('Usuário autenticado via JWT:', user.googleId);
+        res.json({ authenticated: true, user: { googleId: user.googleId, nickname: user.nickname } });
+    } catch (err) {
+        console.error('Erro ao verificar usuário:', err);
+        res.status(500).json({ authenticated: false, message: 'Erro interno' });
     }
 });
 
