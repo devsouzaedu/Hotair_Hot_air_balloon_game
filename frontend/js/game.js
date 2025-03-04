@@ -644,8 +644,23 @@ export function initGame() {
             altitude = player.y;
             window.markersLeft = player.markers;
             points = player.score;
-            document.getElementById('markersLeft').textContent = window.markersLeft;
-            document.getElementById('points').textContent = points;
+            console.log('Dados do jogador:', player);
+            const markersLeftElement = document.getElementById('markersLeft');
+            if (markersLeftElement) markersLeftElement.textContent = window.markersLeft;
+            else console.error('Elemento markersLeft não encontrado');
+            
+            const pointsElement = document.getElementById('points');
+            if (pointsElement) pointsElement.textContent = points;
+            else console.error('Elemento points não encontrado');
+
+            const playerNameDisplay = document.getElementById('playerNameDisplay');
+            if (playerNameDisplay) {
+                playerNameDisplay.textContent = player.name;
+                console.log('Nome do jogador definido:', player.name);
+            } else {
+                console.error('Elemento playerNameDisplay não encontrado');
+            }
+
             if (!balloon || !scene.children.includes(balloon)) {
                 console.log('Criando balão do jogador:', player);
                 window.setBalloon(window.createBalloon(window.balloonColor || '#FF4500', player.name));
@@ -654,6 +669,7 @@ export function initGame() {
                 console.log('Balão adicionado à cena:', balloon, 'Crianças da cena:', scene.children);
             } else {
                 balloon.position.set(player.x, player.y, player.z);
+                console.log('Atualizando posição do balão existente:', balloon.position);
             }
         } else {
             console.error('Jogador não encontrado no estado:', window.socket.id, state.players);

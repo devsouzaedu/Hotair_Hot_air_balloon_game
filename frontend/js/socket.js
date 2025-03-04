@@ -66,8 +66,10 @@ export function initSocket() {
 
     function animate() {
         requestAnimationFrame(animate);
-        if (window.renderer && window.scene && window.camera) {
+        if (window.renderer && window.scene && window.camera && window.balloon) {
             window.renderer.render(window.scene, window.camera);
+        } else {
+            console.warn('Renderização pausada: Algum elemento essencial (renderer, scene, camera, balloon) não está pronto');
         }
     }
 
@@ -180,8 +182,14 @@ export function initSocket() {
             if (typeof window.initGameScene === 'function') {
                 window.initGameScene(state);
             } else {
-                console.error('window.initGameScene não está definido ainda');
-                setTimeout(() => window.initGameScene(state), 100);
+                console.error('window.initGameScene não está definido ainda, tentando novamente em 100ms');
+                setTimeout(() => {
+                    if (typeof window.initGameScene === 'function') {
+                        window.initGameScene(state);
+                    } else {
+                        console.error('window.initGameScene ainda não está disponível após espera');
+                    }
+                }, 100);
             }
             document.getElementById('colorScreen').style.display = 'none';
             document.getElementById('gameScreen').style.display = 'block';

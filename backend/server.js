@@ -43,8 +43,27 @@ app.use(cors({
     credentials: true,
     allowedHeaders: ['Authorization', 'Content-Type']
 }));
+
+// Middleware adicional para reforçar CORS
+app.use((req, res, next) => {
+    console.log('Requisição recebida:', req.method, req.url);
+    res.header('Access-Control-Allow-Origin', 'https://devsouzaedu.github.io');
+    res.header('Access-Control-Allow-Methods', 'GET, POST');
+    res.header('Access-Control-Allow-Headers', 'Authorization, Content-Type');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(200);
+    }
+    next();
+});
+
 app.use(express.json());
 app.use(passport.initialize());
+
+// Tratamento de erros não capturados para evitar travamento do servidor
+process.on('uncaughtException', (err) => {
+    console.error('Erro não capturado:', err);
+});
 
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
@@ -587,66 +606,71 @@ io.on('connection', (socket) => {
 });
 
 setInterval(() => {
-    const elapsedWorld = (Date.now() - worldState.startTime) / 1000;
-    const timeLeft = Math.max(300 - elapsedWorld, 0);
+    try {
+        const elapsedWorld = (Date.now() - worldState.startTime) / 1000;
+        const timeLeft = Math.max(300 - elapsedWorld, 0);
 
-    const secondsElapsed = elapsedWorld % 60;
-    if (secondsElapsed < 0.1 && elapsedWorld < 290 && Date.now() - worldState.lastTargetMoveTime >= 59 * 1000) {
-        moveTarget(worldState);
-    }
-
-    updateMarkersGravity(worldState);
-    updateBots();
-    io.to('world').emit('gameUpdate', { state: worldState, timeLeft });
-
-    if (elapsedWorld >= 300 && elapsedWorld < 307) {
-        io.to('world').emit('showLeaderboard', { players: worldState.players });
-    } else if (elapsedWorld >= 307) {
-        for (const id in worldState.players) {
-            const player = worldState.players[id];
-            if (!player.isBot) {
-                User.findOne({ googleId: player.googleId }).then(user => {
-                    if (user) {
-                        user.totalPoints += player.score;
-                        user.save();
-                    }
-                });
-            }
+        const secondsElapsed = elapsedWorld % 60;
+        if (secondsElapsed < 0.1 && elapsedWorld < 290 && Date.now() - worldState.lastTargetMoveTime >= 59 * 1000) {
+            moveTarget(worldState);
         }
-        io.to('world').emit('gameReset', { state: resetWorldState() });
-    }
 
-    for (const roomName in rooms) {
-        const room = rooms[roomName];
-        if (room.started) {
-            const elapsed = (Date.now() - room.startTime) / 1000;
-            const roomTimeLeft = Math.max(300 - elapsed, 0);
+        updateMarkersGravity(worldState);
+        updateBots();
+        console.log('Enviando gameUpdate:', worldState);
+        io.to('world').emit('gameUpdate', { state: worldState, timeLeft });
 
-            const roomSecondsElapsed = elapsed % 60;
-            if (roomSecondsElapsed < 0.1 && elapsed < 290 && Date.now() - room.lastTargetMoveTime >= 59 * 1000) {
-                moveTarget(room);
-            }
-
-            updateMarkersGravity(room, roomName);
-            io.to(roomName).emit('gameUpdate', { state: room, timeLeft: roomTimeLeft });
-
-            if (elapsed >= 300 && elapsed < 307) {
-                io.to(roomName).emit('showLeaderboard', { players: room.players });
-            } else if (elapsed >= 307) {
-                for (const id in room.players) {
-                    const player = room.players[id];
-                    if (!player.isBot) {
-                        User.findOne({ googleId: player.googleId }).then(user => {
-                            if (user) {
-                                user.totalPoints += player.score;
-                                user.save();
-                            }
-                        });
-                    }
+        if (elapsedWorld >= 300 && elapsedWorld < 307) {
+            io.to('world').emit('showLeaderboard', { players: worldState.players });
+        } else if (elapsedWorld >= 307) {
+            for (const id in worldState.players) {
+                const player = worldState.players[id];
+                if (!player.isBot) {
+                    User.findOne({ googleId: player.googleId }).then(user => {
+                        if (user) {
+                            user.totalPoints += player.score;
+                            user.save();
+                        }
+                    }).catch(err => console.error('Erro ao salvar pontos:', err));
                 }
-                io.to(roomName).emit('gameReset', { state: resetRoomState(roomName) });
+            }
+            io.to('world').emit('gameReset', { state: resetWorldState() });
+        }
+
+        for (const roomName in rooms) {
+            const room = rooms[roomName];
+            if (room.started) {
+                const elapsed = (Date.now() - room.startTime) / 1000;
+                const roomTimeLeft = Math.max(300 - elapsed, 0);
+
+                const roomSecondsElapsed = elapsed % 60;
+                if (roomSecondsElapsed < 0.1 && elapsed < 290 && Date.now() - room.lastTargetMoveTime >= 59 * 1000) {
+                    moveTarget(room);
+                }
+
+                updateMarkersGravity(room, roomName);
+                io.to(roomName).emit('gameUpdate', { state: room, timeLeft: roomTimeLeft });
+
+                if (elapsed >= 300 && elapsed < 307) {
+                    io.to(roomName).emit('showLeaderboard', { players: room.players });
+                } else if (elapsed >= 307) {
+                    for (const id in room.players) {
+                        const player = room.players[id];
+                        if (!player.isBot) {
+                            User.findOne({ googleId: player.googleId }).then(user => {
+                                if (user) {
+                                    user.totalPoints += player.score;
+                                    user.save();
+                                }
+                            }).catch(err => console.error('Erro ao salvar pontos da sala:', err));
+                        }
+                    }
+                    io.to(roomName).emit('gameReset', { state: resetRoomState(roomName) });
+                }
             }
         }
+    } catch (err) {
+        console.error('Erro no loop do jogo:', err);
     }
 }, 100);
 
