@@ -7,7 +7,7 @@ const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const mongoose = require('mongoose');
 const session = require('express-session');
 const cookieParser = require('cookie-parser');
-const MongoStore = require('connect-mongo'); // Adicionado para persistência
+const MongoStore = require('connect-mongo');
 
 mongoose.set('strictQuery', false);
 
@@ -38,15 +38,16 @@ const userSchema = new mongoose.Schema({
 });
 const User = mongoose.model('User', userSchema);
 
-// Middleware
-app.use(cookieParser());
-app.use(session({
+// Configuração da sessão
+const sessionMiddleware = session({
     secret: process.env.SESSION_SECRET || 'your-secret-key',
     resave: false,
     saveUninitialized: false,
-    store: MongoStore.create({ // Usar MongoStore em vez de MemoryStore
+    store: MongoStore.create({
         mongoUrl: process.env.MONGODB_URI,
-        collectionName: 'sessions'
+        collectionName: 'sessions',
+        ttl: 24 * 60 * 60, // 24 horas em segundos
+        autoRemove: 'native' // Remove sessões expiradas automaticamente
     }),
     cookie: { 
         secure: true,
@@ -55,7 +56,11 @@ app.use(session({
         httpOnly: true,
         path: '/'
     }
-}));
+});
+
+// Middleware
+app.use(cookieParser());
+app.use(sessionMiddleware);
 app.use(passport.initialize());
 app.use(passport.session());
 
@@ -68,6 +73,13 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Adicionar log para verificar inicialização do Passport
+app.use((req, res, next) => {
+    console.log('Middleware chain - Session:', req.session);
+    console.log('Middleware chain - Passport inicializado:', !!req._passport);
+    next();
+});
 
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
