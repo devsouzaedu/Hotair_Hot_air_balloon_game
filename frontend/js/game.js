@@ -543,9 +543,17 @@ export function initGame() {
                 renderer: window.renderer, 
                 balloon 
             });
+            if (!balloon && window.scene && window.socket.id) {
+                console.log('Recriando balão perdido...');
+                const playerName = document.getElementById('playerName')?.value || 'Jogador';
+                balloon = window.createBalloon(window.balloonColor || '#FF4500', playerName);
+                window.balloon = balloon;
+                balloon.position.set(0, altitude, 0);
+                window.scene.add(balloon);
+            }
             return;
         }
-    
+        
         const currentTime = performance.now();
         frameCount++;
         if (currentTime - lastTime >= 1000) {
@@ -664,29 +672,31 @@ export function initGame() {
             window.markersLeft = player.markers;
             points = player.score;
             console.log('Dados do jogador recebidos:', player);
-            
+        
             const markersLeftElement = document.getElementById('markersLeft');
             if (markersLeftElement) markersLeftElement.textContent = window.markersLeft;
             else console.error('Elemento markersLeft não encontrado');
-            
+        
             const pointsElement = document.getElementById('points');
             if (pointsElement) pointsElement.textContent = points;
             else console.error('Elemento points não encontrado');
-            
+        
             const playerNameDisplay = document.getElementById('playerNameDisplay');
             if (playerNameDisplay) playerNameDisplay.textContent = player.name;
-            
+        
+            // Garantir que o balão seja sempre criado ou atualizado
             if (!balloon || !window.scene.children.includes(balloon)) {
                 console.log('Criando novo balão com cor do servidor:', player.color);
-                window.setBalloon(window.createBalloon(player.color || window.balloonColor || '#FF4500', player.name));
+                balloon = window.createBalloon(player.color || window.balloonColor || '#FF4500', player.name);
+                window.balloon = balloon; // Atribui ao escopo global
                 balloon.position.set(player.x, player.y, player.z);
-                targetPosition = { x: player.x, y: player.y, z: player.z }; // Inicializa com valores do servidor
+                targetPosition = { x: player.x, y: player.y, z: player.z };
                 window.scene.add(balloon);
                 console.log('Balão adicionado à cena:', balloon);
             } else {
                 console.log('Atualizando posição do balão existente:', balloon.position);
                 balloon.position.set(player.x, player.y, player.z);
-                targetPosition = { x: player.x, y: player.y, z: player.z }; // Atualiza com valores do servidor
+                targetPosition = { x: player.x, y: player.y, z: player.z };
             }
         }
         
@@ -734,11 +744,15 @@ export function initGame() {
     window.gameEnded = gameEnded;
     window.setBalloon = (b) => {
         console.log('Definindo balão:', b);
-        balloon = b;
-        window.balloon = b;
-        if (b && !window.scene.children.includes(b)) {
-            console.log('Re-adicionando balão à cena:', b);
-            window.scene.add(b);
+        if (b) {
+            balloon = b;
+            window.balloon = b;
+            if (!window.scene.children.includes(b)) {
+                console.log('Re-adicionando balão à cena:', b);
+                window.scene.add(b);
+            }
+        } else {
+            console.error('Tentativa de definir balão como null, ignorando...');
         }
     };
     window.setTargets = (t) => window.targets = t;
