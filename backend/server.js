@@ -80,18 +80,7 @@ app.use((req, res, next) => {
     console.log('Middleware chain - SessionID:', req.sessionID);
     console.log('Middleware chain - Cookie enviado:', req.cookies['connect.sid']);
     console.log('Middleware chain - Passport inicializado:', !!req._passport);
-    sessionStore.get(req.sessionID, (err, sessionData) => {
-        if (err) {
-            console.error('Erro ao recuperar sessão do MongoStore:', err);
-            return next();
-        }
-        console.log('Dados da sessão no MongoStore:', sessionData);
-        if (sessionData) {
-            req.session = Object.assign(req.session, sessionData);
-            console.log('Sessão sincronizada com MongoStore:', req.session);
-        }
-        next();
-    });
+    next();
 });
 
 passport.use(new GoogleStrategy({
@@ -182,7 +171,7 @@ app.get('/auth/google/callback',
 
 app.get('/auth/check', (req, res) => {
     console.log('Cookies recebidos:', req.cookies);
-    console.log('Sessão completa após sincronização:', req.session);
+    console.log('Sessão completa:', req.session);
     console.log('Usuário na sessão:', req.session.passport);
     if (req.isAuthenticated()) {
         console.log('Verificação de autenticação: Usuário autenticado', req.user.googleId);
@@ -192,6 +181,8 @@ app.get('/auth/check', (req, res) => {
         res.json({ authenticated: false });
     }
 });
+
+// ... (o resto do código permanece igual)
 
 // ... (o resto do código permanece igual)
 
