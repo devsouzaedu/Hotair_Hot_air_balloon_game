@@ -561,7 +561,7 @@ export function initGame() {
         if (keys.S) altitude = Math.max(20, altitude - 1);
         altitude = Math.min(altitude, 500);
 
-        // Enviar posição ao servidor (apenas altitude, x e z vêm do servidor)
+        // Enviar a nova altitude ao servidor
         window.socket.emit('updatePosition', { 
             x: balloon.position.x, 
             y: altitude, 
@@ -570,10 +570,10 @@ export function initGame() {
             roomName: window.roomName || null 
         });
 
-        // Interpolar suavemente para a posição alvo recebida do servidor
-        const lerpFactor = 0.1; // Suavidade (0.1 = suave, 1 = instantâneo)
+        // Interpolar para a posição alvo (x e z do servidor, y local)
+        const lerpFactor = 0.2; // Aumentado para mais suavidade
         balloon.position.x = THREE.MathUtils.lerp(balloon.position.x, targetPosition.x, lerpFactor);
-        balloon.position.y = THREE.MathUtils.lerp(balloon.position.y, targetPosition.y, lerpFactor);
+        balloon.position.y = THREE.MathUtils.lerp(balloon.position.y, altitude, lerpFactor); // Prioriza altitude local
         balloon.position.z = THREE.MathUtils.lerp(balloon.position.z, targetPosition.z, lerpFactor);
     
         // Atualizar câmera

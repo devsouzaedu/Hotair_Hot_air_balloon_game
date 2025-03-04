@@ -534,16 +534,18 @@ io.on('connection', (socket) => {
 
     socket.on('updatePosition', ({ x, y, z, mode, roomName }) => {
         if (mode === 'world' && worldState.players[socket.id]) {
-            worldState.players[socket.id].x = x;
-            worldState.players[socket.id].y = y;
-            worldState.players[socket.id].z = z;
+            worldState.players[socket.id].x = x; // O servidor atualizará isso com vento
+            worldState.players[socket.id].y = y; // Respeita a altitude enviada pelo frontend
+            worldState.players[socket.id].z = z; // O servidor atualizará isso com vento
+            console.log(`[Server] Atualizou posição de ${socket.id}: x=${x}, y=${y}, z=${z}`);
         } else if (mode === 'room' && rooms[roomName] && rooms[roomName].players[socket.id]) {
             rooms[roomName].players[socket.id].x = x;
             rooms[roomName].players[socket.id].y = y;
             rooms[roomName].players[socket.id].z = z;
+            console.log(`[Server] Atualizou posição de ${socket.id} na sala ${roomName}: x=${x}, y=${y}, z=${z}`);
         }
     });
-
+    
     socket.on('dropMarker', ({ x, y, z, mode, roomName, markerId }) => {
         const player = mode === 'world' ? worldState.players[socket.id] : rooms[roomName]?.players[socket.id];
         if (player && player.markers > 0 && !player.isBot) {
