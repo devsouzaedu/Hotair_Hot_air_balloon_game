@@ -39,16 +39,19 @@ const userSchema = new mongoose.Schema({
 const User = mongoose.model('User', userSchema);
 
 // Configuração da sessão
+const sessionStore = MongoStore.create({
+    mongoUrl: process.env.MONGODB_URI,
+    collectionName: 'sessions',
+    ttl: 24 * 60 * 60,
+    autoRemove: 'native',
+    stringify: false
+});
+
 const sessionMiddleware = session({
     secret: process.env.SESSION_SECRET || 'your-secret-key',
     resave: false,
     saveUninitialized: false,
-    store: MongoStore.create({
-        mongoUrl: process.env.MONGODB_URI,
-        collectionName: 'sessions',
-        ttl: 24 * 60 * 60, // 24 horas em segundos
-        autoRemove: 'native'
-    }),
+    store: sessionStore,
     cookie: { 
         secure: true,
         sameSite: 'none',
@@ -72,12 +75,23 @@ app.use(cors({
     exposedHeaders: ['Set-Cookie']
 }));
 
-// Log para verificar a cadeia de middlewares
+// Middleware para verificar e sincronizar a sessão
 app.use((req, res, next) => {
-    console.log('Middleware chain - Session:', req.session);
+    console.log('Middleware chain - Session antes:', req.session);
     console.log('Middleware chain - SessionID:', req.sessionID);
     console.log('Middleware chain - Passport inicializado:', !!req._passport);
-    next();
+    // Forçar a sincronização da sessão do MongoStore
+    sessionStore.get(req.sessionID, (err, sessionData) => {
+        if (err) {
+            console.error('Erro ao recuperar sessão do MongoStore:', err);
+            return next();
+        }
+        console.log('Dados da sessão no MongoStore:', sessionData);
+        if (sessionData) {
+            req.session = Object.assign(req.session, sessionData);
+        }
+        next();
+    });
 });
 
 passport.use(new GoogleStrategy({
@@ -152,7 +166,7 @@ app.get('/auth/google/callback',
                 console.error('Erro ao salvar sessão:', err);
                 return res.status(500).send('Erro interno');
             }
-            console.log('Sessão salva com sucesso:', req.session);
+            console.log('Sessão salva com sucesso no MongoDB:', req.session);
             console.log('Cookie que será enviado:', req.sessionID);
             res.cookie('connect.sid', req.sessionID, {
                 secure: true,
@@ -168,7 +182,7 @@ app.get('/auth/google/callback',
 
 app.get('/auth/check', (req, res) => {
     console.log('Cookies recebidos:', req.cookies);
-    console.log('Sessão completa:', req.session);
+    console.log('Sessão completa após sincronização:', req.session);
     console.log('Usuário na sessão:', req.session.passport);
     if (req.isAuthenticated()) {
         console.log('Verificação de autenticação: Usuário autenticado', req.user.googleId);
