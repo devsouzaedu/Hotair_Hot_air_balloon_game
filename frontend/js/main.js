@@ -7,14 +7,15 @@ const BASE_URL = 'https://devsouzaedu.github.io/Hotair_Hot_air_balloon_game/';
 document.addEventListener('DOMContentLoaded', () => {
     // Verifica parâmetros da URL
     const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('auth') === 'success') {
+    const authStatus = urlParams.get('auth');
+    if (authStatus === 'success') {
         checkAuthentication();
-    } else if (urlParams.get('auth') === 'failed') {
+    } else if (authStatus === 'failed') {
         alert('Falha na autenticação com Google. Tente novamente.');
+        window.history.replaceState({}, document.title, BASE_URL);
+    } else {
+        checkAuthentication(); // Verifica autenticação ao carregar a página
     }
-
-    // Verificar autenticação
-    checkAuthentication();
 
     const googleLoginButton = document.getElementById('googleLoginButton');
     if (googleLoginButton) {
@@ -76,9 +77,50 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+function checkAuthentication() {
+    fetch('https://hotair-backend.onrender.com/auth/check', { 
+        credentials: 'include',
+        mode: 'cors'
+    })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Erro HTTP: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            document.getElementById('nameScreen').style.display = 'none'; // Esconde a tela inicial
+            if (data.authenticated) {
+                if (!data.user.nickname) {
+                    document.getElementById('nicknameForm').style.display = 'block';
+                    document.getElementById('googleLoginButton').style.display = 'none';
+                } else {
+                    showProfile(data.user);
+                }
+            } else {
+                document.getElementById('nameScreen').style.display = 'block';
+            }
+            // Limpa os parâmetros da URL
+            window.history.replaceState({}, document.title, BASE_URL);
+        })
+        .catch(err => {
+            console.error('Erro ao verificar autenticação:', err);
+            document.getElementById('nameScreen').style.display = 'block';
+            window.history.replaceState({}, document.title, BASE_URL);
+        });
+}
+
 function showProfile(user) {
-    fetch('https://hotair-backend.onrender.com/profile', { credentials: 'include' })
-        .then(response => response.json())
+    fetch('https://hotair-backend.onrender.com/profile', { 
+        credentials: 'include',
+        mode: 'cors'
+    })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Erro HTTP: ${response.status}`);
+            }
+            return response.json();
+        })
         .then(profile => {
             document.getElementById('nameScreen').style.display = 'none';
             document.getElementById('profileScreen').style.display = 'flex';

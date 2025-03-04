@@ -17,7 +17,7 @@ const io = socketIO(server, {
     }
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000; // Ajustado para refletir a porta do Render
 
 // Conexão ao MongoDB Atlas
 mongoose.connect(process.env.MONGODB_URI, {
@@ -42,10 +42,10 @@ app.use(session({
     resave: false,
     saveUninitialized: false,
     cookie: { 
-        secure: process.env.NODE_ENV === 'production', // true em produção para HTTPS
-        sameSite: 'lax', // Permite cookies em redirecionamentos cross-site
+        secure: process.env.NODE_ENV === 'production', // HTTPS em produção
+        sameSite: 'none', // Necessário para cross-site entre Render e GitHub Pages
         maxAge: 24 * 60 * 60 * 1000, // 24 horas
-        httpOnly: true // Melhora a segurança
+        httpOnly: true // Segurança adicional
     }
 }));
 app.use(passport.initialize());
@@ -74,7 +74,7 @@ passport.use(new GoogleStrategy({
         if (!user) {
             user = new User({ 
                 googleId: profile.id,
-                nickname: profile.displayName.substring(0, 18)
+                nickname: profile.displayName.substring(0, 18) // Nickname padrão
             });
             await user.save();
             console.log('Novo usuário criado:', user.googleId);
@@ -87,14 +87,17 @@ passport.use(new GoogleStrategy({
 }));
 
 passport.serializeUser((user, done) => {
+    console.log('Serializando usuário:', user.id);
     done(null, user.id);
 });
 
 passport.deserializeUser(async (id, done) => {
     try {
         const user = await User.findById(id);
+        console.log('Desserializando usuário:', user ? user.googleId : 'não encontrado');
         done(null, user);
     } catch (err) {
+        console.error('Erro ao desserializar usuário:', err);
         done(err, null);
     }
 });
