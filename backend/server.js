@@ -58,10 +58,6 @@ const sessionMiddleware = session({
         maxAge: 24 * 60 * 60 * 1000,
         httpOnly: true,
         path: '/'
-    },
-    // Forçar uso do sessionID do cookie
-    genid: (req) => {
-        return req.cookies['connect.sid'] || undefined; // Usa o sessionID do cookie se existir
     }
 });
 
@@ -84,7 +80,7 @@ app.use((req, res, next) => {
     console.log('Middleware chain - SessionID:', req.sessionID);
     console.log('Middleware chain - Cookie enviado:', req.cookies['connect.sid']);
     console.log('Middleware chain - Passport inicializado:', !!req._passport);
-    sessionStore.get(req.cookies['connect.sid'], (err, sessionData) => {
+    sessionStore.get(req.sessionID, (err, sessionData) => {
         if (err) {
             console.error('Erro ao recuperar sessão do MongoStore:', err);
             return next();
@@ -196,6 +192,8 @@ app.get('/auth/check', (req, res) => {
         res.json({ authenticated: false });
     }
 });
+
+// ... (o resto do código permanece igual)
 
 // ... (o resto do código permanece igual)
 
