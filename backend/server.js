@@ -42,9 +42,10 @@ app.use(session({
     resave: false,
     saveUninitialized: false,
     cookie: { 
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax', // Adicionado para melhor compatibilidade com cookies cross-site
-        maxAge: 24 * 60 * 60 * 1000 // 24 horas
+        secure: process.env.NODE_ENV === 'production', // true em produção para HTTPS
+        sameSite: 'lax', // Permite cookies em redirecionamentos cross-site
+        maxAge: 24 * 60 * 60 * 1000, // 24 horas
+        httpOnly: true // Melhora a segurança
     }
 }));
 app.use(passport.initialize());
@@ -54,7 +55,8 @@ app.use(passport.session());
 app.use(cors({
     origin: 'https://devsouzaedu.github.io',
     methods: ['GET', 'POST'],
-    credentials: true
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -64,7 +66,7 @@ passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     callbackURL: 'https://hotair-backend.onrender.com/auth/google/callback',
-    scope: ['profile', 'email'] // Especificando escopos explicitamente
+    scope: ['profile', 'email']
 }, async (accessToken, refreshToken, profile, done) => {
     console.log('Perfil recebido do Google:', profile);
     try {
@@ -72,7 +74,7 @@ passport.use(new GoogleStrategy({
         if (!user) {
             user = new User({ 
                 googleId: profile.id,
-                nickname: profile.displayName.substring(0, 18) // Nome padrão inicial
+                nickname: profile.displayName.substring(0, 18)
             });
             await user.save();
             console.log('Novo usuário criado:', user.googleId);
@@ -101,20 +103,21 @@ passport.deserializeUser(async (id, done) => {
 app.get('/auth/google', 
     passport.authenticate('google', { 
         scope: ['profile', 'email'],
-        prompt: 'select_account' // Força a seleção de conta
+        prompt: 'select_account'
     })
 );
 
 app.get('/auth/google/callback',
     passport.authenticate('google', { 
-        failureRedirect: 'https://devsouzaedu.github.io/?auth=failed',
+        failureRedirect: 'https://devsouzaedu.github.io/Hotair_Hot_air_balloon_game/?auth=failed',
         session: true
     }),
     (req, res) => {
         console.log('Autenticação bem-sucedida para usuário:', req.user.googleId);
-        res.redirect('https://devsouzaedu.github.io/?auth=success');
+        res.redirect('https://devsouzaedu.github.io/Hotair_Hot_air_balloon_game/?auth=success');
     }
 );
+
 app.get('/auth/check', (req, res) => {
     if (req.isAuthenticated()) {
         console.log('Verificação de autenticação: Usuário autenticado', req.user.googleId);

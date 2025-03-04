@@ -2,24 +2,19 @@ import { initUI } from './ui.js';
 import { initGame } from './game.js';
 import { initSocket } from './socket.js';
 
+const BASE_URL = 'https://devsouzaedu.github.io/Hotair_Hot_air_balloon_game/';
+
 document.addEventListener('DOMContentLoaded', () => {
+    // Verifica parâmetros da URL
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('auth') === 'success') {
+        checkAuthentication();
+    } else if (urlParams.get('auth') === 'failed') {
+        alert('Falha na autenticação com Google. Tente novamente.');
+    }
+
     // Verificar autenticação
-    fetch('https://hotair-backend.onrender.com/auth/check', { 
-        credentials: 'include',
-        mode: 'cors'
-    })
-        .then(response => response.json())
-        .then(data => {
-            if (data.authenticated) {
-                if (!data.user.nickname) {
-                    document.getElementById('nicknameForm').style.display = 'block';
-                    document.getElementById('googleLoginButton').style.display = 'none';
-                } else {
-                    showProfile(data.user);
-                }
-            }
-        })
-        .catch(err => console.error('Erro ao verificar autenticação:', err));
+    checkAuthentication();
 
     const googleLoginButton = document.getElementById('googleLoginButton');
     if (googleLoginButton) {
@@ -28,7 +23,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Definir Nickname
     const setNicknameButton = document.getElementById('setNicknameButton');
     if (setNicknameButton) {
         setNicknameButton.addEventListener('click', () => {
@@ -52,7 +46,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Iniciar Jogo
     const startGameButton = document.getElementById('startGameButton');
     if (startGameButton) {
         startGameButton.addEventListener('click', () => {
