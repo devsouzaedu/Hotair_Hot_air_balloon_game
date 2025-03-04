@@ -125,7 +125,6 @@ app.get('/auth/check', authenticateToken, async (req, res) => {
     }
 });
 
-// Nova rota para o perfil
 app.get('/profile', authenticateToken, async (req, res) => {
     try {
         const user = await User.findById(req.user.id);
@@ -180,23 +179,6 @@ app.post('/auth/set-nickname', async (req, res) => {
     }
 });
 
-app.get('/profile', async (req, res) => {
-    if (!req.isAuthenticated()) {
-        console.log('Tentativa de acessar perfil sem autenticação');
-        return res.status(401).json({ error: 'Não autenticado' });
-    }
-    const user = await User.findOne({ googleId: req.user.googleId });
-    console.log('Perfil retornado para:', user.googleId);
-    res.json({
-        googleId: user.googleId,
-        nickname: user.nickname,
-        targetsHit: user.targetsHit,
-        totalPoints: user.totalPoints,
-        joinDate: user.joinDate
-    });
-});
-
-// Lógica do Jogo (mantida como estava)
 let worldState = { 
     players: {}, 
     targets: [], 
@@ -232,12 +214,21 @@ function moveTarget(state) {
     state.lastTargetMoveTime = Date.now();
 }
 
-function initializeTargets() {
-    worldState.targets = [generateTarget()];
-    worldState.lastTargetMoveTime = Date.now();
+function initializeWorldState() {
+    worldState = {
+        players: {},
+        targets: [generateTarget()],
+        startTime: Date.now(),
+        currentTargetIndex: 0,
+        markers: {},
+        lastTargetMoveTime: Date.now()
+    };
+    addBots();
 }
 
-initializeTargets();
+if (!worldState.players) {
+    initializeWorldState();
+}
 
 function updateMarkersGravity(state, roomName = null) {
     for (const markerId in state.markers) {
@@ -376,12 +367,28 @@ function updateBots() {
 io.on('connection', (socket) => {
     console.log(`Novo jogador conectado: ${socket.id}`);
 
+    const token = socket.handshake.auth.token;
+    if (!token) {
+        socket.emit('authRequired', 'Token JWT necessário');
+        socket.disconnect();
+        return;
+    }
+
+    jwt.verify(token, process.env.JWT_SECRET || 'seu-segredo-super-seguro', (err, decoded) => {
+        if (err) {
+            socket.emit('authRequired', 'Token inválido');
+            socket.disconnect();
+            return;
+        }
+        socket.user = decoded;
+    });
+
     socket.on('joinNow', async (playerData) => {
-        if (!socket.request.user) {
+        if (!socket.user) {
             socket.emit('authRequired', 'Autenticação com Google necessária');
             return;
         }
-        const user = await User.findOne({ googleId: socket.request.user.googleId });
+        const user = await User.findOne({ googleId: socket.user.googleId });
         if (!user.nickname) {
             socket.emit('setNicknameRequired', 'Defina seu nickname antes de jogar');
             return;
@@ -399,16 +406,17 @@ io.on('connection', (socket) => {
             isBot: false
         };
         socket.join('world');
+        console.log('Enviando gameState:', worldState);
         socket.emit('gameState', { mode: 'world', state: worldState });
         console.log(`Jogador ${user.nickname} entrou no mundo global`);
     });
 
     socket.on('createRoom', async (roomData) => {
-        if (!socket.request.user) {
+        if (!socket.user) {
             socket.emit('authRequired', 'Autenticação com Google necessária');
             return;
         }
-        const user = await User.findOne({ googleId: socket.request.user.googleId });
+        const user = await User.findOne({ googleId: socket.user.googleId });
         if (!user.nickname) {
             socket.emit('setNicknameRequired', 'Defina seu nickname antes de criar uma sala');
             return;
@@ -446,11 +454,11 @@ io.on('connection', (socket) => {
     });
 
     socket.on('joinRoom', async ({ roomName, playerData }) => {
-        if (!socket.request.user) {
+        if (!socket.user) {
             socket.emit('authRequired', 'Autenticação com Google necessária');
             return;
         }
-        const user = await User.findOne({ googleId: socket.request.user.googleId });
+        const user = await User.findOne({ googleId: socket.user.googleId });
         if (!user.nickname) {
             socket.emit('setNicknameRequired', 'Defina seu nickname antes de entrar em uma sala');
             return;

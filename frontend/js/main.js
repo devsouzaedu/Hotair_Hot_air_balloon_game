@@ -78,6 +78,39 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('roomScreen').style.display = 'flex';
         });
     }
+
+    const okButton = document.getElementById('okButton');
+    let selectedColor = '#FF4500'; // Cor padrão
+
+    document.querySelectorAll('.colorButton').forEach(button => {
+        button.addEventListener('click', () => {
+            selectedColor = button.getAttribute('data-color');
+            document.querySelectorAll('.colorButton').forEach(btn => btn.classList.remove('selected'));
+            button.classList.add('selected');
+        });
+    });
+
+    if (okButton) {
+        okButton.addEventListener('click', () => {
+            document.getElementById('colorScreen').style.display = 'none';
+            document.getElementById('gameScreen').style.display = 'block';
+            const token = localStorage.getItem('jwtToken');
+            fetch('https://hotair-backend.onrender.com/auth/check', {
+                method: 'GET',
+                headers: { 'Authorization': `Bearer ${token}` }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.authenticated) {
+                    const socket = io('https://hotair-backend.onrender.com', {
+                        auth: { token }
+                    });
+                    socket.emit('joinNow', { color: selectedColor });
+                }
+            })
+            .catch(err => console.error('Erro ao verificar autenticação ao entrar no jogo:', err));
+        });
+    }
 });
 
 function checkAuthentication() {
