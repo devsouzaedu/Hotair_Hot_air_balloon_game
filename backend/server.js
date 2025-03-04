@@ -7,6 +7,9 @@ const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const mongoose = require('mongoose');
 const session = require('express-session');
 
+// Suprimir aviso de strictQuery do Mongoose
+mongoose.set('strictQuery', false);
+
 const app = express();
 const server = http.createServer(app);
 const io = socketIO(server, {
@@ -17,7 +20,7 @@ const io = socketIO(server, {
     }
 });
 
-const PORT = process.env.PORT || 10000; // Ajustado para refletir a porta do Render
+const PORT = process.env.PORT || 10000;
 
 // Conexão ao MongoDB Atlas
 mongoose.connect(process.env.MONGODB_URI, {
@@ -42,10 +45,10 @@ app.use(session({
     resave: false,
     saveUninitialized: false,
     cookie: { 
-        secure: process.env.NODE_ENV === 'production', // HTTPS em produção
-        sameSite: 'none', // Necessário para cross-site entre Render e GitHub Pages
+        secure: true, // Necessário para SameSite=None em produção (HTTPS)
+        sameSite: 'none', // Permite cookies cross-site
         maxAge: 24 * 60 * 60 * 1000, // 24 horas
-        httpOnly: true // Segurança adicional
+        httpOnly: true // Segurança
     }
 }));
 app.use(passport.initialize());
@@ -74,7 +77,7 @@ passport.use(new GoogleStrategy({
         if (!user) {
             user = new User({ 
                 googleId: profile.id,
-                nickname: profile.displayName.substring(0, 18) // Nickname padrão
+                nickname: profile.displayName.substring(0, 18)
             });
             await user.save();
             console.log('Novo usuário criado:', user.googleId);
@@ -111,6 +114,10 @@ app.get('/auth/google',
 );
 
 app.get('/auth/google/callback',
+    (req, res, next) => {
+        console.log('Callback recebido:', req.query);
+        next();
+    },
     passport.authenticate('google', { 
         failureRedirect: 'https://devsouzaedu.github.io/Hotair_Hot_air_balloon_game/?auth=failed',
         session: true
@@ -122,6 +129,8 @@ app.get('/auth/google/callback',
 );
 
 app.get('/auth/check', (req, res) => {
+    console.log('Cookies recebidos:', req.cookies);
+    console.log('Sessão:', req.session);
     if (req.isAuthenticated()) {
         console.log('Verificação de autenticação: Usuário autenticado', req.user.googleId);
         res.json({ authenticated: true, user: { googleId: req.user.googleId, nickname: req.user.nickname } });

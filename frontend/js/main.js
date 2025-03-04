@@ -100,8 +100,7 @@ function checkAuthentication() {
             } else {
                 document.getElementById('nameScreen').style.display = 'block';
             }
-            // Limpa os parâmetros da URL
-            window.history.replaceState({}, document.title, BASE_URL);
+            window.history.replaceState({}, document.title, BASE_URL); // Limpa os parâmetros da URL
         })
         .catch(err => {
             console.error('Erro ao verificar autenticação:', err);
