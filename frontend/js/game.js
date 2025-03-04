@@ -20,17 +20,7 @@ export function initGame() {
     window.markers = window.markers || [];
     let lastTargetMoveTime = Date.now();
     let gameEnded = false;
-        // Teste básico de renderização
-        console.log('Inicializando teste básico de Three.js');
-        scene = new THREE.Scene();
-        scene.background = new THREE.Color(0xFF0000); // Fundo vermelho para teste
-        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
-        camera.position.set(0, 100, 100);
-        renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        document.getElementById('gameScreen').appendChild(renderer.domElement);
-        renderer.render(scene, camera);
-        console.log('Teste de renderização básico executado');
+    
 
     const windLayers = [
         { minAlt: 0, maxAlt: 100, direction: { x: 0, z: 0 }, speed: 0, name: "Nenhum" },
@@ -63,25 +53,30 @@ export function initGame() {
     }
 
     function initThreeJS() {
+        console.log('Inicializando Three.js');
         scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x87CEEB);
-
+        scene.background = new THREE.Color(0x87CEEB); // Fundo azul
+    
         camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
         camera.position.set(0, 300, 300);
         camera.lookAt(0, 100, 0);
-
+    
         renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.getElementById('gameScreen').appendChild(renderer.domElement);
-
+    
+        // Adicionar luzes
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
         scene.add(ambientLight);
-
         const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
         directionalLight.position.set(100, 300, 50);
         scene.add(directionalLight);
-
-        createGround();
+    
+        createGround(); // Chama a criação do chão e elementos
+    
+        // Adicionar eventos de teclado
+        window.addEventListener('keydown', handleKeyDown);
+        window.addEventListener('keyup', handleKeyUp);
 
         const markerGeometry = new THREE.SphereGeometry(4.5, 16, 16);
         const markerMaterial = new THREE.MeshLambertMaterial({ color: 0x0000FF });
@@ -98,8 +93,6 @@ export function initGame() {
         tail.visible = false;
         scene.add(tail);
 
-        window.addEventListener('keydown', handleKeyDown);
-        window.addEventListener('keyup', handleKeyUp);
         window.addEventListener('resize', onWindowResize);
 
         if (isMobile) {
@@ -280,36 +273,34 @@ export function initGame() {
         });
     }
 
-    window.createBalloon = function(color, name) {
-        console.log('Criando balão com cor:', color, 'e nome:', name);
-        color = color || '#FF4500';
-        const group = new THREE.Group();
-        const basketGeometry = new THREE.BoxGeometry(15, 12, 15);
-        const basketMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
-        const basket = new THREE.Mesh(basketGeometry, basketMaterial);
-        basket.position.y = -15;
-        group.add(basket);
+   window.createBalloon = function(color, name) {
+    console.log('Criando balão com cor:', color, 'e nome:', name);
+    color = color || '#FF4500';
+    const group = new THREE.Group();
+    const basketGeometry = new THREE.BoxGeometry(15, 12, 15);
+    const basketMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
+    const basket = new THREE.Mesh(basketGeometry, basketMaterial);
+    basket.position.y = -15;
+    group.add(basket);
 
-        const balloonGeometry = new THREE.SphereGeometry(30, 32, 32);
-        let balloonMaterial;
-        if (color === 'rainbow') {
-            balloonMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff, vertexColors: true });
-        } else {
-            balloonMaterial = new THREE.MeshLambertMaterial({ color });
+    const balloonGeometry = new THREE.SphereGeometry(30, 32, 32);
+    let balloonMaterial;
+    if (color === 'rainbow') {
+        balloonMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff, vertexColors: true });
+        const colors = new Float32Array(balloonGeometry.attributes.position.count * 3);
+        for (let i = 0; i < balloonGeometry.attributes.position.count; i++) {
+            colors[i * 3] = Math.random();
+            colors[i * 3 + 1] = Math.random();
+            colors[i * 3 + 2] = Math.random();
         }
-        const balloonMesh = new THREE.Mesh(balloonGeometry, balloonMaterial);
-        balloonMesh.scale.y = 1.2;
-        balloonMesh.position.y = 30;
-        if (color === 'rainbow') {
-            const colors = new Float32Array(balloonGeometry.attributes.position.count * 3);
-            for (let i = 0; i < balloonGeometry.attributes.position.count; i++) {
-                colors[i * 3] = Math.random();
-                colors[i * 3 + 1] = Math.random();
-                colors[i * 3 + 2] = Math.random();
-            }
-            balloonGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-        }
-        group.add(balloonMesh);
+        balloonGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    } else {
+        balloonMaterial = new THREE.MeshLambertMaterial({ color: parseInt(color.replace('#', '0x'), 16) });
+    }
+    const balloonMesh = new THREE.Mesh(balloonGeometry, balloonMaterial);
+    balloonMesh.scale.y = 1.2;
+    balloonMesh.position.y = 30;
+    group.add(balloonMesh);
 
         const ropeMaterial = new THREE.LineBasicMaterial({ color: 0x000000 });
         for (let i = 0; i < 4; i++) {
@@ -564,14 +555,16 @@ export function initGame() {
             return;
         }
 
-        if (keys.W) { altitude += 1; hasLiftedOff = true; }
-        if (keys.U) { altitude += 5; hasLiftedOff = true; }
-        if (keys.S) altitude = Math.max(20, altitude - 1);
+      if (keys.W) { altitude += 1; hasLiftedOff = true; }
+    if (keys.U) { altitude += 5; hasLiftedOff = true; }
+    if (keys.S) altitude = Math.max(20, altitude - 1);
+    if (keys.SHIFT_RIGHT && !window.markerDropped && window.markersLeft > 0) {
+        dropMarker();
+        keys.SHIFT_RIGHT = false; // Evita repetição
+    }
 
-        if (altitude <= 20 && hasLiftedOff) gameOver = true;
-
-        altitude = Math.min(altitude, 500);
-        balloon.position.y = altitude;
+    altitude = Math.min(altitude, 500);
+    balloon.position.y = altitude;
 
         const currentLayerIndex = getCurrentWindLayer();
         const currentLayer = windLayers[currentLayerIndex];
@@ -585,6 +578,8 @@ export function initGame() {
         balloon.rotation.y += 0.001;
 
         window.socket.emit('updatePosition', { x: balloon.position.x, y: balloon.position.y, z: balloon.position.z, mode: window.mode || 'world', roomName: window.roomName || null });
+        renderer.render(scene, camera);
+    console.log('Renderizando cena: FPS', fps, 'Altitude:', altitude);
 
         if (window.spectators && window.spectators.length > 0) {
             const time = performance.now() * 0.001;
