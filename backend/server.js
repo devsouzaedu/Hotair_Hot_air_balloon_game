@@ -48,7 +48,7 @@ app.use(session({
         sameSite: 'none',
         maxAge: 24 * 60 * 60 * 1000,
         httpOnly: true,
-        path: '/' // Explicitamente definido
+        path: '/'
     }
 }));
 app.use(passport.initialize());
@@ -59,7 +59,7 @@ app.use(cors({
     methods: ['GET', 'POST'],
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization'],
-    exposedHeaders: ['Set-Cookie'] // Permite que o cookie seja visto pelo frontend
+    exposedHeaders: ['Set-Cookie']
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -124,13 +124,15 @@ app.get('/auth/google/callback',
     (req, res) => {
         console.log('Autenticação bem-sucedida para usuário:', req.user.googleId);
         console.log('Sessão antes de salvar:', req.session);
+        // Forçar a associação do usuário à sessão
+        req.session.passport = { user: req.user.id };
         req.session.save((err) => {
             if (err) {
                 console.error('Erro ao salvar sessão:', err);
                 return res.status(500).send('Erro interno');
             }
             console.log('Sessão salva com sucesso:', req.session);
-            // Definir cookie explicitamente no response
+            console.log('Cookie que será enviado:', req.sessionID);
             res.cookie('connect.sid', req.sessionID, {
                 secure: true,
                 sameSite: 'none',
