@@ -130,19 +130,18 @@ export function initSocket() {
         console.log('gameState recebido:', { mode: gameMode, state });
         if (gameMode === 'world') {
             window.mode = 'world';
-            if (typeof window.initGameScene === 'function') {
-                console.log('Chamando initGameScene para inicializar o jogo');
-                window.initGameScene(state);
-            } else {
-                console.error('window.initGameScene não está definido ainda, aguardando 100ms');
-                setTimeout(() => {
+            if (typeof window.initGameScene !== 'function') {
+                console.error('initGameScene não está definido. Aguardando carregamento...');
+                const waitForGameScene = setInterval(() => {
                     if (typeof window.initGameScene === 'function') {
-                        console.log('Chamando initGameScene após espera');
+                        console.log('initGameScene disponível, inicializando cena');
                         window.initGameScene(state);
-                    } else {
-                        console.error('window.initGameScene ainda não disponível após espera');
+                        clearInterval(waitForGameScene);
                     }
                 }, 100);
+            } else {
+                console.log('initGameScene disponível, inicializando cena imediatamente');
+                window.initGameScene(state);
             }
             document.getElementById('colorScreen').style.display = 'none';
             document.getElementById('gameScreen').style.display = 'block';

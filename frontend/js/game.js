@@ -673,6 +673,7 @@ export function initGame() {
                 window.setBalloon(window.createBalloon(window.balloonColor || '#FF4500', player.name));
                 balloon.position.set(player.x, player.y, player.z);
                 scene.add(balloon);
+                console.log('Balão adicionado à cena:', balloon);
             } else {
                 console.log('Atualizando posição do balão existente:', balloon.position);
                 balloon.position.set(player.x, player.y, player.z);
@@ -680,7 +681,7 @@ export function initGame() {
         } else {
             console.error('Jogador não encontrado no estado:', window.socket.id, state.players);
         }
-
+    
         window.setOtherPlayers({});
         for (const id in state.players) {
             if (id !== window.socket.id && state.players[id].color) {
@@ -690,7 +691,7 @@ export function initGame() {
                 scene.add(otherBalloon);
             }
         }
-
+    
         window.setMarkers([]);
         for (const markerId in state.markers) {
             const markerData = state.markers[markerId];
@@ -710,9 +711,11 @@ export function initGame() {
             scene.add(tailMesh);
             window.markers.push({ marker: markerMesh, tail: tailMesh, playerId: markerData.playerId });
         }
-
+    
         window.lastTargetMoveTime = state.lastTargetMoveTime || Date.now();
         gameStarted = true;
+        console.log('Cena inicializada, iniciando animação');
+        animate(); // Inicia o loop de animação explicitamente
     };
 
     window.addEventListener('gamepadconnected', (e) => console.log('Controle conectado:', e.gamepad));
