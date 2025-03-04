@@ -54,7 +54,7 @@ app.use(cors({
     credentials: true
 }));
 app.use(express.json());
-app.use(express.urlencoded({ extended: true })); // Para parsear 'code' na URL
+app.use(express.urlencoded({ extended: true }));
 
 // Configuração do Google OAuth para GIS
 passport.use(new GoogleStrategy({
@@ -99,27 +99,15 @@ passport.deserializeUser(async (id, done) => {
 // Rotas de Autenticação
 app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 
-app.get('/auth/google/callback', (req, res, next) => {
-    console.log('Recebido callback com código:', req.query.code);
-    passport.authenticate('google', { failureRedirect: '/' }, (err, user, info) => {
-        if (err) {
-            console.error('Erro na autenticação:', err);
-            return res.status(500).send('Erro na autenticação');
-        }
-        if (!user) {
-            console.error('Usuário não autenticado:', info);
-            return res.status(401).send('Falha na autenticação');
-        }
-        req.logIn(user, (loginErr) => {
-            if (loginErr) {
-                console.error('Erro ao logar:', loginErr);
-                return res.status(500).send('Erro ao logar');
-            }
-            console.log('Usuário autenticado com sucesso:', user.googleId);
-            res.redirect('https://devsouzaedu.github.io/?auth=success');
-        });
-    })(req, res, next);
-});
+app.get('/auth/google/callback', 
+    passport.authenticate('google', { 
+        failureRedirect: 'https://devsouzaedu.github.io/?auth=failed' 
+    }), 
+    (req, res) => {
+        console.log('Callback recebido com código:', req.query.code);
+        res.redirect('https://devsouzaedu.github.io/?auth=success');
+    }
+);
 
 app.get('/auth/check', (req, res) => {
     if (req.isAuthenticated()) {
@@ -181,7 +169,7 @@ app.get('/profile', async (req, res) => {
     });
 });
 
-// Lógica do Jogo
+// Lógica do Jogo (mantida como estava)
 let worldState = { 
     players: {}, 
     targets: [], 
