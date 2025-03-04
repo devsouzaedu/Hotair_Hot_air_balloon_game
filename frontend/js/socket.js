@@ -149,11 +149,11 @@ export function initSocket() {
     socket.on('gameUpdate', ({ state, timeLeft }) => {
         const currentState = window.mode === 'world' ? state : state;
     
-        // Atualizar balão do jogador
         const player = currentState.players[socket.id];
         if (player && window.balloon) {
-            window.balloon.position.set(player.x, player.y, player.z);
-            altitude = player.y; // Sincroniza altitude local com o servidor
+            targetPosition.x = player.x;
+            targetPosition.y = player.y;
+            targetPosition.z = player.z;
         }
     
         // Atualizar outros jogadores

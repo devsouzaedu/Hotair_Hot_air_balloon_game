@@ -563,7 +563,7 @@ export function initGame() {
         if (keys.U) { altitude += 5; hasLiftedOff = true; }
         if (keys.S) altitude = Math.max(20, altitude - 1);
         altitude = Math.min(altitude, 500);
-
+    
         // Enviar posição atualizada ao servidor (o vento será aplicado lá)
         window.socket.emit('updatePosition', { 
             x: balloon.position.x, 
@@ -572,13 +572,13 @@ export function initGame() {
             mode: window.mode || 'world', 
             roomName: window.roomName || null 
         });
-
-        // Atualizar câmera
+    
+        // Atualizar câmera (baseada na posição atual do balão, que será atualizada pelo servidor)
         window.camera.position.x = balloon.position.x;
         window.camera.position.z = balloon.position.z + 200;
         window.camera.position.y = balloon.position.y + 200;
         window.camera.lookAt(balloon.position.x, balloon.position.y, balloon.position.z);
-
+    
         // Atualizar espectadores
         if (window.spectators && window.spectators.length > 0) {
             const time = performance.now() * 0.001;
@@ -587,7 +587,7 @@ export function initGame() {
                 spectator.mesh.position.y = spectator.baseY + yOffset;
             });
         }
-
+    
         // Atualizar UI com base na altitude local
         const currentLayerIndex = getCurrentWindLayer();
         document.getElementById('altitude').textContent = `${Math.floor(altitude)}m`;
@@ -595,44 +595,44 @@ export function initGame() {
         document.getElementById('windSpeed').textContent = windLayers[currentLayerIndex].speed.toFixed(1);
         document.getElementById('windIndicator').textContent = `Vento: ${windLayers[currentLayerIndex].name.charAt(0)}`;
         updateLayerIndicator(currentLayerIndex);
-
+    
         // Atualizar GPS
         const dx = balloon.position.x - (window.targets[0]?.x || 0);
         const dz = balloon.position.z - (window.targets[0]?.z || 0);
         const distance = Math.sqrt(dx * dx + dz * dz);
         document.getElementById('distanceToTarget').textContent = `${Math.floor(distance)}m`;
-
+    
         const gpsCanvas = document.getElementById('gpsCanvas');
         const gpsContext = gpsCanvas.getContext('2d');
         gpsContext.clearRect(0, 0, gpsCanvas.width, gpsCanvas.height);
         gpsContext.fillStyle = 'rgba(255, 255, 255, 0.2)';
         gpsContext.fillRect(0, 0, gpsCanvas.width, gpsCanvas.height);
-
+    
         const mapSize = 2600;
         const gpsScale = gpsCanvas.width / mapSize;
         const centerX = gpsCanvas.width / 2;
         const centerZ = gpsCanvas.height / 2;
-
+    
         const balloonX = centerX + (balloon.position.x * gpsScale);
         const balloonZ = centerZ - (balloon.position.z * gpsScale);
-
+    
         gpsContext.fillStyle = window.balloonColor === 'rainbow' ? '#FFFFFF' : window.balloonColor;
         gpsContext.beginPath();
         gpsContext.arc(balloonX, balloonZ, 5, 0, Math.PI * 2);
         gpsContext.fill();
-
+    
         window.targets.forEach(target => {
             const targetX = centerX + (target.x * gpsScale);
             const targetZ = centerZ - (target.z * gpsScale);
             gpsContext.fillStyle = '#FF0000';
             gpsContext.fillRect(targetX - 5, targetZ - 5, 10, 10);
         });
-
+    
         const direction = getDirectionToTarget(balloonX, balloonZ, 
             centerX + (window.targets[0]?.x * gpsScale) || centerX, 
             centerZ - (window.targets[0]?.z * gpsScale) || centerZ);
         document.getElementById('gpsDirection').textContent = `Direção: ${direction}`;
-
+    
         window.renderer.render(window.scene, window.camera);
         console.log('Renderizando cena: FPS', fps, 'Altitude:', altitude);
     }
