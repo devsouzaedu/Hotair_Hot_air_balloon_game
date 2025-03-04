@@ -7,6 +7,7 @@ const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const mongoose = require('mongoose');
 const session = require('express-session');
 const cookieParser = require('cookie-parser');
+const MongoStore = require('connect-mongo'); // Adicionado para persistência
 
 mongoose.set('strictQuery', false);
 
@@ -43,6 +44,10 @@ app.use(session({
     secret: process.env.SESSION_SECRET || 'your-secret-key',
     resave: false,
     saveUninitialized: false,
+    store: MongoStore.create({ // Usar MongoStore em vez de MemoryStore
+        mongoUrl: process.env.MONGODB_URI,
+        collectionName: 'sessions'
+    }),
     cookie: { 
         secure: true,
         sameSite: 'none',
