@@ -28,7 +28,6 @@ export function initSocket() {
     window.balloonColor = window.balloonColor || '#FF4500';
     window.markersLeft = 5;
 
-
     socket.on('connect', () => {
         console.log('Conectado ao backend via Socket.IO');
     });
@@ -105,7 +104,7 @@ export function initSocket() {
                 window.scene.add(targetMesh);
             });
         }
-        const playerName = document.getElementById('playerName').value || 'Jogador';
+        const playerName = document.getElementById('playerName')?.value || 'Jogador';
         window.setBalloon(window.createBalloon(window.balloonColor, playerName));
         if (window.balloon) {
             console.log('Adicionando balão à cena:', window.balloon);
@@ -151,12 +150,9 @@ export function initSocket() {
     
         const player = currentState.players[socket.id];
         if (player && window.balloon) {
-            targetPosition.x = player.x;
-            targetPosition.y = player.y;
-            targetPosition.z = player.z;
+            window.targetPosition = { x: player.x, y: player.y, z: player.z }; // Atualiza a posição alvo para interpolação
         }
     
-        // Atualizar outros jogadores
         for (const id in currentState.players) {
             if (id !== socket.id) {
                 if (!window.otherPlayers[id] && currentState.players[id].color) {
@@ -170,7 +166,6 @@ export function initSocket() {
             }
         }
     
-        // Atualizar marcadores
         for (const markerId in currentState.markers) {
             const markerData = currentState.markers[markerId];
             let existingMarker = window.markers.find(m => m.marker.userData.markerId === markerId)?.marker;
@@ -228,7 +223,6 @@ export function initSocket() {
             console.error('window.scene não está definido ao adicionar marcador');
         }
     });
-
 
     socket.on('markerLanded', ({ x, y, z, playerId, markerId }) => {
         console.log('Marcador pousou em:', { x, y, z }, 'por:', playerId);
@@ -333,7 +327,7 @@ export function initSocket() {
         window.setMarkers([]);
         window.setOtherPlayers({});
 
-        const playerName = document.getElementById('playerName').value || 'Jogador';
+        const playerName = document.getElementById('playerName')?.value || 'Jogador';
         window.setBalloon(window.createBalloon(window.balloonColor, playerName));
         if (window.balloon) {
             window.balloon.position.set(state.players[socket.id].x, state.players[socket.id].y, state.players[socket.id].z);

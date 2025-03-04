@@ -614,12 +614,12 @@ setInterval(() => {
         { minAlt: 400, maxAlt: 500, direction: { x: 0, z: -1 }, speed: 0.6 }
     ];
 
-    // Atualizar mundo global
     for (const id in worldState.players) {
         const player = worldState.players[id];
         const currentLayer = windLayers.find(layer => player.y >= layer.minAlt && player.y < layer.maxAlt) || windLayers[0];
         player.x += currentLayer.direction.x * currentLayer.speed;
         player.z += currentLayer.direction.z * currentLayer.speed;
+        console.log(`[Server] Player ${id}: x=${player.x.toFixed(2)}, y=${player.y.toFixed(2)}, z=${player.z.toFixed(2)}, Wind: ${currentLayer.direction.x},${currentLayer.direction.z}`);
     }
     updateMarkersGravity(worldState);
     updateBots();
@@ -627,7 +627,6 @@ setInterval(() => {
     const timeLeft = Math.max(300 - elapsedWorld, 0);
     io.to('world').emit('gameUpdate', { state: worldState, timeLeft });
 
-    // Atualizar salas
     for (const roomName in rooms) {
         const room = rooms[roomName];
         if (room.started) {
@@ -636,6 +635,7 @@ setInterval(() => {
                 const currentLayer = windLayers.find(layer => player.y >= layer.minAlt && player.y < layer.maxAlt) || windLayers[0];
                 player.x += currentLayer.direction.x * currentLayer.speed;
                 player.z += currentLayer.direction.z * currentLayer.speed;
+                console.log(`[Server] Room ${roomName}, Player ${id}: x=${player.x.toFixed(2)}, y=${player.y.toFixed(2)}, z=${player.z.toFixed(2)}, Wind: ${currentLayer.direction.x},${currentLayer.direction.z}`);
             }
             updateMarkersGravity(room, roomName);
             const elapsed = (Date.now() - room.startTime) / 1000;
@@ -643,7 +643,7 @@ setInterval(() => {
             io.to(roomName).emit('gameUpdate', { state: room, timeLeft: roomTimeLeft });
         }
     }
-}, 100); // Executa a cada 100ms
+}, 100);
 
 function resetWorldState() {
     const mapSize = 2600;

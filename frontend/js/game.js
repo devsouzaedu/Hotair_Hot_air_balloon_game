@@ -19,6 +19,7 @@ export function initGame() {
     window.markers = window.markers || [];
     let lastTargetMoveTime = Date.now();
     let gameEnded = false;
+    let targetPosition = { x: 0, y: 100, z: 0 }; // Posição alvo para interpolação
 
     const windLayers = [
         { minAlt: 0, maxAlt: 100, direction: { x: 0, z: 0 }, speed: 0, name: "Nenhum" },
@@ -180,7 +181,6 @@ export function initGame() {
                 window.spectators.push({ mesh: npc, baseY: yPos + 2, phase: Math.random() * Math.PI * 2 });
                 window.scene.add(npc);
                 npcCount++;
-                console.log(`NPC criado (Norte, andar ${i}): x=${x}, y=${yPos + 2}, z=${mapSize / 2 + stepDepth / 2 + i * stepDepth}`);
             }
     
             for (let x = -mapSize / 2 + 10; x < mapSize / 2 - 10; x += 10) {
@@ -190,7 +190,6 @@ export function initGame() {
                 window.spectators.push({ mesh: npc, baseY: yPos + 2, phase: Math.random() * Math.PI * 2 });
                 window.scene.add(npc);
                 npcCount++;
-                console.log(`NPC criado (Sul, andar ${i}): x=${x}, y=${yPos + 2}, z=${-mapSize / 2 - stepDepth / 2 - i * stepDepth}`);
             }
     
             for (let z = -mapSize / 2 + 10; z < mapSize / 2 - 10; z += 10) {
@@ -200,7 +199,6 @@ export function initGame() {
                 window.spectators.push({ mesh: npc, baseY: yPos + 2, phase: Math.random() * Math.PI * 2 });
                 window.scene.add(npc);
                 npcCount++;
-                console.log(`NPC criado (Leste, andar ${i}): x=${mapSize / 2 + stepDepth / 2 + i * stepDepth}, y=${yPos + 2}, z=${z}`);
             }
     
             for (let z = -mapSize / 2 + 10; z < mapSize / 2 - 10; z += 10) {
@@ -210,7 +208,6 @@ export function initGame() {
                 window.spectators.push({ mesh: npc, baseY: yPos + 2, phase: Math.random() * Math.PI * 2 });
                 window.scene.add(npc);
                 npcCount++;
-                console.log(`NPC criado (Oeste, andar ${i}): x=${-mapSize / 2 - stepDepth / 2 - i * stepDepth}, y=${yPos + 2}, z=${z}`);
             }
         }
     
@@ -563,8 +560,8 @@ export function initGame() {
         if (keys.U) { altitude += 5; hasLiftedOff = true; }
         if (keys.S) altitude = Math.max(20, altitude - 1);
         altitude = Math.min(altitude, 500);
-    
-        // Enviar posição atualizada ao servidor (o vento será aplicado lá)
+
+        // Enviar posição ao servidor (apenas altitude, x e z vêm do servidor)
         window.socket.emit('updatePosition', { 
             x: balloon.position.x, 
             y: altitude, 
@@ -572,8 +569,14 @@ export function initGame() {
             mode: window.mode || 'world', 
             roomName: window.roomName || null 
         });
+
+        // Interpolar suavemente para a posição alvo recebida do servidor
+        const lerpFactor = 0.1; // Suavidade (0.1 = suave, 1 = instantâneo)
+        balloon.position.x = THREE.MathUtils.lerp(balloon.position.x, targetPosition.x, lerpFactor);
+        balloon.position.y = THREE.MathUtils.lerp(balloon.position.y, targetPosition.y, lerpFactor);
+        balloon.position.z = THREE.MathUtils.lerp(balloon.position.z, targetPosition.z, lerpFactor);
     
-        // Atualizar câmera (baseada na posição atual do balão, que será atualizada pelo servidor)
+        // Atualizar câmera
         window.camera.position.x = balloon.position.x;
         window.camera.position.z = balloon.position.z + 200;
         window.camera.position.y = balloon.position.y + 200;
@@ -676,11 +679,13 @@ export function initGame() {
                 console.log('Criando novo balão com cor do servidor:', player.color);
                 window.setBalloon(window.createBalloon(player.color || window.balloonColor || '#FF4500', player.name));
                 balloon.position.set(player.x, player.y, player.z);
+                targetPosition = { x: player.x, y: player.y, z: player.z }; // Inicializa a posição alvo
                 window.scene.add(balloon);
                 console.log('Balão adicionado à cena:', balloon);
             } else {
                 console.log('Atualizando posição do balão existente:', balloon.position);
                 balloon.position.set(player.x, player.y, player.z);
+                targetPosition = { x: player.x, y: player.y, z: player.z };
             }
         } else {
             console.error('Jogador não encontrado no estado:', window.socket.id, state.players);
@@ -741,5 +746,4 @@ export function initGame() {
     window.setOtherPlayers = (op) => window.otherPlayers = op;
     window.setMarkers = (m) => window.markers = m;
     window.showNoMarkersMessage = showNoMarkersMessage;
-    window.scene = window.scene; // Mantém a referência global
 }
