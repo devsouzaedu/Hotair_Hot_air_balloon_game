@@ -147,7 +147,6 @@ export function initSocket() {
 
     socket.on('gameUpdate', ({ state, timeLeft }) => {
         const currentState = window.mode === 'world' ? state : state;
-    
         const player = currentState.players[socket.id];
         if (player && window.balloon) {
             window.targetPosition = { x: player.x, y: player.y, z: player.z };

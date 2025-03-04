@@ -553,7 +553,7 @@ export function initGame() {
             }
             return;
         }
-        
+
         const currentTime = performance.now();
         frameCount++;
         if (currentTime - lastTime >= 1000) {
@@ -579,11 +579,10 @@ export function initGame() {
         });
         
         const lerpFactor = 0.2;
-        balloon.position.x = THREE.MathUtils.lerp(balloon.position.x, targetPosition.x, lerpFactor);
-        balloon.position.y = THREE.MathUtils.lerp(balloon.position.y, altitude, lerpFactor);
-        balloon.position.z = THREE.MathUtils.lerp(balloon.position.z, targetPosition.z, lerpFactor);
-        
-        console.log(`[Position Debug] Local: x=${balloon.position.x.toFixed(2)}, y=${balloon.position.y.toFixed(2)}, z=${balloon.position.z.toFixed(2)}, Target: x=${targetPosition.x.toFixed(2)}, y=${targetPosition.y.toFixed(2)}, z=${targetPosition.z.toFixed(2)}`);
+balloon.position.x = THREE.MathUtils.lerp(balloon.position.x, targetPosition.x, lerpFactor);
+balloon.position.y = THREE.MathUtils.lerp(balloon.position.y, altitude, lerpFactor);
+balloon.position.z = THREE.MathUtils.lerp(balloon.position.z, targetPosition.z, lerpFactor);
+console.log(`[Position Debug] Local: x=${balloon.position.x.toFixed(2)}, y=${balloon.position.y.toFixed(2)}, z=${balloon.position.z.toFixed(2)}, Target: x=${targetPosition.x.toFixed(2)}, y=${targetPosition.y.toFixed(2)}, z=${targetPosition.z.toFixed(2)}`);
     
         // Atualizar câmera
         window.camera.position.x = balloon.position.x;
@@ -688,7 +687,7 @@ export function initGame() {
             if (!balloon || !window.scene.children.includes(balloon)) {
                 console.log('Criando novo balão com cor do servidor:', player.color);
                 balloon = window.createBalloon(player.color || window.balloonColor || '#FF4500', player.name);
-                window.balloon = balloon; // Atribui ao escopo global
+                window.balloon = balloon;
                 balloon.position.set(player.x, player.y, player.z);
                 targetPosition = { x: player.x, y: player.y, z: player.z };
                 window.scene.add(balloon);

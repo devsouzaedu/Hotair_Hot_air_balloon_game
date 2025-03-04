@@ -621,7 +621,7 @@ setInterval(() => {
         const currentLayer = windLayers.find(layer => player.y >= layer.minAlt && player.y < layer.maxAlt) || windLayers[0];
         player.x += currentLayer.direction.x * currentLayer.speed;
         player.z += currentLayer.direction.z * currentLayer.speed;
-        console.log(`[Wind Debug] Player ${id}: x=${player.x.toFixed(2)}, y=${player.y.toFixed(2)}, z=${player.z.toFixed(2)}, Wind: ${currentLayer.name}`);
+        console.log(`[Wind Debug] Player ${id}: x=${player.x.toFixed(2)}, y=${player.y.toFixed(2)}, z=${player.z.toFixed(2)}, Wind: ${currentLayer.direction.x},${currentLayer.direction.z}`);
     }
     
     updateMarkersGravity(worldState);
