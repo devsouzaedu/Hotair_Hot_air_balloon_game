@@ -431,7 +431,7 @@ io.on('connection', (socket) => {
             isBot: false
         };
         socket.join('world');
-        console.log('Enviando gameState:', worldState);
+        console.log('Enviando gameState para jogador:', socket.id, 'Dados:', worldState);
         socket.emit('gameState', { mode: 'world', state: worldState });
         console.log(`Jogador ${user.nickname} entrou no mundo global`);
     });

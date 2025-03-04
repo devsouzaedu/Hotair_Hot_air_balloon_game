@@ -517,8 +517,16 @@ export function initGame() {
 
     function animate() {
         requestAnimationFrame(animate);
-        if (!gameStarted) return;
-
+        if (!gameStarted) {
+            console.log('Animação pausada: gameStarted é false');
+            return;
+        }
+    
+        if (!scene || !camera || !renderer || !balloon) {
+            console.error('Animação abortada: elementos essenciais da cena não estão prontos', { scene, camera, renderer, balloon });
+            return;
+        }
+    
         const currentTime = performance.now();
         frameCount++;
         if (currentTime - lastTime >= 1000) {
@@ -627,10 +635,13 @@ export function initGame() {
     window.initGameScene = function(state) {
         console.log('Inicializando cena com estado:', state);
         if (!scene) {
-            console.error('Cena não inicializada antes de initGameScene');
+            console.log('Cena não existe, chamando initThreeJS');
             initThreeJS();
+        } else {
+            console.log('Cena já existe, reutilizando');
         }
-
+    
+        // Limpa alvos existentes
         scene.children.filter(obj => obj instanceof THREE.Group && obj.userData?.type === 'target').forEach(obj => scene.remove(obj));
         window.setTargets(state.targets || []);
         window.targets.forEach(target => {
@@ -638,38 +649,33 @@ export function initGame() {
             targetMesh.userData = { type: 'target' };
             scene.add(targetMesh);
         });
-
+    
         const player = state.players[window.socket.id];
         if (player) {
             altitude = player.y;
             window.markersLeft = player.markers;
             points = player.score;
-            console.log('Dados do jogador:', player);
+            console.log('Dados do jogador recebidos:', player);
+    
             const markersLeftElement = document.getElementById('markersLeft');
             if (markersLeftElement) markersLeftElement.textContent = window.markersLeft;
             else console.error('Elemento markersLeft não encontrado');
-            
+    
             const pointsElement = document.getElementById('points');
             if (pointsElement) pointsElement.textContent = points;
             else console.error('Elemento points não encontrado');
-
+    
             const playerNameDisplay = document.getElementById('playerNameDisplay');
-            if (playerNameDisplay) {
-                playerNameDisplay.textContent = player.name;
-                console.log('Nome do jogador definido:', player.name);
-            } else {
-                console.error('Elemento playerNameDisplay não encontrado');
-            }
-
+            if (playerNameDisplay) playerNameDisplay.textContent = player.name;
+    
             if (!balloon || !scene.children.includes(balloon)) {
-                console.log('Criando balão do jogador:', player);
+                console.log('Criando novo balão para o jogador:', player);
                 window.setBalloon(window.createBalloon(window.balloonColor || '#FF4500', player.name));
                 balloon.position.set(player.x, player.y, player.z);
                 scene.add(balloon);
-                console.log('Balão adicionado à cena:', balloon, 'Crianças da cena:', scene.children);
             } else {
-                balloon.position.set(player.x, player.y, player.z);
                 console.log('Atualizando posição do balão existente:', balloon.position);
+                balloon.position.set(player.x, player.y, player.z);
             }
         } else {
             console.error('Jogador não encontrado no estado:', window.socket.id, state.players);

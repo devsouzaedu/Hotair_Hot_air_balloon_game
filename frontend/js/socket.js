@@ -27,58 +27,9 @@ export function initSocket() {
     window.balloonColor = window.balloonColor || '#FF4500';
     window.markersLeft = 5;
 
-    function initThreeJS() {
-        window.scene = new THREE.Scene();
-        window.scene.background = new THREE.Color(0x87CEEB);
-
-        window.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
-        window.camera.position.set(0, 300, 300);
-        window.camera.lookAt(0, 100, 0);
-
-        window.renderer = new THREE.WebGLRenderer({ antialias: true });
-        window.renderer.setSize(window.innerWidth, window.innerHeight);
-        document.getElementById('gameScreen').appendChild(window.renderer.domElement);
-
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-        window.scene.add(ambientLight);
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-        directionalLight.position.set(100, 300, 50);
-        window.scene.add(directionalLight);
-
-        createGround();
-    }
-
-    function createGround() {
-        const mapSize = 2600;
-        const groundGeometry = new THREE.PlaneGeometry(mapSize, mapSize, 50, 50);
-        const groundMaterial = new THREE.MeshLambertMaterial({ color: 0x7CFC00 });
-        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
-        ground.rotation.x = -Math.PI / 2;
-        ground.position.y = 0;
-        window.scene.add(ground);
-
-        const gridHelper = new THREE.GridHelper(mapSize, 26, 0x000000, 0x000000);
-        gridHelper.position.y = 0.1;
-        gridHelper.material.opacity = 0.2;
-        gridHelper.material.transparent = true;
-        window.scene.add(gridHelper);
-    }
-
-    function animate() {
-        requestAnimationFrame(animate);
-        if (window.renderer && window.scene && window.camera && window.balloon) {
-            window.renderer.render(window.scene, window.camera);
-        } else {
-            console.warn('Renderização pausada: Algum elemento essencial (renderer, scene, camera, balloon) não está pronto');
-        }
-    }
 
     socket.on('connect', () => {
         console.log('Conectado ao backend via Socket.IO');
-        if (!window.scene) {
-            initThreeJS();
-            animate();
-        }
     });
 
     socket.on('connect_error', (err) => {
@@ -176,18 +127,20 @@ export function initSocket() {
     });
 
     socket.on('gameState', ({ mode: gameMode, state }) => {
-        console.log('gameState recebido:', state);
+        console.log('gameState recebido:', { mode: gameMode, state });
         if (gameMode === 'world') {
             window.mode = 'world';
             if (typeof window.initGameScene === 'function') {
+                console.log('Chamando initGameScene para inicializar o jogo');
                 window.initGameScene(state);
             } else {
-                console.error('window.initGameScene não está definido ainda, tentando novamente em 100ms');
+                console.error('window.initGameScene não está definido ainda, aguardando 100ms');
                 setTimeout(() => {
                     if (typeof window.initGameScene === 'function') {
+                        console.log('Chamando initGameScene após espera');
                         window.initGameScene(state);
                     } else {
-                        console.error('window.initGameScene ainda não está disponível após espera');
+                        console.error('window.initGameScene ainda não disponível após espera');
                     }
                 }, 100);
             }
