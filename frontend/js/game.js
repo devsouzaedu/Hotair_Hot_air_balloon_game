@@ -1,3 +1,4 @@
+console.log('game.js carregado');
 export function initGame() {
     let scene, camera, renderer;
     let balloon;
@@ -19,6 +20,17 @@ export function initGame() {
     window.markers = window.markers || [];
     let lastTargetMoveTime = Date.now();
     let gameEnded = false;
+        // Teste básico de renderização
+        console.log('Inicializando teste básico de Three.js');
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xFF0000); // Fundo vermelho para teste
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
+        camera.position.set(0, 100, 100);
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.getElementById('gameScreen').appendChild(renderer.domElement);
+        renderer.render(scene, camera);
+        console.log('Teste de renderização básico executado');
 
     const windLayers = [
         { minAlt: 0, maxAlt: 100, direction: { x: 0, z: 0 }, speed: 0, name: "Nenhum" },

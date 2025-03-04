@@ -1,3 +1,4 @@
+console.log('socket.js carregado');
 export function initSocket() {
     if (typeof io === 'undefined') {
         console.error('Socket.IO não foi carregado corretamente.');

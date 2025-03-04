@@ -1,3 +1,4 @@
+console.log('main.js carregado');
 import { initUI } from './ui.js';
 import { initGame } from './game.js';
 import { initSocket } from './socket.js';
@@ -54,11 +55,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const startGameButton = document.getElementById('startGameButton');
     if (startGameButton) {
         startGameButton.addEventListener('click', () => {
+            console.log('startGameButton clicado');
             document.getElementById('profileScreen').style.display = 'none';
             document.getElementById('modeScreen').style.display = 'flex';
-            initGame();
-            initSocket();
-            initUI();
+            initGame(); // Inicializa variáveis e funções do jogo
         });
     }
 
@@ -92,8 +92,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (okButton) {
         okButton.addEventListener('click', () => {
+            console.log('okButton clicado, cor selecionada:', selectedColor);
             document.getElementById('colorScreen').style.display = 'none';
             document.getElementById('gameScreen').style.display = 'block';
+            initSocket(); // Inicializa o socket aqui, quando o jogo realmente começa
+            initUI();     // Inicializa a UI aqui
             const token = localStorage.getItem('jwtToken');
             fetch('https://hotair-backend.onrender.com/auth/check', {
                 method: 'GET',
@@ -102,10 +105,7 @@ document.addEventListener('DOMContentLoaded', () => {
             .then(response => response.json())
             .then(data => {
                 if (data.authenticated) {
-                    const socket = io('https://hotair-backend.onrender.com', {
-                        auth: { token }
-                    });
-                    socket.emit('joinNow', { color: selectedColor });
+                    window.socket.emit('joinNow', { color: selectedColor });
                 }
             })
             .catch(err => console.error('Erro ao verificar autenticação ao entrar no jogo:', err));

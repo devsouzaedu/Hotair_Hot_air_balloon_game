@@ -1,3 +1,4 @@
+console.log('ui.js carregado');
 export function initUI() {
     window.balloonColor = null;
     window.mode = null;
