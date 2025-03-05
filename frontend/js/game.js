@@ -294,6 +294,7 @@ export function initGame() {
 
     function handleKeyDown(event) {
         if (!gameStarted || gameOver) return;
+        console.log('Tecla pressionada:', event.code); // Depuração
         switch(event.code) {
             case 'KeyW': keys.W = true; break;
             case 'KeyS': keys.S = true; break;
@@ -307,6 +308,7 @@ export function initGame() {
     }
 
     function handleKeyUp(event) {
+        console.log('Tecla solta:', event.code); // Depuração
         switch(event.code) {
             case 'KeyW': keys.W = false; break;
             case 'KeyS': keys.S = false; break;
@@ -511,7 +513,7 @@ export function initGame() {
     }
 
     function animate(time) {
-        requestAnimationFrame(animate); // Chamar sempre para manter a animação ativa
+        requestAnimationFrame(animate); // Chamar a cada frame
         if (!gameStarted || gameOver) return;
 
         if (!window.scene || !window.camera || !window.renderer || !balloon) {
@@ -519,7 +521,13 @@ export function initGame() {
             return;
         }
 
-        // Limitar a renderização a 30 FPS, mas processar controles a cada frame
+        // Processar controles a cada frame
+        if (keys.W) altitude += 0.5; hasLiftedOff = true;
+        if (keys.U) altitude += 2.5; hasLiftedOff = true;
+        if (keys.S) altitude = Math.max(20, altitude - 0.5);
+        altitude = Math.min(altitude, 500);
+
+        // Limitar renderização a 30 FPS
         if (time - lastTime >= 1000 / 30) {
             frameCount++;
             if (time - lastTime >= 1000) {
@@ -529,14 +537,9 @@ export function initGame() {
                 document.getElementById('fpsCount').textContent = fps;
             }
 
-            // Controles locais para altitude
-            if (keys.W) altitude += 0.5; hasLiftedOff = true;
-            if (keys.U) altitude += 2.5; hasLiftedOff = true;
-            if (keys.S) altitude = Math.max(20, altitude - 0.5);
-            altitude = Math.min(altitude, 500);
-
-            // Sincronizar posição completa com o servidor
+            // Sincronizar posição com o servidor
             if (window.balloon && window.socket && window.socket.emit) {
+                console.log('Enviando updatePosition:', { x: window.balloon.position.x, y: altitude, z: window.balloon.position.z }); // Depuração
                 window.socket.emit('updatePosition', {
                     x: window.balloon.position.x,
                     y: altitude,
@@ -546,18 +549,24 @@ export function initGame() {
                 });
             }
 
-            // Sincronizar posição com dados do servidor
+            // Atualizar posição do balão localmente
+            if (window.balloon) {
+                window.balloon.position.y = altitude; // Aplicar altitude localmente
+            }
+
+            // Sincronizar com targetPosition do servidor (apenas x e z, preservar y local)
             if (window.targetPosition) {
-                balloon.position.x = window.targetPosition.x;
-                balloon.position.y = window.targetPosition.y;
-                balloon.position.z = window.targetPosition.z;
+                if (window.balloon) {
+                    window.balloon.position.x = window.targetPosition.x;
+                    window.balloon.position.z = window.targetPosition.z;
+                }
             }
 
             // Ajustar câmera
-            window.camera.position.x = balloon.position.x;
-            window.camera.position.z = balloon.position.z + 150;
-            window.camera.position.y = balloon.position.y + 150;
-            window.camera.lookAt(balloon.position.x, balloon.position.y, balloon.position.z);
+            window.camera.position.x = window.balloon ? window.balloon.position.x : 0;
+            window.camera.position.z = window.balloon ? window.balloon.position.z + 150 : 150;
+            window.camera.position.y = window.balloon ? window.balloon.position.y + 150 : 150;
+            window.camera.lookAt(window.balloon ? window.balloon.position : new THREE.Vector3(0, 100, 0));
 
             const currentLayerIndex = getCurrentWindLayer();
             const altitudeElement = document.getElementById('altitude');
