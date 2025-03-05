@@ -541,9 +541,9 @@ io.on('connection', (socket) => {
 
 const windLayers = [
     { minAlt: 0, maxAlt: 100, direction: { x: 0, z: 0 }, speed: 0 },
-    { minAlt: 100, maxAlt: 200, direction: { x: 1, z: 0 }, speed: 2.0 },
-    { minAlt: 200, maxAlt: 350, direction: { x: -1, z: 0 }, speed: 2.5 },
-    { minAlt: 350, maxAlt: 500, direction: { x: 0, z: -1 }, speed: 3.0 }
+    { minAlt: 100, maxAlt: 200, direction: { x: 1, z: 0 }, speed: 4.0 },
+    { minAlt: 200, maxAlt: 350, direction: { x: -1, z: 0 }, speed: 5.0 },
+    { minAlt: 350, maxAlt: 500, direction: { x: 0, z: -1 }, speed: 6.0 }
 ];
 
 setInterval(() => {

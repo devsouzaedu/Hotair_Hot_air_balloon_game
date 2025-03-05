@@ -23,9 +23,9 @@ export function initGame() {
 
     const windLayers = [
         { minAlt: 0, maxAlt: 100, direction: { x: 0, z: 0 }, speed: 0, name: "Nenhum" },
-        { minAlt: 100, maxAlt: 200, direction: { x: 1, z: 0 }, speed: 2.0, name: "Leste" },
-        { minAlt: 200, maxAlt: 350, direction: { x: -1, z: 0 }, speed: 2.5, name: "Oeste" },
-        { minAlt: 350, maxAlt: 500, direction: { x: 0, z: -1 }, speed: 3.0, name: "Norte" }
+        { minAlt: 100, maxAlt: 200, direction: { x: 1, z: 0 }, speed: 4.0, name: "Leste" },
+        { minAlt: 200, maxAlt: 350, direction: { x: -1, z: 0 }, speed: 5.0, name: "Oeste" },
+        { minAlt: 350, maxAlt: 500, direction: { x: 0, z: -1 }, speed: 6.0, name: "Norte" }
     ];
 
     const keys = { W: false, S: false, A: false, D: false, U: false, SHIFT_RIGHT: false };
@@ -57,7 +57,7 @@ export function initGame() {
         const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         window.qualitySettings = {
             drawDistance: isMobileDevice ? 1000 : 2000,
-            shadowsEnabled: false, // Desabilitando sombras para melhor performance
+            shadowsEnabled: false,
             maxSpectators: isMobileDevice ? 50 : 100,
             geometryDetail: isMobileDevice ? 6 : 12,
             updateRate: isMobileDevice ? 1000/30 : 1000/60
@@ -78,6 +78,19 @@ export function initGame() {
         window.renderer.shadowMap.enabled = true;
         document.getElementById('gameScreen').appendChild(window.renderer.domElement);
     
+        // Luzes
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+        window.scene.add(ambientLight);
+    
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(100, 150, 50);
+        window.scene.add(directionalLight);
+    
+        // Criar chão e arquibancada
+        const { ground, gridHelper } = createGround();
+        window.scene.add(ground);
+        window.scene.add(gridHelper);
+    
         // Geometrias compartilhadas
         window.sharedGeometries = {
             sphere: new THREE.SphereGeometry(4.5, 16, 16),
@@ -87,30 +100,19 @@ export function initGame() {
     
         // Materiais compartilhados
         window.sharedMaterials = {
-            blue: new THREE.MeshLambertMaterial({ 
-                color: 0x0000FF
-            }),
-            brown: new THREE.MeshLambertMaterial({ 
-                color: 0x8B4513
-            }),
-            white: new THREE.MeshLambertMaterial({ 
-                color: 0xFFFFFF
-            })
+            blue: new THREE.MeshLambertMaterial({ color: 0x0000FF }),
+            brown: new THREE.MeshLambertMaterial({ color: 0x8B4513 }),
+            white: new THREE.MeshLambertMaterial({ color: 0xFFFFFF })
         };
     
         // Sistema de oclusão
         window.frustum = new THREE.Frustum();
         window.cameraViewProjectionMatrix = new THREE.Matrix4();
     
-        // Luzes otimizadas
-        const ambientLight = new THREE.AmbientLight(0xffffff, isMobileDevice ? 0.7 : 0.5);
-        window.scene.add(ambientLight);
-    
-        if (!isMobileDevice) {
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-            directionalLight.position.set(100, 150, 50);
-            window.scene.add(directionalLight);
-        }
+        // Event listeners
+        window.addEventListener('resize', onWindowResize);
+        window.addEventListener('keydown', handleKeyDown);
+        window.addEventListener('keyup', handleKeyUp);
     
         // Inicializar sistema de pooling
         window.objectPool = {
@@ -135,27 +137,6 @@ export function initGame() {
             window.objectPool.tails.push(tailMesh);
         }
     
-        createGround();
-    
-        // Event listeners otimizados
-        const throttledResize = throttle(onWindowResize, 100);
-        window.addEventListener('resize', throttledResize);
-        window.addEventListener('keydown', handleKeyDown);
-        window.addEventListener('keyup', handleKeyUp);
-
-        const marker = new THREE.Mesh(window.sharedGeometries.sphere, window.sharedMaterials.blue);
-        marker.visible = false;
-        window.scene.add(marker);
-
-        const tailGeometry = new THREE.BufferGeometry().setFromPoints([
-            new THREE.Vector3(0, 0, 0),
-            new THREE.Vector3(0, -45, 0)
-        ]);
-        const tailMaterial = new THREE.LineBasicMaterial({ color: 0xFFFFFF });
-        tail = new THREE.Line(tailGeometry, tailMaterial);
-        tail.visible = false;
-        window.scene.add(tail);
-
         window.domElements = {
             altitude: document.getElementById('altitude'),
             windDirection: document.getElementById('windDirection'),
@@ -164,7 +145,7 @@ export function initGame() {
             distanceToTarget: document.getElementById('distanceToTarget'),
             gameScreen: document.getElementById('gameScreen')
         };
-
+    
         window.lastUIUpdate = 0;
         window.lastServerSync = 0;
         window.frameTime = 0;
