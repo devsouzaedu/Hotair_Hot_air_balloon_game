@@ -197,19 +197,20 @@ export function initGame() {
             }
         }
 
-        for (let i = 0; i < 30; i++) {
+        // Reduzir número de casas e vacas para otimizar
+        for (let i = 0; i < 15; i++) { // Reduzido de 30 para 15
             const house = new THREE.Mesh(new THREE.BoxGeometry(15, 15, 15), new THREE.MeshLambertMaterial({ color: 0x8B4513 }));
             house.position.set(Math.random() * (mapSize - 100) - (mapSize - 100) / 2, 7.5, Math.random() * (mapSize - 100) - (mapSize - 100) / 2);
             window.scene.add(house);
         }
 
-        for (let i = 0; i < 45; i++) {
+        for (let i = 0; i < 20; i++) { // Reduzido de 45 para 20
             const cow = new THREE.Mesh(new THREE.SphereGeometry(4.5, 16, 16), new THREE.MeshLambertMaterial({ color: 0xFFFFFF }));
             cow.position.set(Math.random() * (mapSize - 100) - (mapSize - 100) / 2, 2.25, Math.random() * (mapSize - 100) - (mapSize - 100) / 2);
             window.scene.add(cow);
         }
 
-        for (let i = 0; i < 15; i++) {
+        for (let i = 0; i < 10; i++) { // Reduzido de 15 para 10
             const road = new THREE.Line(new THREE.BufferGeometry().setFromPoints([
                 new THREE.Vector3(Math.random() * (mapSize - 100) - (mapSize - 100) / 2, 0.2, Math.random() * (mapSize - 100) - (mapSize - 100) / 2),
                 new THREE.Vector3(Math.random() * (mapSize - 100) - (mapSize - 100) / 2, 0.2, Math.random() * (mapSize - 100) - (mapSize - 100) / 2)
@@ -438,24 +439,40 @@ export function initGame() {
         if (gpsCanvas && gpsDirection && window.balloon && window.targets.length > 0) {
             const ctx = gpsCanvas.getContext('2d');
             const target = window.targets[0];
-            const dx = target.x - window.balloon.position.x;
-            const dz = target.z - window.balloon.position.z;
-            const distance = Math.sqrt(dx * dx + dz * dz).toFixed(1);
-            const angle = Math.atan2(dz, dx) * (180 / Math.PI); // Ângulo em graus
-            const direction = getDirectionFromAngle(angle);
+            const mapSize = 2600; // Tamanho do mapa para normalizar
+            const canvasSize = gpsCanvas.width;
+            const centerX = canvasSize / 2;
+            const centerY = canvasSize / 2;
+
+            // Normalizar posições para o canvas (vista de cima)
+            const balloonX = centerX + (window.balloon.position.x / mapSize) * (canvasSize / 2);
+            const balloonZ = centerY + (window.balloon.position.z / mapSize) * (canvasSize / 2);
+            const targetX = centerX + (target.x / mapSize) * (canvasSize / 2);
+            const targetZ = centerY + (target.z / mapSize) * (canvasSize / 2);
 
             // Limpar canvas
             ctx.clearRect(0, 0, gpsCanvas.width, gpsCanvas.height);
 
-            // Desenhar seta
+            // Desenhar bolinha do balão (azul)
             ctx.beginPath();
-            ctx.moveTo(gpsCanvas.width / 2, gpsCanvas.height / 2);
-            ctx.lineTo(gpsCanvas.width / 2 + 20 * Math.cos((angle - 90) * Math.PI / 180), gpsCanvas.height / 2 + 20 * Math.sin((angle - 90) * Math.PI / 180));
-            ctx.lineTo(gpsCanvas.width / 2 + 10 * Math.cos((angle - 60) * Math.PI / 180), gpsCanvas.height / 2 + 10 * Math.sin((angle - 60) * Math.PI / 180));
-            ctx.moveTo(gpsCanvas.width / 2 + 20 * Math.cos((angle - 90) * Math.PI / 180), gpsCanvas.height / 2 + 20 * Math.sin((angle - 90) * Math.PI / 180));
-            ctx.lineTo(gpsCanvas.width / 2 + 10 * Math.cos((angle - 120) * Math.PI / 180), gpsCanvas.height / 2 + 10 * Math.sin((angle - 120) * Math.PI / 180));
-            ctx.strokeStyle = 'white';
-            ctx.stroke();
+            ctx.arc(balloonX, balloonZ, 5, 0, Math.PI * 2);
+            ctx.fillStyle = 'blue';
+            ctx.fill();
+            ctx.closePath();
+
+            // Desenhar bolinha do alvo (vermelha)
+            ctx.beginPath();
+            ctx.arc(targetX, targetZ, 5, 0, Math.PI * 2);
+            ctx.fillStyle = 'red';
+            ctx.fill();
+            ctx.closePath();
+
+            // Calcular distância e direção
+            const dx = target.x - window.balloon.position.x;
+            const dz = target.z - window.balloon.position.z;
+            const distance = Math.sqrt(dx * dx + dz * dz).toFixed(1);
+            const angle = Math.atan2(dz, dx) * (180 / Math.PI);
+            const direction = getDirectionFromAngle(angle);
 
             // Atualizar texto
             gpsDirection.textContent = `Dir: ${direction} (${distance}m)`;
@@ -517,7 +534,7 @@ export function initGame() {
             return;
         }
 
-        // Limitar FPS a 60
+        // Limitar FPS a 60 com suavização
         if (time - lastTime >= 1000 / 60) {
             frameCount++;
             if (time - lastTime >= 1000) {
@@ -528,9 +545,9 @@ export function initGame() {
             }
 
             // Controles locais apenas para altitude
-            if (keys.W) { altitude += 1; hasLiftedOff = true; }
-            if (keys.U) { altitude += 5; hasLiftedOff = true; }
-            if (keys.S) altitude = Math.max(20, altitude - 1);
+            if (keys.W) { altitude += 0.5; hasLiftedOff = true; } // Reduzir incremento para suavizar
+            if (keys.U) { altitude += 2.5; hasLiftedOff = true; } // Reduzir incremento para suavizar
+            if (keys.S) altitude = Math.max(20, altitude - 0.5); // Reduzir decremento para suavizar
             altitude = Math.min(altitude, 500);
 
             // Enviar apenas a altitude ao servidor
@@ -565,10 +582,10 @@ export function initGame() {
             const distanceElement = document.getElementById('distanceToTarget');
             if (distanceElement) distanceElement.textContent = `Dist: ${calculateDistanceToTarget()}m`;
 
-            // Aplicar gravidade local ao marcador
+            // Aplicar gravidade local ao marcador com suavização
             window.markers.forEach(markerObj => {
                 if (markerObj.marker.userData.falling) {
-                    markerObj.marker.position.y -= 5.0;
+                    markerObj.marker.position.y -= 0.25; // Reduzir gravidade para animação mais fluida
                     markerObj.tail.position.y = markerObj.marker.position.y;
                     if (markerObj.marker.position.y <= 0) {
                         markerObj.marker.position.y = 0;
@@ -583,7 +600,7 @@ export function initGame() {
                                 markerId: markerObj.marker.userData.markerId
                             });
                         }
-                    } else if (window.socket && window.socket.emit) {
+                    } else if (window.socket && window.socket.emit && time % 100 === 0) { // Enviar atualização a cada 100ms
                         window.socket.emit('markerUpdate', {
                             markerId: markerObj.marker.userData.markerId,
                             x: markerObj.marker.position.x,
@@ -658,7 +675,7 @@ export function initGame() {
                 new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, -45, 0)]),
                 new THREE.LineBasicMaterial({ color: 0xFFFFFF })
             );
-            markerMesh.userData = { playerId: markerData.playerId, type: 'marker', markerId, falling: false };
+            markerMesh.userData = { playerId: markerData.playerId, type: 'marker', markerId, falling: markerData.falling || false };
             tailMesh.userData = { playerId: markerData.playerId, type: 'tail', markerId };
             markerMesh.position.set(markerData.x, markerData.y, markerData.z);
             tailMesh.position.set(markerData.x, markerData.y, markerData.z);
