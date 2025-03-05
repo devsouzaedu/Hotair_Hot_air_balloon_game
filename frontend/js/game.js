@@ -55,7 +55,7 @@ export function initGame() {
         window.scene.background = new THREE.Color(0x87CEEB);
     
         window.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
-        window.camera.position.set(0, 300, 300);
+        window.camera.position.set(0, 150, 150); // Ajustado de 300 para 150 para câmera mais perto
         window.camera.lookAt(0, 100, 0);
     
         window.renderer = new THREE.WebGLRenderer({ antialias: false }); // Desativar antialias para melhorar FPS
@@ -65,7 +65,7 @@ export function initGame() {
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
         window.scene.add(ambientLight);
         const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-        directionalLight.position.set(100, 300, 50);
+        directionalLight.position.set(100, 150, 50); // Ajustado para câmera mais perto
         window.scene.add(directionalLight);
     
         createGround();
@@ -132,7 +132,7 @@ export function initGame() {
         const stepDepth = 20;
         const standMaterial = new THREE.MeshLambertMaterial({ color: 0x808080 });
     
-        for (let i = 0; i < 3; i++) { // Reduzido de 6 para 3
+        for (let i = 0; i < 1; i++) { // Reduzido de 3 para 1
             const stepWidth = mapSize - (i * 20);
             const stepGeometry = new THREE.BoxGeometry(stepWidth, stepHeight, stepDepth);
             const step = new THREE.Mesh(stepGeometry, standMaterial);
@@ -140,7 +140,7 @@ export function initGame() {
             window.scene.add(step);
         }
     
-        for (let i = 0; i < 3; i++) { // Reduzido de 6 para 3
+        for (let i = 0; i < 1; i++) { // Reduzido de 3 para 1
             const stepWidth = mapSize - (i * 20);
             const stepGeometry = new THREE.BoxGeometry(stepWidth, stepHeight, stepDepth);
             const step = new THREE.Mesh(stepGeometry, standMaterial);
@@ -148,7 +148,7 @@ export function initGame() {
             window.scene.add(step);
         }
     
-        for (let i = 0; i < 3; i++) { // Reduzido de 6 para 3
+        for (let i = 0; i < 1; i++) { // Reduzido de 3 para 1
             const stepLength = mapSize - (i * 20);
             const stepGeometry = new THREE.BoxGeometry(stepDepth, stepHeight, stepLength);
             const step = new THREE.Mesh(stepGeometry, standMaterial);
@@ -156,7 +156,7 @@ export function initGame() {
             window.scene.add(step);
         }
     
-        for (let i = 0; i < 3; i++) { // Reduzido de 6 para 3
+        for (let i = 0; i < 1; i++) { // Reduzido de 3 para 1
             const stepLength = mapSize - (i * 20);
             const stepGeometry = new THREE.BoxGeometry(stepDepth, stepHeight, stepLength);
             const step = new THREE.Mesh(stepGeometry, standMaterial);
@@ -165,30 +165,30 @@ export function initGame() {
         }
     
         window.spectators = [];
-        for (let i = 0; i < 2; i++) { // Reduzido de 3 para 2
+        for (let i = 0; i < 1; i++) { // Reduzido de 2 para 1
             const yPos = i * stepHeight + stepHeight;
-            for (let x = -mapSize / 2 + 30; x < mapSize / 2 - 30; x += 30) { // Aumentado espaçamento de 20 para 30
+            for (let x = -mapSize / 2 + 50; x < mapSize / 2 - 50; x += 50) { // Aumentado espaçamento de 30 para 50
                 const npc = new THREE.Mesh(new THREE.SphereGeometry(4, 16, 16), new THREE.MeshLambertMaterial({ color: 0xFF0000 }));
                 npc.scale.y = 1.5;
                 npc.position.set(x, yPos + 2, mapSize / 2 + stepDepth / 2 + i * stepDepth);
                 window.spectators.push({ mesh: npc, baseY: yPos + 2, phase: Math.random() * Math.PI * 2 });
                 window.scene.add(npc);
             }
-            for (let x = -mapSize / 2 + 30; x < mapSize / 2 - 30; x += 30) {
+            for (let x = -mapSize / 2 + 50; x < mapSize / 2 - 50; x += 50) {
                 const npc = new THREE.Mesh(new THREE.SphereGeometry(4, 16, 16), new THREE.MeshLambertMaterial({ color: 0xFF0000 }));
                 npc.scale.y = 1.5;
                 npc.position.set(x, yPos + 2, -mapSize / 2 - stepDepth / 2 - i * stepDepth);
                 window.spectators.push({ mesh: npc, baseY: yPos + 2, phase: Math.random() * Math.PI * 2 });
                 window.scene.add(npc);
             }
-            for (let z = -mapSize / 2 + 30; z < mapSize / 2 - 30; z += 30) {
+            for (let z = -mapSize / 2 + 50; z < mapSize / 2 - 50; z += 50) {
                 const npc = new THREE.Mesh(new THREE.SphereGeometry(4, 16, 16), new THREE.MeshLambertMaterial({ color: 0xFF0000 }));
                 npc.scale.y = 1.5;
                 npc.position.set(mapSize / 2 + stepDepth / 2 + i * stepDepth, yPos + 2, z);
                 window.spectators.push({ mesh: npc, baseY: yPos + 2, phase: Math.random() * Math.PI * 2 });
                 window.scene.add(npc);
             }
-            for (let z = -mapSize / 2 + 30; z < mapSize / 2 - 30; z += 30) {
+            for (let z = -mapSize / 2 + 50; z < mapSize / 2 - 50; z += 50) {
                 const npc = new THREE.Mesh(new THREE.SphereGeometry(4, 16, 16), new THREE.MeshLambertMaterial({ color: 0xFF0000 }));
                 npc.scale.y = 1.5;
                 npc.position.set(-mapSize / 2 - stepDepth / 2 - i * stepDepth, yPos + 2, z);
@@ -197,19 +197,19 @@ export function initGame() {
             }
         }
 
-        for (let i = 0; i < 5; i++) { // Reduzido de 10 para 5
+        for (let i = 0; i < 3; i++) { // Reduzido de 5 para 3
             const house = new THREE.Mesh(new THREE.BoxGeometry(15, 15, 15), new THREE.MeshLambertMaterial({ color: 0x8B4513 }));
             house.position.set(Math.random() * (mapSize - 100) - (mapSize - 100) / 2, 7.5, Math.random() * (mapSize - 100) - (mapSize - 100) / 2);
             window.scene.add(house);
         }
 
-        for (let i = 0; i < 10; i++) { // Reduzido de 15 para 10
+        for (let i = 0; i < 5; i++) { // Reduzido de 10 para 5
             const cow = new THREE.Mesh(new THREE.SphereGeometry(4.5, 16, 16), new THREE.MeshLambertMaterial({ color: 0xFFFFFF }));
             cow.position.set(Math.random() * (mapSize - 100) - (mapSize - 100) / 2, 2.25, Math.random() * (mapSize - 100) - (mapSize - 100) / 2);
             window.scene.add(cow);
         }
 
-        for (let i = 0; i < 3; i++) { // Reduzido de 5 para 3
+        for (let i = 0; i < 2; i++) { // Reduzido de 3 para 2
             const road = new THREE.Line(new THREE.BufferGeometry().setFromPoints([
                 new THREE.Vector3(Math.random() * (mapSize - 100) - (mapSize - 100) / 2, 0.2, Math.random() * (mapSize - 100) - (mapSize - 100) / 2),
                 new THREE.Vector3(Math.random() * (mapSize - 100) - (mapSize - 100) / 2, 0.2, Math.random() * (mapSize - 100) - (mapSize - 100) / 2)
@@ -217,19 +217,6 @@ export function initGame() {
             road.scale.set(1.5, 1, 1.5);
             window.scene.add(road);
         }
-
-        // Remover texto de placeholder (ajuste de UI)
-        // new THREE.FontLoader().load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', function(font) {
-        //     const textGeometry = new THREE.TextGeometry("ESPAÇOS PARA DIVULGAÇÃO", {
-        //         font: font,
-        //         size: 50,
-        //         height: 1,
-        //     });
-        //     const textMesh = new THREE.Mesh(textGeometry, new THREE.MeshBasicMaterial({ color: 0x000000 }));
-        //     textMesh.rotation.x = -Math.PI / 2;
-        //     textMesh.position.set(-400, 0.2, 0);
-        //     window.scene.add(textMesh);
-        // });
     }
 
     window.createBalloon = function(color, name) {
@@ -360,10 +347,6 @@ export function initGame() {
             markerId
         });
         window.markerDropped = true;
-        marker.position.set(markerStartPos.x, markerStartPos.y, markerStartPos.z);
-        marker.visible = true;
-        tail.position.set(markerStartPos.x, markerStartPos.y, markerStartPos.z);
-        tail.visible = true;
     }
 
     function showNoMarkersMessage() {
@@ -439,37 +422,37 @@ export function initGame() {
         if (gpsCanvas && gpsDirection && window.balloon && window.targets.length > 0) {
             const ctx = gpsCanvas.getContext('2d');
             const target = window.targets[0];
-            const mapSize = 2600; // Tamanho do mapa para normalizar
+            const mapSize = 2600; // Tamanho do mapa
             const canvasSize = gpsCanvas.width;
             const centerX = canvasSize / 2;
             const centerY = canvasSize / 2;
 
-            // Normalizar posições para o canvas (vista de cima)
-            const balloonX = centerX + (window.balloon.position.x / mapSize) * (canvasSize / 2);
-            const balloonZ = centerY + (window.balloon.position.z / mapSize) * (canvasSize / 2);
-            const targetX = centerX + (target.x / mapSize) * (canvasSize / 2);
-            const targetZ = centerY + (target.z / mapSize) * (canvasSize / 2);
+            // Normalizar posições para o canvas (vista de cima) com escala ajustada
+            const scale = canvasSize / (mapSize / 2); // Escala para cobrir metade do mapa
+            const balloonX = centerX + (window.balloon.position.x / (mapSize / 2)) * (canvasSize / 4); // Reduzir escala
+            const balloonZ = centerY + (window.balloon.position.z / (mapSize / 2)) * (canvasSize / 4);
+            const targetX = centerX + (target.x / (mapSize / 2)) * (canvasSize / 4);
+            const targetZ = centerY + (target.z / (mapSize / 2)) * (canvasSize / 4);
 
-            // Garantir que as coordenadas não saiam do canvas
+            // Garantir que as coordenadas fiquem dentro do canvas
             const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
-            const clampedBalloonX = clamp(balloonX, 0, canvasSize);
-            const clampedBalloonZ = clamp(balloonZ, 0, canvasSize);
-            const clampedTargetX = clamp(targetX, 0, canvasSize);
-            const clampedTargetZ = clamp(targetZ, 0, canvasSize);
+            const clampedBalloonX = clamp(balloonX, 5, canvasSize - 5); // Margem de 5px
+            const clampedBalloonZ = clamp(balloonZ, 5, canvasSize - 5);
+            const clampedTargetX = clamp(targetX, 5, canvasSize - 5);
+            const clampedTargetZ = clamp(targetZ, 5, canvasSize - 5);
 
             // Limpar canvas
             ctx.clearRect(0, 0, gpsCanvas.width, gpsCanvas.height);
 
-            // Desenhar bolinha do balão (azul)
+            // Desenhar bolinhas menores (raio 3)
             ctx.beginPath();
-            ctx.arc(clampedBalloonX, clampedBalloonZ, 5, 0, Math.PI * 2);
+            ctx.arc(clampedBalloonX, clampedBalloonZ, 3, 0, Math.PI * 2); // Raio reduzido para 3
             ctx.fillStyle = 'blue';
             ctx.fill();
             ctx.closePath();
 
-            // Desenhar bolinha do alvo (vermelha)
             ctx.beginPath();
-            ctx.arc(clampedTargetX, clampedTargetZ, 5, 0, Math.PI * 2);
+            ctx.arc(clampedTargetX, clampedTargetZ, 3, 0, Math.PI * 2); // Raio reduzido para 3
             ctx.fillStyle = 'red';
             ctx.fill();
             ctx.closePath();
@@ -571,8 +554,8 @@ export function initGame() {
 
             // Ajustar câmera
             window.camera.position.x = balloon.position.x;
-            window.camera.position.z = balloon.position.z + 300;
-            window.camera.position.y = balloon.position.y + 300;
+            window.camera.position.z = balloon.position.z + 150; // Ajustado de 300 para 150
+            window.camera.position.y = balloon.position.y + 150; // Ajustado de 300 para 150
             window.camera.lookAt(balloon.position.x, balloon.position.y, balloon.position.z);
 
             const currentLayerIndex = getCurrentWindLayer();
@@ -589,34 +572,34 @@ export function initGame() {
             const distanceElement = document.getElementById('distanceToTarget');
             if (distanceElement) distanceElement.textContent = `Dist: ${calculateDistanceToTarget()}m`;
 
-            // Aplicar gravidade local ao marcador com velocidade ajustada
-            window.markers.forEach(markerObj => {
-                if (markerObj.marker.userData.falling) {
-                    markerObj.marker.position.y -= 0.75; // Aumentado de 0.25 para 0.75 para queda mais rápida
-                    markerObj.tail.position.y = markerObj.marker.position.y;
-                    if (markerObj.marker.position.y <= 0) {
-                        markerObj.marker.position.y = 0;
-                        markerObj.marker.userData.falling = false;
-                        if (window.socket && window.socket.emit) {
-                            window.socket.emit('markerLanded', {
-                                x: markerObj.marker.position.x,
-                                y: 0,
-                                z: markerObj.marker.position.z,
-                                mode: window.mode || 'world',
-                                roomName: window.roomName || null,
-                                markerId: markerObj.marker.userData.markerId
-                            });
-                        }
-                    } else if (window.socket && window.socket.emit && time % 50 === 0) {
-                        window.socket.emit('markerUpdate', {
-                            markerId: markerObj.marker.userData.markerId,
-                            x: markerObj.marker.position.x,
-                            y: markerObj.marker.position.y,
-                            z: markerObj.marker.position.z
-                        });
-                    }
-                }
-            });
+            // Desativar gravidade local, confiar no backend
+            // window.markers.forEach(markerObj => {
+            //     if (markerObj.marker.userData.falling) {
+            //         markerObj.marker.position.y -= 0.75;
+            //         markerObj.tail.position.y = markerObj.marker.position.y;
+            //         if (markerObj.marker.position.y <= 0) {
+            //             markerObj.marker.position.y = 0;
+            //             markerObj.marker.userData.falling = false;
+            //             if (window.socket && window.socket.emit) {
+            //                 window.socket.emit('markerLanded', {
+            //                     x: markerObj.marker.position.x,
+            //                     y: 0,
+            //                     z: markerObj.marker.position.z,
+            //                     mode: window.mode || 'world',
+            //                     roomName: window.roomName || null,
+            //                     markerId: markerObj.marker.userData.markerId
+            //                 });
+            //             }
+            //         } else if (window.socket && window.socket.emit && time % 50 === 0) {
+            //             window.socket.emit('markerUpdate', {
+            //                 markerId: markerObj.marker.userData.markerId,
+            //                 x: markerObj.marker.position.x,
+            //                 y: markerObj.marker.position.y,
+            //                 z: markerObj.marker.position.z
+            //             });
+            //         }
+            //     }
+            // });
 
             window.renderer.render(window.scene, window.camera);
         }

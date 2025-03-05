@@ -218,7 +218,7 @@ function updateMarkersGravity(state, roomName = null) {
                     if (player && !player.isBot) {
                         const score = calculateScore(distance);
                         player.score += score;
-                        io.to(roomName || 'world').emit('targetHitUpdate', { targetIndex: state.currentTargetIndex });
+                        io.to(roomName || 'world').emit('targetHitUpdate', { targetIndex: state.currentTargetIndex, score: player.score });
                         state.currentTargetIndex++;
                         User.findOne({ googleId: player.googleId }).then(user => {
                             if (user) {
@@ -229,6 +229,7 @@ function updateMarkersGravity(state, roomName = null) {
                         });
                     }
                 }
+                delete state.markers[markerId]; // Remover marcador após aterrissar
             }
         }
     }
@@ -252,7 +253,8 @@ function addBots() {
                 isBot: true,
                 state: 'approachTarget',
                 targetAltitude: 100,
-                waitTime: 0
+                waitTime: 0,
+                lastDropTime: 0
             };
         }
     }
@@ -265,8 +267,10 @@ function updateBots() {
             const bot = worldState.players[id];
             if (!worldState.targets || !worldState.targets[0]) worldState.targets = [generateTarget()];
             const target = worldState.targets[0];
-            const speed = 0.8;
+            const speed = 1.5; // Aumentado de 0.8 para 1.5 para maior agilidade
+            const dropInterval = 5000; // Intervalo de 5 segundos para soltar marcas
 
+            // Repulsão entre bots
             for (const otherId in worldState.players) {
                 if (otherId !== id && worldState.players[otherId].isBot) {
                     const otherBot = worldState.players[otherId];
@@ -289,14 +293,21 @@ function updateBots() {
                     if (distance > 60) {
                         bot.x += (dx / distance) * speed;
                         bot.z += (dz / distance) * speed;
-                    } else if (distance > 1 && bot.markers > 0) {
+                    } else if (bot.markers > 0 && Date.now() - bot.lastDropTime >= dropInterval) {
                         const markerId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-                        const markerData = { playerId: bot.id, x: bot.x + (Math.random() * 20 - 10), y: bot.y - 10, z: bot.z + (Math.random() * 20 - 10), markerId };
+                        const markerData = { playerId: bot.id, x: bot.x, y: bot.y - 10, z: bot.z, markerId };
                         bot.markers--;
+                        bot.lastDropTime = Date.now();
                         worldState.markers[markerId] = markerData;
                         io.to('world').emit('markerDropped', { ...markerData, markers: bot.markers, score: bot.score, markerId });
+                    } else if (bot.markers === 0) {
                         bot.state = 'climbNorth';
                         bot.targetAltitude = 500;
+                    }
+                    // Ajustar altitude para o alvo
+                    const targetLayer = windLayers.find(layer => bot.y >= layer.minAlt && bot.y < layer.maxAlt) || windLayers[0];
+                    if (Math.abs(bot.y - targetLayer.minAlt) > 50) {
+                        bot.y += (targetLayer.minAlt > bot.y ? 1 : -1);
                     }
                     break;
 
@@ -499,7 +510,7 @@ io.on('connection', (socket) => {
             if (distance < 40 && player && !player.isBot) {
                 const score = calculateScore(distance);
                 player.score += score;
-                io.to(roomName || 'world').emit('targetHitUpdate', { targetIndex: state.currentTargetIndex });
+                io.to(roomName || 'world').emit('targetHitUpdate', { targetIndex: state.currentTargetIndex, score: player.score });
                 state.currentTargetIndex++;
                 User.findOne({ googleId: player.googleId }).then(user => {
                     if (user) {
@@ -529,14 +540,15 @@ io.on('connection', (socket) => {
     addBots();
 });
 
+const windLayers = [
+    { minAlt: 0, maxAlt: 100, direction: { x: 0, z: 0 }, speed: 0 },
+    { minAlt: 100, maxAlt: 200, direction: { x: 1, z: 0 }, speed: 1.5 },
+    { minAlt: 200, maxAlt: 300, direction: { x: 0, z: 1 }, speed: 2.0 },
+    { minAlt: 300, maxAlt: 400, direction: { x: -1, z: 0 }, speed: 2.0 },
+    { minAlt: 400, maxAlt: 500, direction: { x: 0, z: -1 }, speed: 3.0 }
+];
+
 setInterval(() => {
-    const windLayers = [
-        { minAlt: 0, maxAlt: 100, direction: { x: 0, z: 0 }, speed: 0 },
-        { minAlt: 100, maxAlt: 200, direction: { x: 1, z: 0 }, speed: 1.5 },
-        { minAlt: 200, maxAlt: 300, direction: { x: 0, z: 1 }, speed: 2.0 },
-        { minAlt: 300, maxAlt: 400, direction: { x: -1, z: 0 }, speed: 2.0 },
-        { minAlt: 400, maxAlt: 500, direction: { x: 0, z: -1 }, speed: 3.0 }
-    ];
     for (const id in worldState.players) {
         const player = worldState.players[id];
         const currentLayer = windLayers.find(layer => player.y >= layer.minAlt && player.y < layer.maxAlt) || windLayers[0];
@@ -583,7 +595,7 @@ setInterval(() => {
             io.to(roomName).emit('gameUpdate', { state: room, timeLeft: roomTimeLeft, targetTimeLeft: roomTargetTimeLeft });
         }
     }
-}, 100);
+}, 200); // Aumentado de 100ms para 200ms para melhorar o FPS
 
 function resetWorldState() {
     const mapSize = 2600;

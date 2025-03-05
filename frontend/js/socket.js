@@ -203,6 +203,24 @@ export function initSocket() {
                 window.showNoMarkersMessage();
             }
         }
+        // Criar marcador apenas se for de outro jogador
+        if (playerId !== socket.id) {
+            const markerMesh = new THREE.Mesh(
+                new THREE.SphereGeometry(4.5, 16, 16),
+                new THREE.MeshLambertMaterial({ color: 0x0000FF })
+            );
+            const tailMesh = new THREE.Line(
+                new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, -45, 0)]),
+                new THREE.LineBasicMaterial({ color: 0xFFFFFF })
+            );
+            markerMesh.userData = { playerId, type: 'marker', markerId, falling: true };
+            tailMesh.userData = { playerId, type: 'tail', markerId };
+            markerMesh.position.set(x, y, z);
+            tailMesh.position.set(x, y, z);
+            window.scene.add(markerMesh);
+            window.scene.add(tailMesh);
+            window.markers.push({ marker: markerMesh, tail: tailMesh, playerId });
+        }
     });
     
     socket.on('markerUpdate', ({ markerId, x, y, z }) => {
@@ -226,13 +244,11 @@ export function initSocket() {
     });
     
     socket.on('targetHitUpdate', ({ targetIndex, score }) => {
-        // Não remover o alvo, apenas atualizar pontos
         const pointsElement = document.getElementById('points');
         if (pointsElement && score !== undefined) {
             pointsElement.textContent = score;
-            window.points = score; // Atualizar pontos localmente
+            window.points = score;
         }
-        // Dependência do backend para reposicionar o alvo a cada 1 minuto
     });
 
     socket.on('gameOver', (winner) => {
@@ -299,7 +315,7 @@ export function initSocket() {
             countdownDiv.textContent = `Novo jogo em ${countdown} segundos`;
             if (countdown <= 0) {
                 clearInterval(countdownInterval);
-                socket.emit('gameResetRequest'); // Solicita reinício ao servidor
+                socket.emit('gameResetRequest');
             }
         }, 1000);
     }
@@ -350,7 +366,7 @@ export function initSocket() {
         if (typeof window.gameStarted === 'function') {
             window.gameStarted();
         } else {
-            gameStarted = true; // Fallback local
+            gameStarted = true;
         }
     });
 
@@ -375,6 +391,6 @@ export function initSocket() {
         window.lastTargetMoveTime = Date.now();
         window.mode = null;
         window.roomName = null;
-        window.isCreator = false;
+        window.isBot = false;
     }
 }

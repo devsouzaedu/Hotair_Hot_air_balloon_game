@@ -30,39 +30,39 @@ body {
 }
 
 #nameScreen h1, #modeScreen h1, #colorScreen h1, #roomScreen h1, #lobbyScreen h1, #startScreen h1, #loseScreen h1, #leaderboardScreen h1 {
-    font-size: 1em; /* Reduzido pela metade de 2em */
+    font-size: 1em;
     color: #ffdd00;
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 #nameForm, #modeForm, #colorForm, #roomForm, #lobbyForm, #loseForm, #leaderboardForm {
     background: rgba(255, 255, 255, 0.1);
-    padding: 7.5px; /* Reduzido pela metade de 15px */
-    border-radius: 4px; /* Reduzido pela metade de 8px */
+    padding: 7.5px;
+    border-radius: 4px;
     text-align: center;
-    max-width: 200px; /* Reduzido pela metade de 400px */
+    max-width: 200px;
     width: 70%;
 }
 
 #playerName, #roomName {
-    padding: 4px; /* Reduzido pela metade de 8px */
-    font-size: 0.5em; /* Reduzido pela metade de 1em */
+    padding: 4px;
+    font-size: 0.5em;
     width: 80%;
-    border-radius: 2px; /* Reduzido pela metade de 4px */
+    border-radius: 2px;
     border: none;
-    margin: 7.5px 0; /* Reduzido pela metade de 15px */
+    margin: 7.5px 0;
 }
 
 #nameButton, #playNowButton, #roomModeButton, .colorButton, #createRoomButton, #joinRoomButton, #okButton, #startRoomButton, #restartButton {
-    padding: 4px 10px; /* Reduzido pela metade de 8px 20px */
-    font-size: 0.5em; /* Reduzido pela metade de 1em */
+    padding: 4px 10px;
+    font-size: 0.5em;
     background: #e74c3c;
     color: white;
     border: none;
-    border-radius: 2px; /* Reduzido pela metade de 4px */
+    border-radius: 2px;
     cursor: pointer;
     transition: background 0.3s;
-    margin: 2.5px; /* Reduzido pela metade de 5px */
+    margin: 2.5px;
 }
 
 #nameButton:hover, #playNowButton:hover, #roomModeButton:hover, .colorButton:hover, #createRoomButton:hover, #joinRoomButton:hover, #okButton:hover, #startRoomButton:hover, #restartButton:hover {
@@ -76,7 +76,7 @@ body {
     color: white;
     padding: 2.5px;
     border-radius: 1.5px;
-    z-index: 101; /* Acima da camada de vento (z-index 100) */
+    z-index: 101;
 }
 
 .ui-layer {
@@ -85,7 +85,7 @@ body {
     color: white;
     padding: 1px;
     border-radius: 0.6px;
-    z-index: 100; /* Abaixo dos elementos da UI */
+    z-index: 100;
 }
 
 #info {
@@ -97,13 +97,13 @@ body {
 
 #score {
     top: 5px;
-    right: 5px;
+    right: 90px; /* Ajustado para evitar sobreposição com #layerIndicator */
     font-size: 0.4em;
 }
 
 #fps {
     top: 35px;
-    right: 5px;
+    right: 90px; /* Ajustado para evitar sobreposição com #layerIndicator */
     padding: 1.5px;
     font-size: 0.35em;
 }
@@ -135,7 +135,7 @@ body {
     flex-direction: column;
     align-items: flex-end;
     font-size: 0.14em;
-    width: 20px;
+    width: 80px; /* Aumentado para dar espaço */
 }
 
 .layer {
