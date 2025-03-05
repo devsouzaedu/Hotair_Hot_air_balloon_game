@@ -94,17 +94,14 @@ export function initGame() {
         window.sharedMaterials = {
             blue: new THREE.MeshLambertMaterial({ 
                 color: 0x0000FF,
-                flatShading: isMobileDevice,
                 shadowSide: null
             }),
             brown: new THREE.MeshLambertMaterial({ 
                 color: 0x8B4513,
-                flatShading: isMobileDevice,
                 shadowSide: null
             }),
             white: new THREE.MeshLambertMaterial({ 
                 color: 0xFFFFFF,
-                flatShading: isMobileDevice,
                 shadowSide: null
             })
         };
@@ -205,34 +202,41 @@ export function initGame() {
         window.scene.add(gridHelper);
 
         // Otimizar criação de arquibancadas usando instancing
-        const stepGeometry = new THREE.BoxGeometry(1, 10, 20);
+        const stepGeometry = new THREE.BoxGeometry(10, 10, 20);
         const stepMaterial = new THREE.MeshLambertMaterial({ color: 0x808080 });
-        const stepMesh = new THREE.InstancedMesh(stepGeometry, stepMaterial, 24); // 6 fileiras * 4 lados
+        const maxSteps = 6;
+        const stepsPerSide = Math.floor((mapSize - 40) / 20);
+        const totalInstances = (stepsPerSide * 4) * maxSteps;
+        const stepMesh = new THREE.InstancedMesh(stepGeometry, stepMaterial, totalInstances);
 
         const matrix = new THREE.Matrix4();
         let instanceCount = 0;
 
-        for (let i = 0; i < 6; i++) {
-            const stepWidth = mapSize - (i * 20);
+        for (let i = 0; i < maxSteps; i++) {
             const yPos = i * 10 + 5;
+            const offset = i * 20;
             
-            // Norte
-            matrix.makeScale(stepWidth, 1, 1);
-            matrix.setPosition(0, yPos, mapSize/2 + 10 + i * 20);
-            stepMesh.setMatrixAt(instanceCount++, matrix);
-
-            // Sul
-            matrix.setPosition(0, yPos, -mapSize/2 - 10 - i * 20);
-            stepMesh.setMatrixAt(instanceCount++, matrix);
-
-            // Leste
-            matrix.makeScale(1, 1, stepWidth);
-            matrix.setPosition(mapSize/2 + 10 + i * 20, yPos, 0);
-            stepMesh.setMatrixAt(instanceCount++, matrix);
-
-            // Oeste
-            matrix.setPosition(-mapSize/2 - 10 - i * 20, yPos, 0);
-            stepMesh.setMatrixAt(instanceCount++, matrix);
+            // Norte e Sul
+            for (let x = -mapSize/2 + 20; x < mapSize/2 - 20; x += 20) {
+                // Norte
+                matrix.makeTranslation(x, yPos, mapSize/2 - offset);
+                stepMesh.setMatrixAt(instanceCount++, matrix);
+                
+                // Sul
+                matrix.makeTranslation(x, yPos, -mapSize/2 + offset);
+                stepMesh.setMatrixAt(instanceCount++, matrix);
+            }
+            
+            // Leste e Oeste
+            for (let z = -mapSize/2 + 20; z < mapSize/2 - 20; z += 20) {
+                // Leste
+                matrix.makeTranslation(mapSize/2 - offset, yPos, z);
+                stepMesh.setMatrixAt(instanceCount++, matrix);
+                
+                // Oeste
+                matrix.makeTranslation(-mapSize/2 + offset, yPos, z);
+                stepMesh.setMatrixAt(instanceCount++, matrix);
+            }
         }
 
         window.scene.add(stepMesh);
@@ -240,44 +244,46 @@ export function initGame() {
         // Otimizar criação de espectadores usando instancing
         const spectatorGeometry = new THREE.SphereGeometry(4, 8, 8);
         const spectatorMaterial = new THREE.MeshLambertMaterial({ color: 0xFF0000 });
-        const maxSpectators = Math.floor((mapSize - 20) / 10) * 24; // Número total de espectadores
+        const maxSpectators = window.qualitySettings.maxSpectators;
         const spectatorMesh = new THREE.InstancedMesh(spectatorGeometry, spectatorMaterial, maxSpectators);
 
         let spectatorCount = 0;
-        for (let i = 0; i < 6; i++) {
+        for (let i = 0; i < maxSteps && spectatorCount < maxSpectators; i++) {
             const yPos = i * 10 + 12;
-            for (let x = -mapSize/2 + 10; x < mapSize/2 - 10; x += 10) {
-                matrix.makeScale(1, 1.5, 1);
-                matrix.setPosition(x, yPos, mapSize/2 + 10 + i * 20);
+            const offset = i * 20;
+            
+            // Norte e Sul
+            for (let x = -mapSize/2 + 25; x < mapSize/2 - 25; x += 10) {
+                if (spectatorCount >= maxSpectators) break;
+                
+                // Norte
+                matrix.makeTranslation(x, yPos, mapSize/2 - offset - 5);
                 spectatorMesh.setMatrixAt(spectatorCount++, matrix);
                 
-                matrix.setPosition(x, yPos, -mapSize/2 - 10 - i * 20);
+                if (spectatorCount >= maxSpectators) break;
+                
+                // Sul
+                matrix.makeTranslation(x, yPos, -mapSize/2 + offset + 5);
                 spectatorMesh.setMatrixAt(spectatorCount++, matrix);
             }
-            for (let z = -mapSize/2 + 10; z < mapSize/2 - 10; z += 10) {
-                matrix.setPosition(mapSize/2 + 10 + i * 20, yPos, z);
+            
+            // Leste e Oeste
+            for (let z = -mapSize/2 + 25; z < mapSize/2 - 25; z += 10) {
+                if (spectatorCount >= maxSpectators) break;
+                
+                // Leste
+                matrix.makeTranslation(mapSize/2 - offset - 5, yPos, z);
                 spectatorMesh.setMatrixAt(spectatorCount++, matrix);
                 
-                matrix.setPosition(-mapSize/2 - 10 - i * 20, yPos, z);
+                if (spectatorCount >= maxSpectators) break;
+                
+                // Oeste
+                matrix.makeTranslation(-mapSize/2 + offset + 5, yPos, z);
                 spectatorMesh.setMatrixAt(spectatorCount++, matrix);
             }
         }
 
         window.scene.add(spectatorMesh);
-
-        // Adicionar elementos decorativos com menos detalhes
-        for (let i = 0; i < 3; i++) {
-            const house = new THREE.Mesh(
-                new THREE.BoxGeometry(15, 15, 15),
-                new THREE.MeshLambertMaterial({ color: 0x8B4513 })
-            );
-            house.position.set(
-                Math.random() * (mapSize - 100) - (mapSize - 100) / 2,
-                7.5,
-                Math.random() * (mapSize - 100) - (mapSize - 100) / 2
-            );
-            window.scene.add(house);
-        }
     }
 
     window.createBalloon = function(color, name) {
@@ -734,7 +740,7 @@ export function initGame() {
                 }
             }
 
-            // Atualizar câmera com interpolação suave
+            // Atualizar câmera com interpolação mais suave
             if (window.balloon) {
                 const targetCameraPos = new THREE.Vector3(
                     window.balloon.position.x,
@@ -742,8 +748,13 @@ export function initGame() {
                     window.balloon.position.z + 150
                 );
                 
-                window.camera.position.lerp(targetCameraPos, 0.1);
-                window.camera.lookAt(window.balloon.position);
+                window.camera.position.lerp(targetCameraPos, 0.05);
+                const lookAtPos = new THREE.Vector3(
+                    window.balloon.position.x,
+                    window.balloon.position.y,
+                    window.balloon.position.z
+                );
+                window.camera.lookAt(lookAtPos);
             }
 
             // Atualizar frustum para occlusion culling
@@ -753,6 +764,19 @@ export function initGame() {
                 window.camera.matrixWorldInverse
             );
             window.frustum.setFromProjectionMatrix(window.cameraViewProjectionMatrix);
+
+            // Atualizar queda das marcas com interpolação suave
+            window.markers.forEach(markerObj => {
+                if (markerObj.marker.userData.falling) {
+                    const fallSpeed = 2.0 * (deltaTime / 16.67);
+                    markerObj.marker.position.y = Math.max(0, markerObj.marker.position.y - fallSpeed);
+                    markerObj.tail.position.y = markerObj.marker.position.y;
+                    
+                    if (markerObj.marker.position.y <= 0) {
+                        markerObj.marker.userData.falling = false;
+                    }
+                }
+            });
 
             // Otimizar renderização com occlusion culling
             window.scene.traverse(function(object) {
