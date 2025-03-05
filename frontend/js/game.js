@@ -433,10 +433,46 @@ export function initGame() {
     }
 
     function updateGPS() {
-        const gpsElement = document.getElementById('gps');
-        if (gpsElement && window.balloon) {
-            gpsElement.textContent = `Pos: (${window.balloon.position.x.toFixed(1)}, ${window.balloon.position.z.toFixed(1)})`;
+        const gpsCanvas = document.getElementById('gpsCanvas');
+        const gpsDirection = document.getElementById('gpsDirection');
+        if (gpsCanvas && gpsDirection && window.balloon && window.targets.length > 0) {
+            const ctx = gpsCanvas.getContext('2d');
+            const target = window.targets[0];
+            const dx = target.x - window.balloon.position.x;
+            const dz = target.z - window.balloon.position.z;
+            const distance = Math.sqrt(dx * dx + dz * dz).toFixed(1);
+            const angle = Math.atan2(dz, dx) * (180 / Math.PI); // Ângulo em graus
+            const direction = getDirectionFromAngle(angle);
+
+            // Limpar canvas
+            ctx.clearRect(0, 0, gpsCanvas.width, gpsCanvas.height);
+
+            // Desenhar seta
+            ctx.beginPath();
+            ctx.moveTo(gpsCanvas.width / 2, gpsCanvas.height / 2);
+            ctx.lineTo(gpsCanvas.width / 2 + 20 * Math.cos((angle - 90) * Math.PI / 180), gpsCanvas.height / 2 + 20 * Math.sin((angle - 90) * Math.PI / 180));
+            ctx.lineTo(gpsCanvas.width / 2 + 10 * Math.cos((angle - 60) * Math.PI / 180), gpsCanvas.height / 2 + 10 * Math.sin((angle - 60) * Math.PI / 180));
+            ctx.moveTo(gpsCanvas.width / 2 + 20 * Math.cos((angle - 90) * Math.PI / 180), gpsCanvas.height / 2 + 20 * Math.sin((angle - 90) * Math.PI / 180));
+            ctx.lineTo(gpsCanvas.width / 2 + 10 * Math.cos((angle - 120) * Math.PI / 180), gpsCanvas.height / 2 + 10 * Math.sin((angle - 120) * Math.PI / 180));
+            ctx.strokeStyle = 'white';
+            ctx.stroke();
+
+            // Atualizar texto
+            gpsDirection.textContent = `Dir: ${direction} (${distance}m)`;
         }
+    }
+
+    function getDirectionFromAngle(angle) {
+        angle = (angle + 360) % 360;
+        if (angle >= 337.5 || angle < 22.5) return 'N';
+        if (angle >= 22.5 && angle < 67.5) return 'NE';
+        if (angle >= 67.5 && angle < 112.5) return 'E';
+        if (angle >= 112.5 && angle < 157.5) return 'SE';
+        if (angle >= 157.5 && angle < 202.5) return 'S';
+        if (angle >= 202.5 && angle < 247.5) return 'SW';
+        if (angle >= 247.5 && angle < 292.5) return 'W';
+        if (angle >= 292.5 && angle < 337.5) return 'NW';
+        return 'N';
     }
 
     window.restartGame = function() {
@@ -472,7 +508,7 @@ export function initGame() {
         }
     }
 
-    function animate() {
+    function animate(time) {
         requestAnimationFrame(animate);
         if (!gameStarted) return;
 
@@ -481,76 +517,85 @@ export function initGame() {
             return;
         }
 
-        const currentTime = performance.now();
-        frameCount++;
-        if (currentTime - lastTime >= 1000) {
-            fps = frameCount;
-            frameCount = 0;
-            lastTime = currentTime;
-            document.getElementById('fpsCount').textContent = fps;
-        }
+        // Limitar FPS a 60
+        if (time - lastTime >= 1000 / 60) {
+            frameCount++;
+            if (time - lastTime >= 1000) {
+                fps = frameCount;
+                frameCount = 0;
+                lastTime = time;
+                document.getElementById('fpsCount').textContent = fps;
+            }
 
-        // Controles locais apenas para altitude
-        if (keys.W) { altitude += 1; hasLiftedOff = true; }
-        if (keys.U) { altitude += 5; hasLiftedOff = true; }
-        if (keys.S) altitude = Math.max(20, altitude - 1);
-        altitude = Math.min(altitude, 500);
+            // Controles locais apenas para altitude
+            if (keys.W) { altitude += 1; hasLiftedOff = true; }
+            if (keys.U) { altitude += 5; hasLiftedOff = true; }
+            if (keys.S) altitude = Math.max(20, altitude - 1);
+            altitude = Math.min(altitude, 500);
 
-        // Enviar apenas a altitude ao servidor
-        if (window.socket && window.socket.emit) {
-            window.socket.emit('updatePosition', { y: altitude, mode: window.mode || 'world', roomName: window.roomName || null });
-        }
+            // Enviar apenas a altitude ao servidor
+            if (window.socket && window.socket.emit) {
+                window.socket.emit('updatePosition', { y: altitude, mode: window.mode || 'world', roomName: window.roomName || null });
+            }
 
-        // Sincronizar posição com dados do servidor
-        if (window.targetPosition) {
-            balloon.position.x = window.targetPosition.x;
-            balloon.position.y = window.targetPosition.y;
-            balloon.position.z = window.targetPosition.z;
-        }
+            // Sincronizar posição com dados do servidor
+            if (window.targetPosition) {
+                balloon.position.x = window.targetPosition.x;
+                balloon.position.y = window.targetPosition.y;
+                balloon.position.z = window.targetPosition.z;
+            }
 
-        // Ajustar câmera
-        window.camera.position.x = balloon.position.x;
-        window.camera.position.z = balloon.position.z + 300;
-        window.camera.position.y = balloon.position.y + 300;
-        window.camera.lookAt(balloon.position.x, balloon.position.y, balloon.position.z);
+            // Ajustar câmera
+            window.camera.position.x = balloon.position.x;
+            window.camera.position.z = balloon.position.z + 300;
+            window.camera.position.y = balloon.position.y + 300;
+            window.camera.lookAt(balloon.position.x, balloon.position.y, balloon.position.z);
 
-        const currentLayerIndex = getCurrentWindLayer();
-        const altitudeElement = document.getElementById('altitude');
-        if (altitudeElement) altitudeElement.textContent = `${Math.floor(altitude)}m`;
-        const windDirectionElement = document.getElementById('windDirection');
-        if (windDirectionElement) windDirectionElement.textContent = getWindDirectionText(currentLayerIndex);
-        const windSpeedElement = document.getElementById('windSpeed');
-        if (windSpeedElement) windSpeedElement.textContent = windLayers[currentLayerIndex].speed.toFixed(1);
-        updateLayerIndicator(currentLayerIndex);
+            const currentLayerIndex = getCurrentWindLayer();
+            const altitudeElement = document.getElementById('altitude');
+            if (altitudeElement) altitudeElement.textContent = `${Math.floor(altitude)}m`;
+            const windDirectionElement = document.getElementById('windDirection');
+            if (windDirectionElement) windDirectionElement.textContent = getWindDirectionText(currentLayerIndex);
+            const windSpeedElement = document.getElementById('windSpeed');
+            if (windSpeedElement) windSpeedElement.textContent = windLayers[currentLayerIndex].speed.toFixed(1);
+            updateLayerIndicator(currentLayerIndex);
 
-        // Atualizar GPS e distância
-        updateGPS();
-        const distanceElement = document.getElementById('distanceToTarget');
-        if (distanceElement) distanceElement.textContent = `Dist: ${calculateDistanceToTarget()}m`;
+            // Atualizar GPS e distância
+            updateGPS();
+            const distanceElement = document.getElementById('distanceToTarget');
+            if (distanceElement) distanceElement.textContent = `Dist: ${calculateDistanceToTarget()}m`;
 
-        // Aplicar gravidade local ao marcador
-        window.markers.forEach(markerObj => {
-            if (markerObj.marker.userData.falling) {
-                markerObj.marker.position.y -= 5.0;
-                markerObj.tail.position.y = markerObj.marker.position.y;
-                if (markerObj.marker.position.y <= 0) {
-                    markerObj.marker.position.y = 0;
-                    markerObj.marker.userData.falling = false;
-                    if (window.socket && window.socket.emit) {
-                        window.socket.emit('markerLanded', {
+            // Aplicar gravidade local ao marcador
+            window.markers.forEach(markerObj => {
+                if (markerObj.marker.userData.falling) {
+                    markerObj.marker.position.y -= 5.0;
+                    markerObj.tail.position.y = markerObj.marker.position.y;
+                    if (markerObj.marker.position.y <= 0) {
+                        markerObj.marker.position.y = 0;
+                        markerObj.marker.userData.falling = false;
+                        if (window.socket && window.socket.emit) {
+                            window.socket.emit('markerLanded', {
+                                x: markerObj.marker.position.x,
+                                y: 0,
+                                z: markerObj.marker.position.z,
+                                mode: window.mode || 'world',
+                                roomName: window.roomName || null,
+                                markerId: markerObj.marker.userData.markerId
+                            });
+                        }
+                    } else if (window.socket && window.socket.emit) {
+                        window.socket.emit('markerUpdate', {
+                            markerId: markerObj.marker.userData.markerId,
                             x: markerObj.marker.position.x,
-                            y: 0,
-                            z: markerObj.marker.position.z,
-                            mode: window.mode || 'world',
-                            roomName: window.roomName || null,
-                            markerId: markerObj.marker.userData.markerId
+                            y: markerObj.marker.position.y,
+                            z: markerObj.marker.position.z
                         });
                     }
                 }
-            }
-        });
+            });
 
-        window.renderer.render(window.scene, window.camera);
+            window.renderer.render(window.scene, window.camera);
+        }
     }
 
     window.initGameScene = function(state) {
@@ -624,19 +669,19 @@ export function initGame() {
 
         window.lastTargetMoveTime = state.lastTargetMoveTime || Date.now();
         gameStarted = true;
-        animate();
+        animate(performance.now());
     };
 
-    // Restaurar funções globais
+    // Exportar funções globais
     window.setTargets = function(t) { window.targets = t; };
     window.setOtherPlayers = function(op) { window.otherPlayers = op; };
     window.setMarkers = function(m) { window.markers = m; };
+    window.gameStarted = () => { gameStarted = true; };
+    window.gameOver = () => { gameOver = true; };
 
     window.addEventListener('gamepadconnected', (e) => {});
     window.addEventListener('gamepaddisconnected', (e) => {});
 
-    window.gameStarted = () => gameStarted = true;
-    window.gameOver = () => gameOver = true;
     window.gameEnded = gameEnded;
     window.setBalloon = (b) => { if (b) { balloon = b; window.balloon = b; if (!window.scene.children.includes(b)) window.scene.add(b); } };
     window.showNoMarkersMessage = showNoMarkersMessage;
