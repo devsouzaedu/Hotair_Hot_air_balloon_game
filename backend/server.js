@@ -547,28 +547,43 @@ const windLayers = [
 ];
 
 setInterval(() => {
+    // Atualizar posições dos jogadores com base no vento
     for (const id in worldState.players) {
         const player = worldState.players[id];
         const currentLayer = windLayers.find(layer => player.y >= layer.minAlt && player.y < layer.maxAlt) || windLayers[0];
-        player.x += currentLayer.direction.x * currentLayer.speed;
-        player.z += currentLayer.direction.z * currentLayer.speed;
+        
+        // Aplicar vento com suavização
+        const windForce = currentLayer.speed * 0.016; // Delta time aproximado para 60fps
+        player.x += currentLayer.direction.x * windForce;
+        player.z += currentLayer.direction.z * windForce;
     }
+
+    // Atualizar gravidade dos marcadores com suavização
     updateMarkersGravity(worldState);
     updateBots();
 
+    // Lógica de tempo e alvo
     const elapsedWorld = (Date.now() - worldState.startTime) / 1000;
-    const timeLeft = Math.max(307 - elapsedWorld, 0); // Alterado para 307 segundos
+    const timeLeft = Math.max(307 - elapsedWorld, 0);
     const timeSinceLastTargetMove = (Date.now() - worldState.lastTargetMoveTime) / 1000;
+    
+    // Mover alvo exatamente a cada 60 segundos
     if (timeSinceLastTargetMove >= 60) {
         moveTarget(worldState);
         worldState.lastTargetMoveTime = Date.now();
     }
     const targetTimeLeft = 60 - (timeSinceLastTargetMove % 60);
 
+    // Enviar atualizações para os clientes
     if (Object.keys(worldState.players).length > 0 || Object.keys(worldState.markers).length > 0) {
-        io.to('world').emit('gameUpdate', { state: worldState, timeLeft, targetTimeLeft });
+        io.to('world').emit('gameUpdate', { 
+            state: worldState, 
+            timeLeft, 
+            targetTimeLeft: Math.ceil(targetTimeLeft) // Arredondar para cima para melhor feedback
+        });
     }
 
+    // Fim de jogo e reinício
     if (timeLeft <= 0 && !worldState.resetScheduled) {
         io.to('world').emit('gameEnd', { players: worldState.players });
         worldState.resetScheduled = true;
@@ -576,28 +591,37 @@ setInterval(() => {
             resetWorldState();
             io.to('world').emit('gameReset', { state: worldState });
             worldState.resetScheduled = false;
-        }, 7000); // 7 segundos para reinício
+        }, 7000);
     }
 
+    // Atualizar salas
     for (const roomName in rooms) {
         const room = rooms[roomName];
         if (room.started) {
+            // Aplicar mesma lógica de atualização para salas
             for (const id in room.players) {
                 const player = room.players[id];
                 const currentLayer = windLayers.find(layer => player.y >= layer.minAlt && player.y < layer.maxAlt) || windLayers[0];
-                player.x += currentLayer.direction.x * currentLayer.speed;
-                player.z += currentLayer.direction.z * currentLayer.speed;
+                const windForce = currentLayer.speed * 0.016;
+                player.x += currentLayer.direction.x * windForce;
+                player.z += currentLayer.direction.z * windForce;
             }
             updateMarkersGravity(room, roomName);
+            
             const elapsed = (Date.now() - room.startTime) / 1000;
             const roomTimeLeft = Math.max(307 - elapsed, 0);
             const roomTargetTimeLeft = 60 - ((Date.now() - room.lastTargetMoveTime) / 1000 % 60);
+            
             if (Object.keys(room.players).length > 0 || Object.keys(room.markers).length > 0) {
-                io.to(roomName).emit('gameUpdate', { state: room, timeLeft: roomTimeLeft, targetTimeLeft: roomTargetTimeLeft });
+                io.to(roomName).emit('gameUpdate', { 
+                    state: room, 
+                    timeLeft: roomTimeLeft, 
+                    targetTimeLeft: Math.ceil(roomTargetTimeLeft)
+                });
             }
         }
     }
-}, 300); // Intervalo aumentado para 300ms
+}, 16); // Atualizar a 60fps para maior fluidez
 
 function resetWorldState() {
     const mapSize = 2600;

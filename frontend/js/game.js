@@ -176,130 +176,88 @@ export function initGame() {
     }
 
     function createGround() {
-        const mapSize = 2600;
-        
-        // Melhorar geometria do chão
-        const groundGeometry = new THREE.PlaneGeometry(mapSize, mapSize, 50, 50);
+        const groundGeometry = new THREE.PlaneGeometry(2600, 2600, 50, 50);
         const groundMaterial = new THREE.MeshLambertMaterial({ 
-            color: 0x7CBA3D,
-            side: THREE.DoubleSide
+            color: 0x2ecc71,  // Verde mais vivo
+            side: THREE.DoubleSide 
         });
         const ground = new THREE.Mesh(groundGeometry, groundMaterial);
         ground.rotation.x = -Math.PI / 2;
         ground.position.y = 0;
-        window.scene.add(ground);
+        ground.receiveShadow = true;
 
-        // Grid helper melhorado
-        const gridHelper = new THREE.GridHelper(mapSize, 52, 0x000000, 0x000000);
+        // Grid helper com cores mais vivas
+        const gridHelper = new THREE.GridHelper(2600, 52, 0x3498db, 0x2980b9);
         gridHelper.position.y = 0.1;
-        gridHelper.material.opacity = 0.2;
-        gridHelper.material.transparent = true;
-        window.scene.add(gridHelper);
 
-        // Melhorar criação de arquibancadas
-        const stepGeometry = new THREE.BoxGeometry(20, 15, 40);
-        const stepMaterial = new THREE.MeshLambertMaterial({ 
-            color: 0x808080
-        });
-        const maxSteps = 6; // 6 andares
-        const stepsPerSide = Math.floor((mapSize - 40) / 30);
-        const totalInstances = (stepsPerSide * 4) * maxSteps;
-        const stepMesh = new THREE.InstancedMesh(stepGeometry, stepMaterial, totalInstances);
+        // Arquibancada mais bonita
+        const bleacherGroup = new THREE.Group();
+        const stepWidth = 40;
+        const stepHeight = 15;
+        const stepDepth = 20;
+        const numSteps = 6;
+        const spacing = 20;
 
-        const matrix = new THREE.Matrix4();
-        let instanceCount = 0;
+        const bleacherMaterial = new THREE.MeshPhongMaterial({ color: 0xe74c3c }); // Vermelho vivo
+        const spectatorMaterial = new THREE.MeshPhongMaterial({ color: 0xf1c40f }); // Amarelo vivo
 
-        for (let i = 0; i < maxSteps; i++) {
-            const yPos = i * 12 + 7.5;
-            const offset = i * 20;
-            
-            // Norte e Sul
-            for (let x = -mapSize/2 + 40; x < mapSize/2 - 40; x += 30) {
-                // Norte
-                matrix.makeTranslation(x, yPos, mapSize/2 - offset);
-                stepMesh.setMatrixAt(instanceCount++, matrix);
-                
-                // Sul
-                matrix.makeTranslation(x, yPos, -mapSize/2 + offset);
-                stepMesh.setMatrixAt(instanceCount++, matrix);
-            }
-            
-            // Leste e Oeste
-            for (let z = -mapSize/2 + 40; z < mapSize/2 - 40; z += 30) {
-                // Leste
-                matrix.makeTranslation(mapSize/2 - offset, yPos, z);
-                stepMesh.setMatrixAt(instanceCount++, matrix);
-                
-                // Oeste
-                matrix.makeTranslation(-mapSize/2 + offset, yPos, z);
-                stepMesh.setMatrixAt(instanceCount++, matrix);
+        for (let i = 0; i < numSteps; i++) {
+            const stepGeometry = new THREE.BoxGeometry(stepWidth, stepHeight, stepDepth);
+            const step = new THREE.Mesh(stepGeometry, bleacherMaterial);
+            step.position.set(0, (stepHeight * i) + (stepHeight / 2), -(stepDepth * i) - spacing);
+            step.castShadow = true;
+            step.receiveShadow = true;
+            bleacherGroup.add(step);
+
+            // Adiciona espectadores em cada degrau
+            const numSpectators = Math.floor(6000 / numSteps);
+            const spectatorSize = 2;
+            const spectatorSpacing = (stepWidth - spectatorSize) / (Math.sqrt(numSpectators) - 1);
+
+            for (let j = 0; j < Math.sqrt(numSpectators); j++) {
+                for (let k = 0; k < Math.sqrt(numSpectators); k++) {
+                    const spectatorGeometry = new THREE.BoxGeometry(spectatorSize, spectatorSize * 2, spectatorSize);
+                    const spectator = new THREE.Mesh(spectatorGeometry, spectatorMaterial);
+                    spectator.position.set(
+                        -stepWidth/2 + spectatorSize/2 + j * spectatorSpacing,
+                        stepHeight * i + stepHeight,
+                        -(stepDepth * i) - spacing - stepDepth/2 + spectatorSize/2 + k * (spectatorSpacing/2)
+                    );
+                    spectator.castShadow = true;
+                    bleacherGroup.add(spectator);
+                }
             }
         }
 
-        window.scene.add(stepMesh);
+        // Posiciona a arquibancada
+        bleacherGroup.position.set(-100, 0, 100);
+        window.scene.add(bleacherGroup);
 
-        // Melhorar criação de espectadores
-        const spectatorGeometry = new THREE.SphereGeometry(3, 8, 8);
-        const spectatorMaterial = new THREE.MeshLambertMaterial({ 
-            color: 0xFF0000
-        });
-        const maxSpectators = 6000; // Aumentado para 6000 espectadores
-        const spectatorMesh = new THREE.InstancedMesh(spectatorGeometry, spectatorMaterial, maxSpectators);
+        // Adiciona elementos decorativos
+        const decorations = createDecorations();
+        window.scene.add(decorations);
 
-        let spectatorCount = 0;
-        for (let i = 0; i < maxSteps && spectatorCount < maxSpectators; i++) {
-            const yPos = i * 12 + 15;
-            const offset = i * 20;
-            
-            // Norte e Sul
-            for (let x = -mapSize/2 + 45; x < mapSize/2 - 45; x += 15) {
-                if (spectatorCount >= maxSpectators) break;
-                
-                // Norte
-                matrix.makeTranslation(x, yPos, mapSize/2 - offset - 5);
-                spectatorMesh.setMatrixAt(spectatorCount++, matrix);
-                
-                if (spectatorCount >= maxSpectators) break;
-                
-                // Sul
-                matrix.makeTranslation(x, yPos, -mapSize/2 + offset + 5);
-                spectatorMesh.setMatrixAt(spectatorCount++, matrix);
-            }
-            
-            // Leste e Oeste
-            for (let z = -mapSize/2 + 45; z < mapSize/2 - 45; z += 15) {
-                if (spectatorCount >= maxSpectators) break;
-                
-                // Leste
-                matrix.makeTranslation(mapSize/2 - offset - 5, yPos, z);
-                spectatorMesh.setMatrixAt(spectatorCount++, matrix);
-                
-                if (spectatorCount >= maxSpectators) break;
-                
-                // Oeste
-                matrix.makeTranslation(-mapSize/2 + offset + 5, yPos, z);
-                spectatorMesh.setMatrixAt(spectatorCount++, matrix);
-            }
-        }
+        return { ground, gridHelper };
+    }
 
-        window.scene.add(spectatorMesh);
+    function createDecorations() {
+        const decorationGroup = new THREE.Group();
 
-        // Adicionar elementos decorativos
-        const decorations = [
-            { geometry: new THREE.BoxGeometry(40, 20, 40), position: { x: 200, y: 10, z: 200 }, color: 0x8B4513 }, // Quiosque
-            { geometry: new THREE.CylinderGeometry(15, 15, 100, 8), position: { x: -200, y: 50, z: -200 }, color: 0x4CAF50 }, // Torre
-            { geometry: new THREE.SphereGeometry(30, 16, 16), position: { x: -200, y: 30, z: 200 }, color: 0x4CAF50 }, // Árvore
-            { geometry: new THREE.BoxGeometry(80, 10, 80), position: { x: 200, y: 5, z: -200 }, color: 0x2196F3 } // Lago
-        ];
+        // Quiosque
+        const kioskGeometry = new THREE.BoxGeometry(20, 30, 20);
+        const kioskMaterial = new THREE.MeshPhongMaterial({ color: 0x9b59b6 }); // Roxo vivo
+        const kiosk = new THREE.Mesh(kioskGeometry, kioskMaterial);
+        kiosk.position.set(150, 15, 150);
+        decorationGroup.add(kiosk);
 
-        decorations.forEach(dec => {
-            const mesh = new THREE.Mesh(
-                dec.geometry,
-                new THREE.MeshLambertMaterial({ color: dec.color })
-            );
-            mesh.position.set(dec.position.x, dec.position.y, dec.position.z);
-            window.scene.add(mesh);
-        });
+        // Torre
+        const towerGeometry = new THREE.CylinderGeometry(5, 8, 60, 8);
+        const towerMaterial = new THREE.MeshPhongMaterial({ color: 0xe67e22 }); // Laranja vivo
+        const tower = new THREE.Mesh(towerGeometry, towerMaterial);
+        tower.position.set(-150, 30, -150);
+        decorationGroup.add(tower);
+
+        return decorationGroup;
     }
 
     window.createBalloon = function(color, name) {

@@ -155,10 +155,18 @@ export function initSocket() {
     socket.on('gameUpdate', ({ state, timeLeft, targetTimeLeft }) => {
         const currentState = window.mode === 'world' ? state : state;
         const player = currentState.players[socket.id];
+        
+        // Atualizar posição do jogador com interpolação suave
         if (player && window.balloon) {
-            window.targetPosition = { x: player.x, y: player.y, z: player.z };
+            const lerpFactor = 0.1; // Fator de interpolação
+            window.targetPosition = {
+                x: window.targetPosition ? window.targetPosition.x + (player.x - window.targetPosition.x) * lerpFactor : player.x,
+                y: player.y,
+                z: window.targetPosition ? window.targetPosition.z + (player.z - window.targetPosition.z) * lerpFactor : player.z
+            };
         }
         
+        // Atualizar outros jogadores com interpolação
         for (const id in currentState.players) {
             if (id !== socket.id) {
                 if (!window.otherPlayers[id] && currentState.players[id].color) {
@@ -167,28 +175,38 @@ export function initSocket() {
                     window.otherPlayers[id] = otherBalloon;
                     window.scene.add(otherBalloon);
                 } else if (window.otherPlayers[id]) {
-                    window.otherPlayers[id].position.set(currentState.players[id].x, currentState.players[id].y, currentState.players[id].z);
+                    const other = currentState.players[id];
+                    const balloon = window.otherPlayers[id];
+                    balloon.position.x += (other.x - balloon.position.x) * lerpFactor;
+                    balloon.position.y = other.y;
+                    balloon.position.z += (other.z - balloon.position.z) * lerpFactor;
                 }
             }
         }
         
-        const timerDisplay = document.getElementById('timerDisplay');
-        if (timerDisplay) {
-            const minutes = Math.floor(timeLeft / 60);
-            const seconds = Math.floor(timeLeft % 60);
-            timerDisplay.textContent = `Tempo: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+        // Atualizar UI com throttling para evitar atualizações muito frequentes
+        const now = Date.now();
+        if (!window.lastUIUpdate || now - window.lastUIUpdate >= 100) {
+            const timerDisplay = document.getElementById('timerDisplay');
+            if (timerDisplay) {
+                const minutes = Math.floor(timeLeft / 60);
+                const seconds = Math.floor(timeLeft % 60);
+                timerDisplay.textContent = `Tempo: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+            }
+
+            const targetTimer = document.getElementById('targetMoveTimer');
+            if (targetTimer) {
+                targetTimer.textContent = `Próxima mudança: ${Math.floor(targetTimeLeft)}s`;
+            }
+
+            const markersLeftElement = document.getElementById('markersLeft');
+            if (markersLeftElement) markersLeftElement.textContent = player?.markers || window.markersLeft;
+
+            const pointsElement = document.getElementById('points');
+            if (pointsElement) pointsElement.textContent = player?.score || 0;
+
+            window.lastUIUpdate = now;
         }
-
-        const targetTimer = document.getElementById('targetMoveTimer');
-        if (targetTimer) {
-            targetTimer.textContent = `Próxima mudança: ${Math.floor(targetTimeLeft)}s`;
-        }
-
-        const markersLeftElement = document.getElementById('markersLeft');
-        if (markersLeftElement) markersLeftElement.textContent = player?.markers || window.markersLeft;
-
-        const pointsElement = document.getElementById('points');
-        if (pointsElement) pointsElement.textContent = player?.score || 0;
     });
     
     socket.on('markerDropped', ({ playerId, x, y, z, markers, score, markerId }) => {
