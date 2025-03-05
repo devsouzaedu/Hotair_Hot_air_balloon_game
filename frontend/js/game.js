@@ -157,66 +157,42 @@ export function initGame() {
     }
 
     function createGround() {
+        // Criar o chão
         const groundGeometry = new THREE.PlaneGeometry(2600, 2600, 50, 50);
         const groundMaterial = new THREE.MeshLambertMaterial({ 
-            color: 0x2ecc71,  // Verde mais vivo
-            side: THREE.DoubleSide 
+            color: 0x2ecc71,
+            side: THREE.DoubleSide
         });
         const ground = new THREE.Mesh(groundGeometry, groundMaterial);
-        ground.rotation.x = -Math.PI / 2;
+        ground.rotation.x = Math.PI / 2;
         ground.position.y = 0;
         ground.receiveShadow = true;
 
-        // Grid helper com cores mais vivas
+        // Grid helper para melhor visualização
         const gridHelper = new THREE.GridHelper(2600, 52, 0x3498db, 0x2980b9);
         gridHelper.position.y = 0.1;
 
-        // Arquibancada mais bonita
-        const bleacherGroup = new THREE.Group();
-        const stepWidth = 40;
-        const stepHeight = 15;
-        const stepDepth = 20;
-        const numSteps = 6;
-        const spacing = 20;
+        // Criar arquibancada
+        const bleacherGeometry = new THREE.BoxGeometry(100, 10, 500);
+        const bleacherMaterial = new THREE.MeshLambertMaterial({ color: 0xe74c3c });
+        const bleacher = new THREE.Mesh(bleacherGeometry, bleacherMaterial);
+        bleacher.position.set(-1200, 25, 0);
+        window.scene.add(bleacher);
 
-        const bleacherMaterial = new THREE.MeshPhongMaterial({ color: 0xe74c3c }); // Vermelho vivo
-        const spectatorMaterial = new THREE.MeshPhongMaterial({ color: 0xf1c40f }); // Amarelo vivo
-
-        for (let i = 0; i < numSteps; i++) {
-            const stepGeometry = new THREE.BoxGeometry(stepWidth, stepHeight, stepDepth);
-            const step = new THREE.Mesh(stepGeometry, bleacherMaterial);
-            step.position.set(0, (stepHeight * i) + (stepHeight / 2), -(stepDepth * i) - spacing);
-            step.castShadow = true;
-            step.receiveShadow = true;
-            bleacherGroup.add(step);
-
-            // Adiciona espectadores em cada degrau
-            const numSpectators = Math.floor(6000 / numSteps);
-            const spectatorSize = 2;
-            const spectatorSpacing = (stepWidth - spectatorSize) / (Math.sqrt(numSpectators) - 1);
-
-            for (let j = 0; j < Math.sqrt(numSpectators); j++) {
-                for (let k = 0; k < Math.sqrt(numSpectators); k++) {
-                    const spectatorGeometry = new THREE.BoxGeometry(spectatorSize, spectatorSize * 2, spectatorSize);
-                    const spectator = new THREE.Mesh(spectatorGeometry, spectatorMaterial);
-                    spectator.position.set(
-                        -stepWidth/2 + spectatorSize/2 + j * spectatorSpacing,
-                        stepHeight * i + stepHeight,
-                        -(stepDepth * i) - spacing - stepDepth/2 + spectatorSize/2 + k * (spectatorSpacing/2)
-                    );
-                    spectator.castShadow = true;
-                    bleacherGroup.add(spectator);
-                }
-            }
+        // Criar espectadores
+        const spectatorGeometry = new THREE.SphereGeometry(5, 8, 8);
+        const spectatorMaterial = new THREE.MeshLambertMaterial({ color: 0xf1c40f });
+        for (let i = 0; i < 100; i++) {
+            const spectator = new THREE.Mesh(spectatorGeometry, spectatorMaterial);
+            const x = -1200 + (Math.random() * 80 - 40);
+            const y = 35 + (Math.random() * 20);
+            const z = Math.random() * 480 - 240;
+            spectator.position.set(x, y, z);
+            window.scene.add(spectator);
         }
 
-        // Posiciona a arquibancada
-        bleacherGroup.position.set(-100, 0, 100);
-        window.scene.add(bleacherGroup);
-
-        // Adiciona elementos decorativos
-        const decorations = createDecorations();
-        window.scene.add(decorations);
+        // Criar decorações
+        createDecorations();
 
         return { ground, gridHelper };
     }
@@ -241,103 +217,31 @@ export function initGame() {
         return decorationGroup;
     }
 
-    window.createBalloon = function(color, name) {
-        color = color || '#FF4500';
-        const group = new THREE.Group();
-        
-        // Usar geometrias e materiais compartilhados
-        const basket = new THREE.Mesh(
-            window.sharedGeometries.box,
-            window.sharedMaterials.brown
-        );
-        basket.position.y = -15;
-        group.add(basket);
+    function createTarget(x, z) {
+        const targetGeometry = new THREE.RingGeometry(15, 20, 32);
+        const targetMaterial = new THREE.MeshBasicMaterial({ 
+            color: 0xff0000,
+            side: THREE.DoubleSide,
+            transparent: true,
+            opacity: 0.7
+        });
+        const target = new THREE.Mesh(targetGeometry, targetMaterial);
+        target.rotation.x = Math.PI / 2;
+        target.position.set(x, 0.5, z);
 
-        const balloonMesh = new THREE.Mesh(
-            window.sharedGeometries.balloon,
-            new THREE.MeshLambertMaterial({ 
-                color: color === 'rainbow' ? 0xffffff : parseInt(color.replace('#', '0x'), 16),
-                vertexColors: color === 'rainbow'
-            })
-        );
+        // Adicionar um ponto central
+        const centerGeometry = new THREE.CircleGeometry(5, 32);
+        const centerMaterial = new THREE.MeshBasicMaterial({ 
+            color: 0xff0000,
+            side: THREE.DoubleSide
+        });
+        const center = new THREE.Mesh(centerGeometry, centerMaterial);
+        center.rotation.x = Math.PI / 2;
+        center.position.y = 0.6;
+        target.add(center);
 
-        if (color === 'rainbow') {
-            const colors = new Float32Array(window.sharedGeometries.balloon.attributes.position.count * 3);
-            for (let i = 0; i < window.sharedGeometries.balloon.attributes.position.count; i++) {
-                colors[i * 3] = Math.random();
-                colors[i * 3 + 1] = Math.random();
-                colors[i * 3 + 2] = Math.random();
-            }
-            window.sharedGeometries.balloon.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-        }
-
-        balloonMesh.scale.y = 1.2;
-        balloonMesh.position.y = 30;
-        group.add(balloonMesh);
-
-        // Otimizar criação de cordas usando uma única geometria
-        const ropePositions = [
-            [-7.5, -10, -7.5, -7.5, 30, -7.5],
-            [7.5, -10, -7.5, 7.5, 30, -7.5],
-            [-7.5, -10, 7.5, -7.5, 30, 7.5],
-            [7.5, -10, 7.5, 7.5, 30, 7.5]
-        ];
-
-        const ropeGeometry = new THREE.BufferGeometry();
-        const ropeVertices = new Float32Array(ropePositions.flat());
-        ropeGeometry.setAttribute('position', new THREE.BufferAttribute(ropeVertices, 3));
-        const ropeMaterial = new THREE.LineBasicMaterial({ color: 0x000000 });
-        const ropes = new THREE.LineSegments(ropeGeometry, ropeMaterial);
-        group.add(ropes);
-
-        // Otimizar carregamento de fonte
-        if (!window.cachedFont) {
-            new THREE.FontLoader().load('https://threejs.org/examples/fonts/optimer_regular.typeface.json', function(font) {
-                window.cachedFont = font;
-                const textGeometry = new THREE.TextGeometry(name || 'Jogador', {
-                    font: font,
-                    size: 7,
-                    height: 1,
-                });
-                textGeometry.computeBoundingBox();
-                const textMesh = new THREE.Mesh(textGeometry, new THREE.MeshBasicMaterial({ color: 0x000000 }));
-                textMesh.position.set(-15, 80, 0);
-                group.add(textMesh);
-            });
-        } else {
-            const textGeometry = new THREE.TextGeometry(name || 'Jogador', {
-                font: window.cachedFont,
-                size: 7,
-                height: 1,
-            });
-            textGeometry.computeBoundingBox();
-            const textMesh = new THREE.Mesh(textGeometry, new THREE.MeshBasicMaterial({ color: 0x000000 }));
-            textMesh.position.set(-15, 80, 0);
-            group.add(textMesh);
-        }
-
-        group.position.set(0, altitude, 0);
-        return group;
-    };
-
-    window.createTarget = function(x, z) {
-        const targetMesh = new THREE.Group();
-        const material = new THREE.LineBasicMaterial({ color: 0xFF0000 });
-        const line1 = new THREE.Line(new THREE.BufferGeometry().setFromPoints([
-            new THREE.Vector3(-45, 0, -45),
-            new THREE.Vector3(45, 0, 45)
-        ]), material);
-        targetMesh.add(line1);
-
-        const line2 = new THREE.Line(new THREE.BufferGeometry().setFromPoints([
-            new THREE.Vector3(45, 0, -45),
-            new THREE.Vector3(-45, 0, 45)
-        ]), material);
-        targetMesh.add(line2);
-
-        targetMesh.position.set(x, 0.1, z);
-        return targetMesh;
-    };
+        return target;
+    }
 
     function handleKeyDown(event) {
         if (!gameStarted || gameOver) return;
@@ -817,6 +721,76 @@ export function initGame() {
     window.gameEnded = gameEnded;
     window.setBalloon = (b) => { if (b) { balloon = b; window.balloon = b; if (!window.scene.children.includes(b)) window.scene.add(b); } };
     window.showNoMarkersMessage = showNoMarkersMessage;
+
+    function createBalloon(color, name) {
+        color = color || '#FF4500';
+        const group = new THREE.Group();
+        
+        // Cesta
+        const basketGeometry = new THREE.BoxGeometry(15, 12, 15);
+        const basketMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
+        const basket = new THREE.Mesh(basketGeometry, basketMaterial);
+        basket.position.y = -15;
+        group.add(basket);
+
+        // Balão
+        const balloonGeometry = new THREE.SphereGeometry(30, 32, 32);
+        const balloonMaterial = new THREE.MeshLambertMaterial({ 
+            color: color === 'rainbow' ? 0xffffff : parseInt(color.replace('#', '0x'), 16),
+            vertexColors: color === 'rainbow'
+        });
+        const balloonMesh = new THREE.Mesh(balloonGeometry, balloonMaterial);
+
+        if (color === 'rainbow') {
+            const colors = new Float32Array(balloonGeometry.attributes.position.count * 3);
+            for (let i = 0; i < balloonGeometry.attributes.position.count; i++) {
+                colors[i * 3] = Math.random();
+                colors[i * 3 + 1] = Math.random();
+                colors[i * 3 + 2] = Math.random();
+            }
+            balloonGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+        }
+
+        balloonMesh.scale.y = 1.2;
+        balloonMesh.position.y = 30;
+        group.add(balloonMesh);
+
+        // Cordas
+        const ropePositions = [
+            [-7.5, -10, -7.5, -7.5, 30, -7.5],
+            [7.5, -10, -7.5, 7.5, 30, -7.5],
+            [-7.5, -10, 7.5, -7.5, 30, 7.5],
+            [7.5, -10, 7.5, 7.5, 30, 7.5]
+        ];
+
+        const ropeGeometry = new THREE.BufferGeometry();
+        const ropeVertices = new Float32Array(ropePositions.flat());
+        ropeGeometry.setAttribute('position', new THREE.BufferAttribute(ropeVertices, 3));
+        const ropeMaterial = new THREE.LineBasicMaterial({ color: 0x000000 });
+        const ropes = new THREE.LineSegments(ropeGeometry, ropeMaterial);
+        group.add(ropes);
+
+        // Nome do jogador
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        canvas.width = 256;
+        canvas.height = 64;
+        context.font = 'Bold 32px Arial';
+        context.fillStyle = '#000000';
+        context.textAlign = 'center';
+        context.fillText(name || 'Jogador', canvas.width / 2, canvas.height / 2);
+
+        const texture = new THREE.CanvasTexture(canvas);
+        const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
+        const sprite = new THREE.Sprite(spriteMaterial);
+        sprite.position.y = 80;
+        sprite.scale.set(50, 12.5, 1);
+        group.add(sprite);
+
+        return group;
+    }
+
+    window.createBalloon = createBalloon; // Expor a função globalmente
 }
 
 // Função de throttle para otimizar event listeners

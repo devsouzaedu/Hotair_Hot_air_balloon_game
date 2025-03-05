@@ -1,9 +1,9 @@
 // socket.js
 console.log('socket.js carregado');
 
-const lerpFactor = 0.1; // Fator de interpolação para movimentos suaves
-
 export function initSocket() {
+    const lerpFactor = 0.1; // Fator de interpolação para movimentos suaves
+
     if (typeof io === 'undefined') {
         console.error('Socket.IO não foi carregado corretamente.');
         return;
@@ -160,7 +160,6 @@ export function initSocket() {
         
         // Atualizar posição do jogador com interpolação suave
         if (player && window.balloon) {
-            const lerpFactor = 0.1; // Fator de interpolação
             window.targetPosition = {
                 x: window.targetPosition ? window.targetPosition.x + (player.x - window.targetPosition.x) * lerpFactor : player.x,
                 y: player.y,
