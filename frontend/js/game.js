@@ -66,43 +66,36 @@ export function initGame() {
     
         // Configuração da câmera com posição fixa
         window.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, window.qualitySettings.drawDistance);
-        window.camera.position.set(0, 300, 300); // Aumentada a altura da câmera
+        window.camera.position.set(0, 200, 200);
         window.camera.lookAt(0, 0, 0);
     
-        // Configurações otimizadas do renderer
+        // Configurações do renderer
         window.renderer = new THREE.WebGLRenderer({ 
-            antialias: true, // Habilitando antialiasing
-            powerPreference: "high-performance",
-            precision: "highp", // Aumentando a precisão
-            stencil: false,
-            depth: true,
-            logarithmicDepthBuffer: false
+            antialias: true,
+            powerPreference: "high-performance"
         });
         window.renderer.setSize(window.innerWidth, window.innerHeight);
-        window.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1));
-        window.renderer.shadowMap.enabled = false;
+        window.renderer.setPixelRatio(window.devicePixelRatio);
+        window.renderer.shadowMap.enabled = true;
         document.getElementById('gameScreen').appendChild(window.renderer.domElement);
     
-        // Geometrias compartilhadas com LOD
+        // Geometrias compartilhadas
         window.sharedGeometries = {
-            sphere: new THREE.SphereGeometry(4.5, 32, 32), // Aumentando a qualidade
+            sphere: new THREE.SphereGeometry(4.5, 16, 16),
             box: new THREE.BoxGeometry(15, 12, 15),
-            balloon: new THREE.SphereGeometry(30, 32, 32) // Aumentando a qualidade
+            balloon: new THREE.SphereGeometry(30, 16, 16)
         };
     
-        // Materiais compartilhados com otimizações
+        // Materiais compartilhados
         window.sharedMaterials = {
-            blue: new THREE.MeshPhongMaterial({ // Usando MeshPhongMaterial para melhor qualidade
-                color: 0x0000FF,
-                shininess: 30
+            blue: new THREE.MeshLambertMaterial({ 
+                color: 0x0000FF
             }),
-            brown: new THREE.MeshPhongMaterial({ // Usando MeshPhongMaterial para melhor qualidade
-                color: 0x8B4513,
-                shininess: 30
+            brown: new THREE.MeshLambertMaterial({ 
+                color: 0x8B4513
             }),
-            white: new THREE.MeshPhongMaterial({ // Usando MeshPhongMaterial para melhor qualidade
-                color: 0xFFFFFF,
-                shininess: 30
+            white: new THREE.MeshLambertMaterial({ 
+                color: 0xFFFFFF
             })
         };
     
@@ -187,10 +180,9 @@ export function initGame() {
         const mapSize = 2600;
         
         // Melhorar geometria do chão
-        const groundGeometry = new THREE.PlaneGeometry(mapSize, mapSize, 50, 50);
-        const groundMaterial = new THREE.MeshPhongMaterial({ 
-            color: 0x7CFC00,
-            shininess: 10
+        const groundGeometry = new THREE.PlaneGeometry(mapSize, mapSize, 25, 25);
+        const groundMaterial = new THREE.MeshLambertMaterial({ 
+            color: 0x7CBA3D
         });
         const ground = new THREE.Mesh(groundGeometry, groundMaterial);
         ground.rotation.x = -Math.PI / 2;
@@ -205,10 +197,9 @@ export function initGame() {
         window.scene.add(gridHelper);
 
         // Melhorar criação de arquibancadas
-        const stepGeometry = new THREE.BoxGeometry(20, 15, 30);
-        const stepMaterial = new THREE.MeshPhongMaterial({ 
-            color: 0x808080,
-            shininess: 30
+        const stepGeometry = new THREE.BoxGeometry(15, 12, 30);
+        const stepMaterial = new THREE.MeshLambertMaterial({ 
+            color: 0x808080
         });
         const maxSteps = 6;
         const stepsPerSide = Math.floor((mapSize - 40) / 40);
@@ -248,10 +239,9 @@ export function initGame() {
         window.scene.add(stepMesh);
 
         // Melhorar criação de espectadores
-        const spectatorGeometry = new THREE.SphereGeometry(4, 16, 16);
-        const spectatorMaterial = new THREE.MeshPhongMaterial({ 
-            color: 0xFF0000,
-            shininess: 30
+        const spectatorGeometry = new THREE.SphereGeometry(4, 8, 8);
+        const spectatorMaterial = new THREE.MeshLambertMaterial({ 
+            color: 0xFF0000
         });
         const maxSpectators = Math.min(window.qualitySettings.maxSpectators * 2, 1000);
         const spectatorMesh = new THREE.InstancedMesh(spectatorGeometry, spectatorMaterial, maxSpectators);
@@ -747,20 +737,16 @@ export function initGame() {
                 }
             }
 
-            // Câmera seguindo o balão com altura relativa
+            // Câmera seguindo o balão
             if (window.balloon) {
-                const cameraHeight = 300; // Altura fixa da câmera
-                const cameraDistance = 300; // Distância fixa da câmera
+                const cameraHeight = 200;
+                const cameraDistance = 200;
                 window.camera.position.set(
                     window.balloon.position.x,
                     cameraHeight,
                     window.balloon.position.z + cameraDistance
                 );
-                window.camera.lookAt(
-                    window.balloon.position.x,
-                    window.balloon.position.y,
-                    window.balloon.position.z
-                );
+                window.camera.lookAt(window.balloon.position);
             }
 
             // Otimizar renderização com frustum culling
