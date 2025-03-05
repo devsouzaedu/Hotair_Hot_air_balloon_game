@@ -533,31 +533,15 @@ export function initGame() {
         requestAnimationFrame(animate);
         if (!gameStarted) return;
     
-        if (!window.scene || !window.camera || !window.renderer || !balloon) {
-            console.error('Animação abortada: elementos essenciais da cena não estão prontos');
-            return;
-        }
-    
-        const currentTime = performance.now();
-        frameCount++;
-        if (currentTime - lastTime >= 1000) {
-            fps = frameCount;
-            frameCount = 0;
-            lastTime = currentTime;
-            document.getElementById('fpsCount').textContent = fps;
-        }
-    
         // Controles locais apenas para altitude
         if (keys.W) { altitude += 1; hasLiftedOff = true; }
         if (keys.U) { altitude += 5; hasLiftedOff = true; }
         if (keys.S) altitude = Math.max(20, altitude - 1);
         altitude = Math.min(altitude, 500);
     
-        // Enviar posição atualizada ao servidor
+        // Enviar apenas a altitude ao servidor
         window.socket.emit('updatePosition', { 
-            x: balloon.position.x, 
             y: altitude, 
-            z: balloon.position.z, 
             mode: window.mode || 'world', 
             roomName: window.roomName || null 
         });
@@ -570,11 +554,12 @@ export function initGame() {
             console.log(`[Position Sync] Updated balloon: x=${balloon.position.x.toFixed(2)}, y=${balloon.position.y.toFixed(2)}, z=${balloon.position.z.toFixed(2)}`);
         }
     
-        // Atualizar câmera
+        // Atualizar câmera e renderizar (mantém como está)
         window.camera.position.x = balloon.position.x;
         window.camera.position.z = balloon.position.z + 200;
         window.camera.position.y = balloon.position.y + 200;
         window.camera.lookAt(balloon.position.x, balloon.position.y, balloon.position.z);
+        window.renderer.render(window.scene, window.camera);
     
         // Atualizar UI e outros elementos (mantém como está)
         const currentLayerIndex = getCurrentWindLayer();

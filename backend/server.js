@@ -532,19 +532,15 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('updatePosition', ({ x, y, z, mode, roomName }) => {
+    socket.on('updatePosition', ({ y, mode, roomName }) => {
         if (mode === 'world' && worldState.players[socket.id]) {
-            worldState.players[socket.id].x = x;
-            worldState.players[socket.id].y = y;
-            worldState.players[socket.id].z = z;
-            console.log(`[Server] UpdatePosition: ${socket.id} x=${x}, y=${y}, z=${z}`);
+            worldState.players[socket.id].y = y; // Atualizar apenas a altitude
+            console.log(`[Server] UpdatePosition: ${socket.id} y=${y}`);
         } else if (mode === 'room' && rooms[roomName] && rooms[roomName].players[socket.id]) {
-            rooms[roomName].players[socket.id].x = x;
-            rooms[roomName].players[socket.id].y = y;
-            rooms[roomName].players[socket.id].z = z;
-            console.log(`[Server] UpdatePosition Room ${roomName}: ${socket.id} x=${x}, y=${y}, z=${z}`);
+            rooms[roomName].players[socket.id].y = y; // Atualizar apenas a altitude
+            console.log(`[Server] UpdatePosition Room ${roomName}: ${socket.id} y=${y}`);
         }
-    });
+    });;
 
     socket.on('dropMarker', ({ x, y, z, mode, roomName, markerId }) => {
         const player = mode === 'world' ? worldState.players[socket.id] : rooms[roomName]?.players[socket.id];
