@@ -64,9 +64,9 @@ export function initGame() {
             updateRate: isMobileDevice ? 1000/30 : 1000/60
         };
     
-        // Configuração da câmera com posição fixa
+        // Configuração da câmera
         window.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, window.qualitySettings.drawDistance);
-        window.camera.position.set(0, 200, 200);
+        window.camera.position.set(0, 100, 100);
         window.camera.lookAt(0, 0, 0);
     
         // Configurações do renderer
@@ -739,14 +739,10 @@ export function initGame() {
 
             // Câmera seguindo o balão
             if (window.balloon) {
-                const cameraDistance = 200;
-                const cameraHeight = 200;
-                const angle = Math.PI / 4; // 45 graus em radianos
-                
                 window.camera.position.set(
-                    window.balloon.position.x - Math.cos(angle) * cameraDistance,
-                    window.balloon.position.y + cameraHeight,
-                    window.balloon.position.z + Math.sin(angle) * cameraDistance
+                    window.balloon.position.x,
+                    window.balloon.position.y + 100,
+                    window.balloon.position.z + 100
                 );
                 window.camera.lookAt(window.balloon.position);
             }
