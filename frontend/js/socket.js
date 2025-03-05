@@ -203,7 +203,6 @@ export function initSocket() {
                 window.showNoMarkersMessage();
             }
         }
-        // Remover criação duplicada de marcador, confiar em markerUpdate
     });
     
     socket.on('markerUpdate', ({ markerId, x, y, z }) => {
@@ -227,23 +226,13 @@ export function initSocket() {
     });
     
     socket.on('targetHitUpdate', ({ targetIndex, score }) => {
-        if (targetIndex < 1) {
-            window.scene.remove(window.scene.children.find(obj => 
-                obj instanceof THREE.Group && 
-                obj.position.x === window.targets[0].x && 
-                obj.position.z === window.targets[0].z
-            ));
-            window.targets.shift();
-            const pointsElement = document.getElementById('points');
-            if (pointsElement && score !== undefined) {
-                pointsElement.textContent = score;
-                window.points = score; // Atualizar pontos localmente
-                if (window.targets.length === 0) {
-                    window.gameOver(); // Declarar vitória se todos os alvos foram atingidos
-                    window.socket.emit('gameOver', { winner: window.socket.id }); // Notificar servidor
-                }
-            }
+        // Não remover o alvo, apenas atualizar pontos
+        const pointsElement = document.getElementById('points');
+        if (pointsElement && score !== undefined) {
+            pointsElement.textContent = score;
+            window.points = score; // Atualizar pontos localmente
         }
+        // Dependência do backend para reposicionar o alvo a cada 1 minuto
     });
 
     socket.on('gameOver', (winner) => {

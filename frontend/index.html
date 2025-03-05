@@ -1,137 +1,137 @@
 <!-- libraair_/frontend/index.html -->
 <!DOCTYPE html>
 <html lang="pt-br">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-        <title>Hotair - Jogo de Balão de Ar Quente</title>
-        <link rel="stylesheet" href="css/styles.css">
-        <meta http-equiv="Content-Security-Policy" content="script-src 'self' https://accounts.google.com https://cdnjs.cloudflare.com https://hotair-backend.onrender.com 'unsafe-inline'; connect-src 'self' https://hotair-backend.onrender.com wss://hotair-backend.onrender.com https://threejs.org;">
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
-<script src="https://hotair-backend.onrender.com/socket.io/socket.io.js" defer></script>
-<script src="js/game.js" type="module" defer></script>
-<script src="js/socket.js" type="module" defer></script>
-<script src="js/ui.js" type="module" defer></script>
-<script src="js/main.js" type="module" defer></script>
-        <style>
-            #restartCountdown {
-                color: white;
-                font-weight: bold;
-                text-align: center;
-                margin-top: 20px;
-                font-size: 1.5em;
-            }
-        </style>
-    </head>
-    <body>
-        <div id="nameScreen">
-            <h1>Hotair - Jogo de Balão Competitivo - Beta</h1>
-            <div id="nameForm">
-                <button id="googleLoginButton">Login com Google</button>
-                <div id="nicknameForm" style="display: none;">
-                    <input type="text" id="nicknameInput" maxlength="18" placeholder="Escolha seu nickname (máx. 18)">
-                    <button id="setNicknameButton">Definir Nickname</button>
-                </div>
-                <p style="font-size: 0.9em; color: #666; margin-top: 10px;">
-                    Controles: W (subir), S (descer), U (turbo subir), Shift Direito (lançar marca)<br>
-                    Regras: 5 minutos, 5 alvos, 5 marcas. Acerte os alvos para pontuar!
-                </p>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Hotair - Jogo de Balão de Ar Quente</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' https://accounts.google.com https://cdnjs.cloudflare.com https://hotair-backend.onrender.com 'unsafe-inline'; connect-src 'self' https://hotair-backend.onrender.com wss://hotair-backend.onrender.com https://threejs.org;">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
+    <script src="https://hotair-backend.onrender.com/socket.io/socket.io.js" defer></script>
+    <script src="js/game.js" type="module" defer></script>
+    <script src="js/socket.js" type="module" defer></script>
+    <script src="js/ui.js" type="module" defer></script>
+    <script src="js/main.js" type="module" defer></script>
+    <style>
+        #restartCountdown {
+            color: white;
+            font-weight: bold;
+            text-align: center;
+            margin-top: 20px;
+            font-size: 1.5em;
+        }
+    </style>
+</head>
+<body>
+    <div id="nameScreen">
+        <h1>Hotair - Jogo de Balão Competitivo - Beta</h1>
+        <div id="nameForm">
+            <button id="googleLoginButton">Login com Google</button>
+            <div id="nicknameForm" style="display: none;">
+                <input type="text" id="nicknameInput" maxlength="18" placeholder="Escolha seu nickname (máx. 18)">
+                <button id="setNicknameButton">Definir Nickname</button>
             </div>
+            <p style="font-size: 0.9em; color: #666; margin-top: 10px;">
+                Controles: W (subir), S (descer), U (turbo subir), Shift Direito (lançar marca)<br>
+                Regras: 5 minutos, 5 alvos, 5 marcas. Acerte os alvos para pontuar!
+            </p>
         </div>
-        <div id="profileScreen" style="display: none;">
-            <h1>Perfil do Jogador</h1>
-            <div id="profileForm">
-                <p>Nickname: <span id="profileNickname"></span></p>
-                <p>Alvos Acertados: <span id="profileTargetsHit"></span></p>
-                <p>Pontos Totais: <span id="profileTotalPoints"></span></p>
-                <p>Data de Início: <span id="profileJoinDate"></span></p>
-                <button id="startGameButton">Jogar</button>
-            </div>
+    </div>
+    <div id="profileScreen" style="display: none;">
+        <h1>Perfil do Jogador</h1>
+        <div id="profileForm">
+            <p>Nickname: <span id="profileNickname"></span></p>
+            <p>Alvos Acertados: <span id="profileTargetsHit"></span></p>
+            <p>Pontos Totais: <span id="profileTotalPoints"></span></p>
+            <p>Data de Início: <span id="profileJoinDate"></span></p>
+            <button id="startGameButton">Jogar</button>
         </div>
-        <div id="modeScreen" style="display: none;">
-            <h1>Escolha o Modo</h1>
-            <div id="modeForm">
-                <button id="playNowButton">Jogue Agora</button>
-                <button id="roomModeButton">Entrar ou Criar Sala</button>
-            </div>
+    </div>
+    <div id="modeScreen" style="display: none;">
+        <h1>Escolha o Modo</h1>
+        <div id="modeForm">
+            <button id="playNowButton">Jogue Agora</button>
+            <button id="roomModeButton">Entrar ou Criar Sala</button>
         </div>
-        <div id="colorScreen" style="display: none;">
-            <h1>Escolha a Cor do Balão</h1>
-            <div id="colorForm">
-                <button class="colorButton" style="background: #FF4500" data-color="#FF4500">Vermelho</button>
-                <button class="colorButton" style="background: #3498db" data-color="#3498db">Azul</button>
-                <button class="colorButton" style="background: #2ecc71" data-color="#2ecc71">Verde</button>
-                <button class="colorButton" style="background: #f1c40f" data-color="#f1c40f">Amarelo</button>
-                <button class="colorButton" style="background: #000000" data-color="#000000">Preto</button>
-                <button class="colorButton" style="background: linear-gradient(to right, red, orange, yellow, green, blue, indigo, violet)" data-color="rainbow">Arco-íris</button>
-                <button id="okButton">OK</button>
-            </div>
+    </div>
+    <div id="colorScreen" style="display: none;">
+        <h1>Escolha a Cor do Balão</h1>
+        <div id="colorForm">
+            <button class="colorButton" style="background: #FF4500" data-color="#FF4500">Vermelho</button>
+            <button class="colorButton" style="background: #3498db" data-color="#3498db">Azul</button>
+            <button class="colorButton" style="background: #2ecc71" data-color="#2ecc71">Verde</button>
+            <button class="colorButton" style="background: #f1c40f" data-color="#f1c40f">Amarelo</button>
+            <button class="colorButton" style="background: #000000" data-color="#000000">Preto</button>
+            <button class="colorButton" style="background: linear-gradient(to right, red, orange, yellow, green, blue, indigo, violet)" data-color="rainbow">Arco-íris</button>
+            <button id="okButton">OK</button>
         </div>
-        <div id="roomScreen" style="display: none;">
-            <h1>Salas</h1>
-            <div id="roomForm">
-                <input type="text" id="roomName" placeholder="Nome da sala">
-                <button id="createRoomButton">Criar Sala</button>
-                <button id="joinRoomButton">Entrar em Sala</button>
-            </div>
+    </div>
+    <div id="roomScreen" style="display: none;">
+        <h1>Salas</h1>
+        <div id="roomForm">
+            <input type="text" id="roomName" placeholder="Nome da sala">
+            <button id="createRoomButton">Criar Sala</button>
+            <button id="joinRoomButton">Entrar em Sala</button>
         </div>
-        <div id="lobbyScreen" style="display: none;">
-            <h1>Aguardando Jogadores</h1>
-            <div id="lobbyForm">
-                <div id="playersList"></div>
-                <button id="startRoomButton" style="display: none;">Começar Agora</button>
-            </div>
+    </div>
+    <div id="lobbyScreen" style="display: none;">
+        <h1>Aguardando Jogadores</h1>
+        <div id="lobbyForm">
+            <div id="playersList"></div>
+            <button id="startRoomButton" style="display: none;">Começar Agora</button>
         </div>
-        <div id="gameScreen" style="display: none;">
-            <div id="info">
-                <h2>Jogo de Balão</h2>
-                <p>Piloto: <span id="playerNameDisplay">Aventureiro</span></p>
-                <p>Alt: <span id="altitude">0m</span></p>
-                <p>Vento: <span id="windDirection">Nenhum</span> (<span id="windSpeed">0</span> m/s)</p>
-                <p>Dist: <span id="distanceToTarget">0m</span></p>
-                <p>Markers: <span id="markersLeft">5</span></p>
-            </div>
-            <div id="score">
-                <h3>Pontos: <span id="points">0</span></h3>
-                <p>Melhor: <span id="bestScore">0</span></p>
-            </div>
-            <div id="fps">
-                FPS: <span id="fpsCount">0</span>
-            </div>
-            <div id="timerDisplay">Tempo Restante: 5:00</div>
-            <div id="targetMoveTimer">Próxima mudança de alvo: 60s</div>
-            <div id="windIndicator">Vento: -</div>
-            <div id="layerIndicator">
-                <div class="layer" id="layer5" style="background-color: #3498db;">Camada 5 - Norte</div>
-                <div class="layer" id="layer4" style="background-color: #2ecc71;">Camada 4 - Oeste</div>
-                <div class="layer" id="layer3" style="background-color: #f1c40f;">Camada 3 - Sul</div>
-                <div class="layer" id="layer2" style="background-color: #e67e22;">Camada 2 - Leste</div>
-                <div class="layer" id="layer1" style="background-color: #e74c3c;">Camada 1 - Nenhum</div>
-            </div>
-            <div id="gps">
-                <canvas id="gpsCanvas"></canvas>
-                <p id="gpsDirection">Direção: -</p>
-            </div>
-            <div id="mobileControls">
-                <button id="upButton" class="mobileButton">⬆️</button>
-                <button id="turboButton" class="mobileButton">🔥</button>
-                <button id="downButton" class="mobileButton">⬇️</button>
-                <button id="dropButton" class="mobileButton">🎯</button>
-            </div>
-            <div id="countdown"></div>
-            <div id="promoText">Desenvolvido por JMSOUZA - 11954997799</div>
+    </div>
+    <div id="gameScreen" style="display: none;">
+        <div id="info" class="ui-element">
+            <h2>Jogo de Balão</h2>
+            <p>Piloto: <span id="playerNameDisplay">Aventureiro</span></p>
+            <p>Alt: <span id="altitude">0m</span></p>
+            <p>Vento: <span id="windDirection">Nenhum</span> (<span id="windSpeed">0</span> m/s)</p>
+            <p>Dist: <span id="distanceToTarget">0m</span></p>
+            <p>Markers: <span id="markersLeft">5</span></p>
         </div>
-        <div id="loseScreen" style="display: none;">
-            <h1>Você Tocou no Chão, Perdeu!</h1>
-            <div id="loseForm">
-                <button id="restartButton">Começar Novamente</button>
-            </div>
+        <div id="score" class="ui-element">
+            <h3>Pontos: <span id="points">0</span></h3>
+            <p>Melhor: <span id="bestScore">0</span></p>
         </div>
-        <div id="leaderboardScreen" style="display: none;">
-            <h1>Placar Final</h1>
-            <div id="leaderboardForm">
-                <div id="leaderboardList"></div>
-            </div>
+        <div id="fps" class="ui-element">
+            FPS: <span id="fpsCount">0</span>
         </div>
-    </body>
+        <div id="timerDisplay" class="ui-element">Tempo Restante: 5:00</div>
+        <div id="targetMoveTimer" class="ui-element">Próxima mudança de alvo: 60s</div>
+        <div id="windIndicator" class="ui-element">Vento: -</div>
+        <div id="layerIndicator" class="ui-layer">
+            <div class="layer" id="layer5" style="background-color: #3498db;">Camada 5 - Norte</div>
+            <div class="layer" id="layer4" style="background-color: #2ecc71;">Camada 4 - Oeste</div>
+            <div class="layer" id="layer3" style="background-color: #f1c40f;">Camada 3 - Sul</div>
+            <div class="layer" id="layer2" style="background-color: #e67e22;">Camada 2 - Leste</div>
+            <div class="layer" id="layer1" style="background-color: #e74c3c;">Camada 1 - Nenhum</div>
+        </div>
+        <div id="gps" class="ui-element">
+            <canvas id="gpsCanvas" width="75" height="70"></canvas>
+            <p id="gpsDirection">Direção: -</p>
+        </div>
+        <div id="mobileControls">
+            <button id="upButton" class="mobileButton">⬆️</button>
+            <button id="turboButton" class="mobileButton">🔥</button>
+            <button id="downButton" class="mobileButton">⬇️</button>
+            <button id="dropButton" class="mobileButton">🎯</button>
+        </div>
+        <div id="countdown"></div>
+        <div id="promoText" class="ui-element">Desenvolvido por JMSOUZA - 11954997799</div>
+    </div>
+    <div id="loseScreen" style="display: none;">
+        <h1>Você Tocou no Chão, Perdeu!</h1>
+        <div id="loseForm">
+            <button id="restartButton">Começar Novamente</button>
+        </div>
+    </div>
+    <div id="leaderboardScreen" style="display: none;">
+        <h1>Placar Final</h1>
+        <div id="leaderboardForm">
+            <div id="leaderboardList"></div>
+        </div>
+    </div>
+</body>
 </html>
