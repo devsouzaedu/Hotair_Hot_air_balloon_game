@@ -165,30 +165,30 @@ export function initGame() {
         }
     
         window.spectators = [];
-        for (let i = 0; i < 6; i++) {
+        for (let i = 0; i < 3; i++) { // Reduzido de 6 para 3 para otimizar
             const yPos = i * stepHeight + stepHeight;
-            for (let x = -mapSize / 2 + 10; x < mapSize / 2 - 10; x += 10) {
+            for (let x = -mapSize / 2 + 20; x < mapSize / 2 - 20; x += 20) { // Aumentado espaçamento de 10 para 20
                 const npc = new THREE.Mesh(new THREE.SphereGeometry(4, 16, 16), new THREE.MeshLambertMaterial({ color: 0xFF0000 }));
                 npc.scale.y = 1.5;
                 npc.position.set(x, yPos + 2, mapSize / 2 + stepDepth / 2 + i * stepDepth);
                 window.spectators.push({ mesh: npc, baseY: yPos + 2, phase: Math.random() * Math.PI * 2 });
                 window.scene.add(npc);
             }
-            for (let x = -mapSize / 2 + 10; x < mapSize / 2 - 10; x += 10) {
+            for (let x = -mapSize / 2 + 20; x < mapSize / 2 - 20; x += 20) {
                 const npc = new THREE.Mesh(new THREE.SphereGeometry(4, 16, 16), new THREE.MeshLambertMaterial({ color: 0xFF0000 }));
                 npc.scale.y = 1.5;
                 npc.position.set(x, yPos + 2, -mapSize / 2 - stepDepth / 2 - i * stepDepth);
                 window.spectators.push({ mesh: npc, baseY: yPos + 2, phase: Math.random() * Math.PI * 2 });
                 window.scene.add(npc);
             }
-            for (let z = -mapSize / 2 + 10; z < mapSize / 2 - 10; z += 10) {
+            for (let z = -mapSize / 2 + 20; z < mapSize / 2 - 20; z += 20) {
                 const npc = new THREE.Mesh(new THREE.SphereGeometry(4, 16, 16), new THREE.MeshLambertMaterial({ color: 0xFF0000 }));
                 npc.scale.y = 1.5;
                 npc.position.set(mapSize / 2 + stepDepth / 2 + i * stepDepth, yPos + 2, z);
                 window.spectators.push({ mesh: npc, baseY: yPos + 2, phase: Math.random() * Math.PI * 2 });
                 window.scene.add(npc);
             }
-            for (let z = -mapSize / 2 + 10; z < mapSize / 2 - 10; z += 10) {
+            for (let z = -mapSize / 2 + 20; z < mapSize / 2 - 20; z += 20) {
                 const npc = new THREE.Mesh(new THREE.SphereGeometry(4, 16, 16), new THREE.MeshLambertMaterial({ color: 0xFF0000 }));
                 npc.scale.y = 1.5;
                 npc.position.set(-mapSize / 2 - stepDepth / 2 - i * stepDepth, yPos + 2, z);
@@ -197,20 +197,19 @@ export function initGame() {
             }
         }
 
-        // Reduzir número de casas e vacas para otimizar
-        for (let i = 0; i < 15; i++) { // Reduzido de 30 para 15
+        for (let i = 0; i < 10; i++) { // Reduzido de 15 para 10
             const house = new THREE.Mesh(new THREE.BoxGeometry(15, 15, 15), new THREE.MeshLambertMaterial({ color: 0x8B4513 }));
             house.position.set(Math.random() * (mapSize - 100) - (mapSize - 100) / 2, 7.5, Math.random() * (mapSize - 100) - (mapSize - 100) / 2);
             window.scene.add(house);
         }
 
-        for (let i = 0; i < 20; i++) { // Reduzido de 45 para 20
+        for (let i = 0; i < 15; i++) { // Reduzido de 20 para 15
             const cow = new THREE.Mesh(new THREE.SphereGeometry(4.5, 16, 16), new THREE.MeshLambertMaterial({ color: 0xFFFFFF }));
             cow.position.set(Math.random() * (mapSize - 100) - (mapSize - 100) / 2, 2.25, Math.random() * (mapSize - 100) - (mapSize - 100) / 2);
             window.scene.add(cow);
         }
 
-        for (let i = 0; i < 10; i++) { // Reduzido de 15 para 10
+        for (let i = 0; i < 5; i++) { // Reduzido de 10 para 5
             const road = new THREE.Line(new THREE.BufferGeometry().setFromPoints([
                 new THREE.Vector3(Math.random() * (mapSize - 100) - (mapSize - 100) / 2, 0.2, Math.random() * (mapSize - 100) - (mapSize - 100) / 2),
                 new THREE.Vector3(Math.random() * (mapSize - 100) - (mapSize - 100) / 2, 0.2, Math.random() * (mapSize - 100) - (mapSize - 100) / 2)
@@ -545,9 +544,9 @@ export function initGame() {
             }
 
             // Controles locais apenas para altitude
-            if (keys.W) { altitude += 0.5; hasLiftedOff = true; } // Reduzir incremento para suavizar
-            if (keys.U) { altitude += 2.5; hasLiftedOff = true; } // Reduzir incremento para suavizar
-            if (keys.S) altitude = Math.max(20, altitude - 0.5); // Reduzir decremento para suavizar
+            if (keys.W) { altitude += 0.5; hasLiftedOff = true; }
+            if (keys.U) { altitude += 2.5; hasLiftedOff = true; }
+            if (keys.S) altitude = Math.max(20, altitude - 0.5);
             altitude = Math.min(altitude, 500);
 
             // Enviar apenas a altitude ao servidor
@@ -585,7 +584,7 @@ export function initGame() {
             // Aplicar gravidade local ao marcador com suavização
             window.markers.forEach(markerObj => {
                 if (markerObj.marker.userData.falling) {
-                    markerObj.marker.position.y -= 0.25; // Reduzir gravidade para animação mais fluida
+                    markerObj.marker.position.y -= 0.25;
                     markerObj.tail.position.y = markerObj.marker.position.y;
                     if (markerObj.marker.position.y <= 0) {
                         markerObj.marker.position.y = 0;
@@ -600,7 +599,7 @@ export function initGame() {
                                 markerId: markerObj.marker.userData.markerId
                             });
                         }
-                    } else if (window.socket && window.socket.emit && time % 100 === 0) { // Enviar atualização a cada 100ms
+                    } else if (window.socket && window.socket.emit && time % 50 === 0) { // Reduzir para 50ms
                         window.socket.emit('markerUpdate', {
                             markerId: markerObj.marker.userData.markerId,
                             x: markerObj.marker.position.x,

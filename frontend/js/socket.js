@@ -203,24 +203,7 @@ export function initSocket() {
                 window.showNoMarkersMessage();
             }
         }
-        // Adicionar marcador para outros jogadores
-        if (playerId !== socket.id) {
-            const markerMesh = new THREE.Mesh(
-                new THREE.SphereGeometry(4.5, 16, 16),
-                new THREE.MeshLambertMaterial({ color: 0x0000FF })
-            );
-            const tailMesh = new THREE.Line(
-                new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, -45, 0)]),
-                new THREE.LineBasicMaterial({ color: 0xFFFFFF })
-            );
-            markerMesh.userData = { playerId, type: 'marker', markerId, falling: true };
-            tailMesh.userData = { playerId, type: 'tail', markerId };
-            markerMesh.position.set(x, y, z);
-            tailMesh.position.set(x, y, z);
-            window.scene.add(markerMesh);
-            window.scene.add(tailMesh);
-            window.markers.push({ marker: markerMesh, tail: tailMesh, playerId });
-        }
+        // Remover criação duplicada de marcador, confiar em markerUpdate
     });
     
     socket.on('markerUpdate', ({ markerId, x, y, z }) => {
@@ -243,7 +226,7 @@ export function initSocket() {
         }
     });
     
-    socket.on('targetHitUpdate', ({ targetIndex }) => {
+    socket.on('targetHitUpdate', ({ targetIndex, score }) => {
         if (targetIndex < 1) {
             window.scene.remove(window.scene.children.find(obj => 
                 obj instanceof THREE.Group && 
@@ -251,6 +234,15 @@ export function initSocket() {
                 obj.position.z === window.targets[0].z
             ));
             window.targets.shift();
+            const pointsElement = document.getElementById('points');
+            if (pointsElement && score !== undefined) {
+                pointsElement.textContent = score;
+                window.points = score; // Atualizar pontos localmente
+                if (window.targets.length === 0) {
+                    window.gameOver(); // Declarar vitória se todos os alvos foram atingidos
+                    window.socket.emit('gameOver', { winner: window.socket.id }); // Notificar servidor
+                }
+            }
         }
     });
 
