@@ -19,7 +19,7 @@ export function initGame() {
     window.markers = window.markers || [];
     let lastTargetMoveTime = Date.now();
     let gameEnded = false;
-    let targetPosition = { x: 0, y: 100, z: 0 }; // Posição alvo para interpolação
+    let targetPosition = { x: 0, y: 100, z: 0 }; // Inicializado com valores padrão
 
     const windLayers = [
         { minAlt: 0, maxAlt: 100, direction: { x: 0, z: 0 }, speed: 0, name: "Nenhum" },
@@ -215,13 +215,6 @@ export function initGame() {
             ]), new THREE.LineBasicMaterial({ color: 0x808080 }));
             road.scale.set(1.5, 1, 1.5);
             window.scene.add(road);
-        }
-
-        for (let i = 0; i < 10; i++) {
-            const lake = new THREE.Mesh(new THREE.CircleGeometry(30, 32), new THREE.MeshLambertMaterial({ color: 0x00BFFF, side: THREE.DoubleSide }));
-            lake.rotation.x = -Math.PI / 2;
-            lake.position.set(Math.random() * (mapSize - 100) - (mapSize - 100) / 2, 0.1, Math.random() * (mapSize - 100) - (mapSize - 100) / 2);
-            window.scene.add(lake);
         }
 
         new THREE.FontLoader().load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', function(font) {
@@ -488,15 +481,19 @@ export function initGame() {
             balloon.position.x = window.targetPosition.x;
             balloon.position.y = window.targetPosition.y;
             balloon.position.z = window.targetPosition.z;
-            console.log('[BUG] Position Sync: x=', balloon.position.x.toFixed(2), 'z=', balloon.position.z.toFixed(2), 'y=', balloon.position.y.toFixed(2)); // Log apenas para depuração do movimento
+            console.log('[BUG] Position Sync: x=', balloon.position.x.toFixed(2), 'z=', balloon.position.z.toFixed(2), 'y=', balloon.position.y.toFixed(2)); // Log para depuração
+            // Verificar se o movimento é aplicado visualmente
+            if (balloon.position.x === window.targetPosition.x - 0.3) {
+                console.log('[BUG] Movimento não aplicado visualmente, x esperado=', window.targetPosition.x, 'mas atual=', balloon.position.x);
+            }
         } else {
-            console.log('[BUG] targetPosition não recebido do servidor'); // Log se a sincronização falhar
+            console.log('[BUG] targetPosition não recebido do servidor');
         }
 
-        // Atualizar câmera
+        // Ajustar câmera para amplificar o movimento
         window.camera.position.x = balloon.position.x;
-        window.camera.position.z = balloon.position.z + 200;
-        window.camera.position.y = balloon.position.y + 200;
+        window.camera.position.z = balloon.position.z + 300; // Aumentar a distância Z para destacar movimento
+        window.camera.position.y = balloon.position.y + 300;
         window.camera.lookAt(balloon.position.x, balloon.position.y, balloon.position.z);
 
         const currentLayerIndex = getCurrentWindLayer();
@@ -538,7 +535,7 @@ export function initGame() {
                 balloon = window.createBalloon(player.color || window.balloonColor || '#FF4500', player.name);
                 window.balloon = balloon;
                 balloon.position.set(player.x, player.y, player.z);
-                targetPosition = { x: player.x, y: player.y, z: player.z };
+                targetPosition = { x: player.x, y: player.y, z: player.z }; // Inicializar targetPosition
                 window.scene.add(balloon);
             } else {
                 balloon.position.set(player.x, player.y, player.z);
