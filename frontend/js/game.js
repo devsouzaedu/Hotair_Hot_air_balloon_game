@@ -54,28 +54,107 @@ export function initGame() {
         window.scene = new THREE.Scene();
         window.scene.background = new THREE.Color(0x87CEEB);
     
-        window.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
-        window.camera.position.set(0, 150, 150); // Câmera mais perto
+        // Configurações baseadas no dispositivo
+        const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        window.qualitySettings = {
+            drawDistance: isMobileDevice ? 1000 : 2000,
+            shadowsEnabled: !isMobileDevice,
+            maxSpectators: isMobileDevice ? 100 : Math.floor((2600 - 20) / 10) * 24,
+            geometryDetail: isMobileDevice ? 8 : 16,
+            updateRate: isMobileDevice ? 1000/30 : 1000/60
+        };
+    
+        window.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, window.qualitySettings.drawDistance);
+        window.camera.position.set(0, 150, 150);
         window.camera.lookAt(0, 100, 0);
     
-        window.renderer = new THREE.WebGLRenderer({ antialias: false }); // Desativar antialias para melhorar FPS
+        // Configurações otimizadas do renderer
+        window.renderer = new THREE.WebGLRenderer({ 
+            antialias: false,
+            powerPreference: "high-performance",
+            precision: isMobileDevice ? "lowp" : "mediump",
+            stencil: false,
+            depth: true,
+            logarithmicDepthBuffer: false
+        });
         window.renderer.setSize(window.innerWidth, window.innerHeight);
+        window.renderer.setPixelRatio(isMobileDevice ? 0.7 : 1);
+        window.renderer.shadowMap.enabled = window.qualitySettings.shadowsEnabled;
+        window.renderer.shadowMap.type = THREE.BasicShadowMap;
         document.getElementById('gameScreen').appendChild(window.renderer.domElement);
     
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        // Geometrias compartilhadas com LOD
+        window.sharedGeometries = {
+            sphere: new THREE.SphereGeometry(4.5, window.qualitySettings.geometryDetail, window.qualitySettings.geometryDetail),
+            box: new THREE.BoxGeometry(15, 12, 15),
+            balloon: new THREE.SphereGeometry(30, window.qualitySettings.geometryDetail * 2, window.qualitySettings.geometryDetail * 2)
+        };
+    
+        // Materiais compartilhados com otimizações
+        window.sharedMaterials = {
+            blue: new THREE.MeshLambertMaterial({ 
+                color: 0x0000FF,
+                flatShading: isMobileDevice,
+                shadowSide: null
+            }),
+            brown: new THREE.MeshLambertMaterial({ 
+                color: 0x8B4513,
+                flatShading: isMobileDevice,
+                shadowSide: null
+            }),
+            white: new THREE.MeshLambertMaterial({ 
+                color: 0xFFFFFF,
+                flatShading: isMobileDevice,
+                shadowSide: null
+            })
+        };
+    
+        // Sistema de oclusão
+        window.frustum = new THREE.Frustum();
+        window.cameraViewProjectionMatrix = new THREE.Matrix4();
+    
+        // Luzes otimizadas
+        const ambientLight = new THREE.AmbientLight(0xffffff, isMobileDevice ? 0.7 : 0.5);
         window.scene.add(ambientLight);
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-        directionalLight.position.set(100, 150, 50); // Ajustado para câmera mais perto
-        window.scene.add(directionalLight);
+    
+        if (!isMobileDevice) {
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(100, 150, 50);
+            window.scene.add(directionalLight);
+        }
+    
+        // Inicializar sistema de pooling
+        window.objectPool = {
+            markers: [],
+            tails: []
+        };
+    
+        // Pre-alocar pool de objetos
+        for (let i = 0; i < 10; i++) {
+            const markerMesh = new THREE.Mesh(window.sharedGeometries.sphere, window.sharedMaterials.blue);
+            markerMesh.visible = false;
+            window.scene.add(markerMesh);
+            window.objectPool.markers.push(markerMesh);
+    
+            const tailGeometry = new THREE.BufferGeometry().setFromPoints([
+                new THREE.Vector3(0, 0, 0),
+                new THREE.Vector3(0, -45, 0)
+            ]);
+            const tailMesh = new THREE.Line(tailGeometry, new THREE.LineBasicMaterial({ color: 0xFFFFFF }));
+            tailMesh.visible = false;
+            window.scene.add(tailMesh);
+            window.objectPool.tails.push(tailMesh);
+        }
     
         createGround();
     
+        // Event listeners otimizados
+        const throttledResize = throttle(onWindowResize, 100);
+        window.addEventListener('resize', throttledResize);
         window.addEventListener('keydown', handleKeyDown);
         window.addEventListener('keyup', handleKeyUp);
 
-        const markerGeometry = new THREE.SphereGeometry(4.5, 16, 16);
-        const markerMaterial = new THREE.MeshLambertMaterial({ color: 0x0000FF });
-        marker = new THREE.Mesh(markerGeometry, markerMaterial);
+        const marker = new THREE.Mesh(window.sharedGeometries.sphere, window.sharedMaterials.blue);
         marker.visible = false;
         window.scene.add(marker);
 
@@ -88,186 +167,193 @@ export function initGame() {
         tail.visible = false;
         window.scene.add(tail);
 
-        window.addEventListener('resize', onWindowResize);
+        window.domElements = {
+            altitude: document.getElementById('altitude'),
+            windDirection: document.getElementById('windDirection'),
+            windSpeed: document.getElementById('windSpeed'),
+            fpsCount: document.getElementById('fpsCount'),
+            distanceToTarget: document.getElementById('distanceToTarget'),
+            gameScreen: document.getElementById('gameScreen')
+        };
 
-        if (isMobile) {
-            const upButton = document.getElementById('upButton');
-            const turboButton = document.getElementById('turboButton');
-            const downButton = document.getElementById('downButton');
-            const dropButton = document.getElementById('dropButton');
-
-            upButton.addEventListener('touchstart', (e) => { e.preventDefault(); keys.W = true; });
-            upButton.addEventListener('touchend', () => keys.W = false);
-            turboButton.addEventListener('touchstart', (e) => { e.preventDefault(); keys.U = true; });
-            turboButton.addEventListener('touchend', () => keys.U = false);
-            downButton.addEventListener('touchstart', (e) => { e.preventDefault(); keys.S = true; });
-            downButton.addEventListener('touchend', () => keys.S = false);
-            dropButton.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                if (!window.markerDropped && window.markersLeft > 0) dropMarker();
-            });
-
-            [upButton, turboButton, downButton, dropButton].forEach(button => {
-                button.addEventListener('dblclick', (e) => e.preventDefault());
-            });
-        }
+        window.lastUIUpdate = 0;
+        window.lastServerSync = 0;
+        window.frameTime = 0;
+        window.performanceMetrics = {
+            fps: 0,
+            frameTime: 0,
+            objectsRendered: 0
+        };
     }
 
     function createGround() {
         const mapSize = 2600;
-        const groundGeometry = new THREE.PlaneGeometry(mapSize, mapSize, 50, 50);
+        
+        // Otimizar geometria do chão reduzindo segmentos
+        const groundGeometry = new THREE.PlaneGeometry(mapSize, mapSize, 25, 25);
         const groundMaterial = new THREE.MeshLambertMaterial({ color: 0x7CFC00 });
         const ground = new THREE.Mesh(groundGeometry, groundMaterial);
         ground.rotation.x = -Math.PI / 2;
         ground.position.y = 0;
         window.scene.add(ground);
-    
-        const gridHelper = new THREE.GridHelper(mapSize, 26, 0x000000, 0x000000);
+
+        // Otimizar grid helper
+        const gridHelper = new THREE.GridHelper(mapSize, 13, 0x000000, 0x000000);
         gridHelper.position.y = 0.1;
         gridHelper.material.opacity = 0.2;
         gridHelper.material.transparent = true;
         window.scene.add(gridHelper);
-    
-        const stepHeight = 10;
-        const stepDepth = 20;
-        const standMaterial = new THREE.MeshLambertMaterial({ color: 0x808080 });
-    
-        for (let i = 0; i < 6; i++) { // 6 fileiras
+
+        // Otimizar criação de arquibancadas usando instancing
+        const stepGeometry = new THREE.BoxGeometry(1, 10, 20);
+        const stepMaterial = new THREE.MeshLambertMaterial({ color: 0x808080 });
+        const stepMesh = new THREE.InstancedMesh(stepGeometry, stepMaterial, 24); // 6 fileiras * 4 lados
+
+        const matrix = new THREE.Matrix4();
+        let instanceCount = 0;
+
+        for (let i = 0; i < 6; i++) {
             const stepWidth = mapSize - (i * 20);
-            const stepGeometry = new THREE.BoxGeometry(stepWidth, stepHeight, stepDepth);
-            const step = new THREE.Mesh(stepGeometry, standMaterial);
-            step.position.set(0, i * stepHeight + stepHeight / 2, mapSize / 2 + stepDepth / 2 + i * stepDepth);
-            window.scene.add(step);
+            const yPos = i * 10 + 5;
+            
+            // Norte
+            matrix.makeScale(stepWidth, 1, 1);
+            matrix.setPosition(0, yPos, mapSize/2 + 10 + i * 20);
+            stepMesh.setMatrixAt(instanceCount++, matrix);
+
+            // Sul
+            matrix.setPosition(0, yPos, -mapSize/2 - 10 - i * 20);
+            stepMesh.setMatrixAt(instanceCount++, matrix);
+
+            // Leste
+            matrix.makeScale(1, 1, stepWidth);
+            matrix.setPosition(mapSize/2 + 10 + i * 20, yPos, 0);
+            stepMesh.setMatrixAt(instanceCount++, matrix);
+
+            // Oeste
+            matrix.setPosition(-mapSize/2 - 10 - i * 20, yPos, 0);
+            stepMesh.setMatrixAt(instanceCount++, matrix);
         }
-    
-        for (let i = 0; i < 6; i++) { // 6 fileiras
-            const stepWidth = mapSize - (i * 20);
-            const stepGeometry = new THREE.BoxGeometry(stepWidth, stepHeight, stepDepth);
-            const step = new THREE.Mesh(stepGeometry, standMaterial);
-            step.position.set(0, i * stepHeight + stepHeight / 2, -mapSize / 2 - stepDepth / 2 - i * stepDepth);
-            window.scene.add(step);
-        }
-    
-        for (let i = 0; i < 6; i++) { // 6 fileiras
-            const stepLength = mapSize - (i * 20);
-            const stepGeometry = new THREE.BoxGeometry(stepDepth, stepHeight, stepLength);
-            const step = new THREE.Mesh(stepGeometry, standMaterial);
-            step.position.set(mapSize / 2 + stepDepth / 2 + i * stepDepth, i * stepHeight + stepHeight / 2, 0);
-            window.scene.add(step);
-        }
-    
-        for (let i = 0; i < 6; i++) { // 6 fileiras
-            const stepLength = mapSize - (i * 20);
-            const stepGeometry = new THREE.BoxGeometry(stepDepth, stepHeight, stepLength);
-            const step = new THREE.Mesh(stepGeometry, standMaterial);
-            step.position.set(-mapSize / 2 - stepDepth / 2 - i * stepDepth, i * stepHeight + stepHeight / 2, 0);
-            window.scene.add(step);
-        }
-    
-        window.spectators = [];
-        for (let i = 0; i < 6; i++) { // 6 fileiras
-            const yPos = i * stepHeight + stepHeight;
-            for (let x = -mapSize / 2 + 10; x < mapSize / 2 - 10; x += 10) { // Espaçamento de 10
-                const npc = new THREE.Mesh(new THREE.SphereGeometry(4, 16, 16), new THREE.MeshLambertMaterial({ color: 0xFF0000 }));
-                npc.scale.y = 1.5;
-                npc.position.set(x, yPos + 2, mapSize / 2 + stepDepth / 2 + i * stepDepth);
-                window.spectators.push({ mesh: npc, baseY: yPos + 2, phase: Math.random() * Math.PI * 2 });
-                window.scene.add(npc);
+
+        window.scene.add(stepMesh);
+
+        // Otimizar criação de espectadores usando instancing
+        const spectatorGeometry = new THREE.SphereGeometry(4, 8, 8);
+        const spectatorMaterial = new THREE.MeshLambertMaterial({ color: 0xFF0000 });
+        const maxSpectators = Math.floor((mapSize - 20) / 10) * 24; // Número total de espectadores
+        const spectatorMesh = new THREE.InstancedMesh(spectatorGeometry, spectatorMaterial, maxSpectators);
+
+        let spectatorCount = 0;
+        for (let i = 0; i < 6; i++) {
+            const yPos = i * 10 + 12;
+            for (let x = -mapSize/2 + 10; x < mapSize/2 - 10; x += 10) {
+                matrix.makeScale(1, 1.5, 1);
+                matrix.setPosition(x, yPos, mapSize/2 + 10 + i * 20);
+                spectatorMesh.setMatrixAt(spectatorCount++, matrix);
+                
+                matrix.setPosition(x, yPos, -mapSize/2 - 10 - i * 20);
+                spectatorMesh.setMatrixAt(spectatorCount++, matrix);
             }
-            for (let x = -mapSize / 2 + 10; x < mapSize / 2 - 10; x += 10) {
-                const npc = new THREE.Mesh(new THREE.SphereGeometry(4, 16, 16), new THREE.MeshLambertMaterial({ color: 0xFF0000 }));
-                npc.scale.y = 1.5;
-                npc.position.set(x, yPos + 2, -mapSize / 2 - stepDepth / 2 - i * stepDepth);
-                window.spectators.push({ mesh: npc, baseY: yPos + 2, phase: Math.random() * Math.PI * 2 });
-                window.scene.add(npc);
-            }
-            for (let z = -mapSize / 2 + 10; z < mapSize / 2 - 10; z += 10) {
-                const npc = new THREE.Mesh(new THREE.SphereGeometry(4, 16, 16), new THREE.MeshLambertMaterial({ color: 0xFF0000 }));
-                npc.scale.y = 1.5;
-                npc.position.set(mapSize / 2 + stepDepth / 2 + i * stepDepth, yPos + 2, z);
-                window.spectators.push({ mesh: npc, baseY: yPos + 2, phase: Math.random() * Math.PI * 2 });
-                window.scene.add(npc);
-            }
-            for (let z = -mapSize / 2 + 10; z < mapSize / 2 - 10; z += 10) {
-                const npc = new THREE.Mesh(new THREE.SphereGeometry(4, 16, 16), new THREE.MeshLambertMaterial({ color: 0xFF0000 }));
-                npc.scale.y = 1.5;
-                npc.position.set(-mapSize / 2 - stepDepth / 2 - i * stepDepth, yPos + 2, z);
-                window.spectators.push({ mesh: npc, baseY: yPos + 2, phase: Math.random() * Math.PI * 2 });
-                window.scene.add(npc);
+            for (let z = -mapSize/2 + 10; z < mapSize/2 - 10; z += 10) {
+                matrix.setPosition(mapSize/2 + 10 + i * 20, yPos, z);
+                spectatorMesh.setMatrixAt(spectatorCount++, matrix);
+                
+                matrix.setPosition(-mapSize/2 - 10 - i * 20, yPos, z);
+                spectatorMesh.setMatrixAt(spectatorCount++, matrix);
             }
         }
 
+        window.scene.add(spectatorMesh);
+
+        // Adicionar elementos decorativos com menos detalhes
         for (let i = 0; i < 3; i++) {
-            const house = new THREE.Mesh(new THREE.BoxGeometry(15, 15, 15), new THREE.MeshLambertMaterial({ color: 0x8B4513 }));
-            house.position.set(Math.random() * (mapSize - 100) - (mapSize - 100) / 2, 7.5, Math.random() * (mapSize - 100) - (mapSize - 100) / 2);
+            const house = new THREE.Mesh(
+                new THREE.BoxGeometry(15, 15, 15),
+                new THREE.MeshLambertMaterial({ color: 0x8B4513 })
+            );
+            house.position.set(
+                Math.random() * (mapSize - 100) - (mapSize - 100) / 2,
+                7.5,
+                Math.random() * (mapSize - 100) - (mapSize - 100) / 2
+            );
             window.scene.add(house);
-        }
-
-        for (let i = 0; i < 5; i++) {
-            const cow = new THREE.Mesh(new THREE.SphereGeometry(4.5, 16, 16), new THREE.MeshLambertMaterial({ color: 0xFFFFFF }));
-            cow.position.set(Math.random() * (mapSize - 100) - (mapSize - 100) / 2, 2.25, Math.random() * (mapSize - 100) - (mapSize - 100) / 2);
-            window.scene.add(cow);
-        }
-
-        for (let i = 0; i < 2; i++) {
-            const road = new THREE.Line(new THREE.BufferGeometry().setFromPoints([
-                new THREE.Vector3(Math.random() * (mapSize - 100) - (mapSize - 100) / 2, 0.2, Math.random() * (mapSize - 100) - (mapSize - 100) / 2),
-                new THREE.Vector3(Math.random() * (mapSize - 100) - (mapSize - 100) / 2, 0.2, Math.random() * (mapSize - 100) - (mapSize - 100) / 2)
-            ]), new THREE.LineBasicMaterial({ color: 0x808080 }));
-            road.scale.set(1.5, 1, 1.5);
-            window.scene.add(road);
         }
     }
 
     window.createBalloon = function(color, name) {
         color = color || '#FF4500';
         const group = new THREE.Group();
-        const basket = new THREE.Mesh(new THREE.BoxGeometry(15, 12, 15), new THREE.MeshLambertMaterial({ color: 0x8B4513 }));
+        
+        // Usar geometrias e materiais compartilhados
+        const basket = new THREE.Mesh(
+            window.sharedGeometries.box,
+            window.sharedMaterials.brown
+        );
         basket.position.y = -15;
         group.add(basket);
 
-        const balloonGeometry = new THREE.SphereGeometry(30, 32, 32);
-        let balloonMaterial;
+        const balloonMesh = new THREE.Mesh(
+            window.sharedGeometries.balloon,
+            new THREE.MeshLambertMaterial({ 
+                color: color === 'rainbow' ? 0xffffff : parseInt(color.replace('#', '0x'), 16),
+                vertexColors: color === 'rainbow'
+            })
+        );
+
         if (color === 'rainbow') {
-            balloonMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff, vertexColors: true });
-            const colors = new Float32Array(balloonGeometry.attributes.position.count * 3);
-            for (let i = 0; i < balloonGeometry.attributes.position.count; i++) {
+            const colors = new Float32Array(window.sharedGeometries.balloon.attributes.position.count * 3);
+            for (let i = 0; i < window.sharedGeometries.balloon.attributes.position.count; i++) {
                 colors[i * 3] = Math.random();
                 colors[i * 3 + 1] = Math.random();
                 colors[i * 3 + 2] = Math.random();
             }
-            balloonGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-        } else {
-            balloonMaterial = new THREE.MeshLambertMaterial({ color: parseInt(color.replace('#', '0x'), 16) });
+            window.sharedGeometries.balloon.setAttribute('color', new THREE.BufferAttribute(colors, 3));
         }
-        const balloonMesh = new THREE.Mesh(balloonGeometry, balloonMaterial);
+
         balloonMesh.scale.y = 1.2;
         balloonMesh.position.y = 30;
         group.add(balloonMesh);
 
-        for (let i = 0; i < 4; i++) {
-            const x = (i % 2 === 0) ? -7.5 : 7.5;
-            const z = (i < 2) ? -7.5 : 7.5;
-            const rope = new THREE.Line(new THREE.BufferGeometry().setFromPoints([
-                new THREE.Vector3(x, -10, z),
-                new THREE.Vector3(x, 30, z)
-            ]), new THREE.LineBasicMaterial({ color: 0x000000 }));
-            group.add(rope);
-        }
+        // Otimizar criação de cordas usando uma única geometria
+        const ropePositions = [
+            [-7.5, -10, -7.5, -7.5, 30, -7.5],
+            [7.5, -10, -7.5, 7.5, 30, -7.5],
+            [-7.5, -10, 7.5, -7.5, 30, 7.5],
+            [7.5, -10, 7.5, 7.5, 30, 7.5]
+        ];
 
-        new THREE.FontLoader().load('https://threejs.org/examples/fonts/optimer_regular.typeface.json', function(font) {
-            const textMesh = new THREE.Mesh(new THREE.TextGeometry(name || 'Jogador', {
-                font: font,
+        const ropeGeometry = new THREE.BufferGeometry();
+        const ropeVertices = new Float32Array(ropePositions.flat());
+        ropeGeometry.setAttribute('position', new THREE.BufferAttribute(ropeVertices, 3));
+        const ropeMaterial = new THREE.LineBasicMaterial({ color: 0x000000 });
+        const ropes = new THREE.LineSegments(ropeGeometry, ropeMaterial);
+        group.add(ropes);
+
+        // Otimizar carregamento de fonte
+        if (!window.cachedFont) {
+            new THREE.FontLoader().load('https://threejs.org/examples/fonts/optimer_regular.typeface.json', function(font) {
+                window.cachedFont = font;
+                const textGeometry = new THREE.TextGeometry(name || 'Jogador', {
+                    font: font,
+                    size: 7,
+                    height: 1,
+                });
+                textGeometry.computeBoundingBox();
+                const textMesh = new THREE.Mesh(textGeometry, new THREE.MeshBasicMaterial({ color: 0x000000 }));
+                textMesh.position.set(-15, 80, 0);
+                group.add(textMesh);
+            });
+        } else {
+            const textGeometry = new THREE.TextGeometry(name || 'Jogador', {
+                font: window.cachedFont,
                 size: 7,
                 height: 1,
-            }), new THREE.MeshBasicMaterial({ color: 0x000000 }));
+            });
+            textGeometry.computeBoundingBox();
+            const textMesh = new THREE.Mesh(textGeometry, new THREE.MeshBasicMaterial({ color: 0x000000 }));
             textMesh.position.set(-15, 80, 0);
             group.add(textMesh);
-        }, undefined, function(error) {
-            const fallbackMesh = new THREE.Mesh(new THREE.BoxGeometry(5, 5, 5), new THREE.MeshBasicMaterial({ color: 0xFF0000 }));
-            fallbackMesh.position.set(-15, 80, 0);
-            group.add(fallbackMesh);
-        });
+        }
 
         group.position.set(0, altitude, 0);
         return group;
@@ -318,28 +404,82 @@ export function initGame() {
         }
     }
 
+    // Sistema de pooling de objetos
+    const ObjectPool = {
+        getMarker: function() {
+            return window.objectPool.markers.find(marker => !marker.visible) || this.createMarker();
+        },
+        getTail: function() {
+            return window.objectPool.tails.find(tail => !tail.visible) || this.createTail();
+        },
+        createMarker: function() {
+            const marker = new THREE.Mesh(window.sharedGeometries.sphere, window.sharedMaterials.blue);
+            marker.visible = false;
+            window.scene.add(marker);
+            window.objectPool.markers.push(marker);
+            return marker;
+        },
+        createTail: function() {
+            const tailGeometry = new THREE.BufferGeometry().setFromPoints([
+                new THREE.Vector3(0, 0, 0),
+                new THREE.Vector3(0, -45, 0)
+            ]);
+            const tail = new THREE.Line(tailGeometry, new THREE.LineBasicMaterial({ color: 0xFFFFFF }));
+            tail.visible = false;
+            window.scene.add(tail);
+            window.objectPool.tails.push(tail);
+            return tail;
+        },
+        reset: function() {
+            window.objectPool.markers.forEach(marker => {
+                marker.visible = false;
+                marker.position.set(0, 0, 0);
+            });
+            window.objectPool.tails.forEach(tail => {
+                tail.visible = false;
+                tail.position.set(0, 0, 0);
+            });
+        }
+    };
+
     function dropMarker() {
         if (!window.balloon || !window.socket) return;
-        const markerStartPos = { x: window.balloon.position.x, y: window.balloon.position.y - 10, z: window.balloon.position.z };
+        
+        const markerStartPos = { 
+            x: window.balloon.position.x, 
+            y: window.balloon.position.y - 10, 
+            z: window.balloon.position.z 
+        };
         const markerId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
         
-        const markerMesh = new THREE.Mesh(
-            new THREE.SphereGeometry(4.5, 16, 16),
-            new THREE.MeshLambertMaterial({ color: 0x0000FF })
-        );
-        const tailMesh = new THREE.Line(
-            new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, -45, 0)]),
-            new THREE.LineBasicMaterial({ color: 0xFFFFFF })
-        );
-        markerMesh.userData = { playerId: window.socket.id, type: 'marker', markerId, falling: true };
-        tailMesh.userData = { playerId: window.socket.id, type: 'tail', markerId };
+        // Obter marker e tail do pool
+        const markerMesh = ObjectPool.getMarker();
+        const tailMesh = ObjectPool.getTail();
+        
+        markerMesh.userData = { 
+            playerId: window.socket.id, 
+            type: 'marker', 
+            markerId, 
+            falling: true 
+        };
+        tailMesh.userData = { 
+            playerId: window.socket.id, 
+            type: 'tail', 
+            markerId 
+        };
+        
         markerMesh.position.set(markerStartPos.x, markerStartPos.y, markerStartPos.z);
         tailMesh.position.set(markerStartPos.x, markerStartPos.y, markerStartPos.z);
+        markerMesh.visible = true;
+        tailMesh.visible = true;
         
-        window.scene.add(markerMesh);
-        window.scene.add(tailMesh);
-        window.markers.push({ marker: markerMesh, tail: tailMesh, playerId: window.socket.id, startY: markerStartPos.y });
-    
+        window.markers.push({ 
+            marker: markerMesh, 
+            tail: tailMesh, 
+            playerId: window.socket.id, 
+            startY: markerStartPos.y 
+        });
+
         window.socket.emit('dropMarker', { 
             x: markerStartPos.x, 
             y: markerStartPos.y, 
@@ -486,16 +626,43 @@ export function initGame() {
         window.markerDropped = false;
         window.markersLeft = 5;
         points = 0;
+        
+        // Reset do pool de objetos
+        ObjectPool.reset();
+        
         document.getElementById('loseScreen').style.display = 'none';
         document.getElementById('gameScreen').style.display = 'block';
+        
         if (window.balloon) window.scene.remove(window.balloon);
-        window.balloon = window.createBalloon(window.balloonColor, document.getElementById('playerNameDisplay').textContent || 'Jogador');
+        window.balloon = window.createBalloon(
+            window.balloonColor, 
+            document.getElementById('playerNameDisplay').textContent || 'Jogador'
+        );
         window.balloon.position.set(0, altitude, 0);
         window.scene.add(window.balloon);
+        
         if (window.socket && window.socket.emit) {
-            window.socket.emit('updatePosition', { x: 0, y: altitude, z: 0, mode: window.mode || 'world', roomName: window.roomName || null });
+            window.socket.emit('updatePosition', { 
+                x: 0, 
+                y: altitude, 
+                z: 0, 
+                mode: window.mode || 'world', 
+                roomName: window.roomName || null 
+            });
         }
+        
         document.getElementById('markersLeft').textContent = window.markersLeft;
+        
+        // Limpar memória não utilizada
+        if (window.renderer) {
+            window.renderer.dispose();
+            window.renderer.forceContextLoss();
+            window.renderer.context = null;
+            window.renderer.domElement = null;
+        }
+        
+        // Garbage collection hint
+        if (window.gc) window.gc();
     };
 
     function handleGamepad() {
@@ -513,7 +680,7 @@ export function initGame() {
     }
 
     function animate(time) {
-        requestAnimationFrame(animate); // Chamar a cada frame
+        requestAnimationFrame(animate);
         if (!gameStarted || gameOver) return;
 
         if (!window.scene || !window.camera || !window.renderer || !balloon) {
@@ -521,67 +688,104 @@ export function initGame() {
             return;
         }
 
-        // Processar controles a cada frame
-        if (keys.W) altitude += 0.5; hasLiftedOff = true;
-        if (keys.U) altitude += 2.5; hasLiftedOff = true;
-        if (keys.S) altitude = Math.max(20, altitude - 0.5);
+        // Calcular delta time para animações suaves
+        const deltaTime = time - window.frameTime;
+        window.frameTime = time;
+
+        // Processar controles com delta time para movimento suave
+        if (keys.W) altitude += 0.5 * (deltaTime / 16.67); hasLiftedOff = true;
+        if (keys.U) altitude += 2.5 * (deltaTime / 16.67); hasLiftedOff = true;
+        if (keys.S) altitude = Math.max(20, altitude - 0.5 * (deltaTime / 16.67));
         altitude = Math.min(altitude, 500);
 
-        // Limitar renderização a 30 FPS
-        if (time - lastTime >= 1000 / 30) {
+        // Limitar renderização baseado nas configurações de qualidade
+        if (time - lastTime >= window.qualitySettings.updateRate) {
             frameCount++;
+            window.performanceMetrics.objectsRendered = 0;
+            
+            // Atualizar FPS e métricas a cada segundo
             if (time - lastTime >= 1000) {
-                fps = frameCount;
+                window.performanceMetrics.fps = frameCount;
+                window.performanceMetrics.frameTime = deltaTime;
                 frameCount = 0;
                 lastTime = time;
-                document.getElementById('fpsCount').textContent = fps;
+                window.domElements.fpsCount.textContent = window.performanceMetrics.fps;
             }
 
-            // Sincronizar posição com o servidor
-            if (window.balloon && window.socket && window.socket.emit) {
-                console.log('Enviando updatePosition:', { x: window.balloon.position.x, y: altitude, z: window.balloon.position.z }); // Depuração
-                window.socket.emit('updatePosition', {
-                    x: window.balloon.position.x,
-                    y: altitude,
-                    z: window.balloon.position.z,
-                    mode: window.mode || 'world',
-                    roomName: window.roomName || null
-                });
-            }
-
-            // Atualizar posição do balão localmente
+            // Atualizar posição do balão e sincronizar com servidor
             if (window.balloon) {
-                window.balloon.position.y = altitude; // Aplicar altitude localmente
-            }
+                window.balloon.position.y = altitude;
+                
+                // Sincronização com servidor throttled
+                if (window.socket && window.socket.emit && time - window.lastServerSync >= 100) {
+                    window.socket.emit('updatePosition', {
+                        x: window.balloon.position.x,
+                        y: altitude,
+                        z: window.balloon.position.z,
+                        mode: window.mode || 'world',
+                        roomName: window.roomName || null
+                    });
+                    window.lastServerSync = time;
+                }
 
-            // Sincronizar com targetPosition do servidor (apenas x e z, preservar y local)
-            if (window.targetPosition) {
-                if (window.balloon) {
+                if (window.targetPosition) {
                     window.balloon.position.x = window.targetPosition.x;
                     window.balloon.position.z = window.targetPosition.z;
                 }
             }
 
-            // Ajustar câmera
-            window.camera.position.x = window.balloon ? window.balloon.position.x : 0;
-            window.camera.position.z = window.balloon ? window.balloon.position.z + 150 : 150;
-            window.camera.position.y = window.balloon ? window.balloon.position.y + 150 : 150;
-            window.camera.lookAt(window.balloon ? window.balloon.position : new THREE.Vector3(0, 100, 0));
+            // Atualizar câmera com interpolação suave
+            if (window.balloon) {
+                const targetCameraPos = new THREE.Vector3(
+                    window.balloon.position.x,
+                    window.balloon.position.y + 150,
+                    window.balloon.position.z + 150
+                );
+                
+                window.camera.position.lerp(targetCameraPos, 0.1);
+                window.camera.lookAt(window.balloon.position);
+            }
 
-            const currentLayerIndex = getCurrentWindLayer();
-            const altitudeElement = document.getElementById('altitude');
-            if (altitudeElement) altitudeElement.textContent = `${Math.floor(altitude)}m`;
-            const windDirectionElement = document.getElementById('windDirection');
-            if (windDirectionElement) windDirectionElement.textContent = getWindDirectionText(currentLayerIndex);
-            const windSpeedElement = document.getElementById('windSpeed');
-            if (windSpeedElement) windSpeedElement.textContent = windLayers[currentLayerIndex].speed.toFixed(1);
-            updateLayerIndicator(currentLayerIndex);
+            // Atualizar frustum para occlusion culling
+            window.camera.updateMatrixWorld();
+            window.cameraViewProjectionMatrix.multiplyMatrices(
+                window.camera.projectionMatrix,
+                window.camera.matrixWorldInverse
+            );
+            window.frustum.setFromProjectionMatrix(window.cameraViewProjectionMatrix);
 
-            // Atualizar GPS
-            updateGPS();
-            const distanceElement = document.getElementById('distanceToTarget');
-            if (distanceElement) distanceElement.textContent = `Dist: ${calculateDistanceToTarget()}m`;
+            // Otimizar renderização com occlusion culling
+            window.scene.traverse(function(object) {
+                if (object.isMesh || object.isLine) {
+                    if (object === window.balloon) {
+                        object.visible = true;
+                    } else {
+                        const distance = window.camera.position.distanceTo(object.position);
+                        object.visible = distance <= window.qualitySettings.drawDistance && 
+                                       isInViewFrustum(object);
+                    }
+                    if (object.visible) window.performanceMetrics.objectsRendered++;
+                }
+            });
 
+            // Atualizar UI com throttling
+            if (time - window.lastUIUpdate >= 500) {
+                const currentLayerIndex = getCurrentWindLayer();
+                if (window.domElements.altitude) window.domElements.altitude.textContent = `${Math.floor(altitude)}m`;
+                if (window.domElements.windDirection) window.domElements.windDirection.textContent = getWindDirectionText(currentLayerIndex);
+                if (window.domElements.windSpeed) window.domElements.windSpeed.textContent = windLayers[currentLayerIndex].speed.toFixed(1);
+                if (window.domElements.distanceToTarget) window.domElements.distanceToTarget.textContent = `Dist: ${calculateDistanceToTarget()}m`;
+                
+                // Atualizar indicadores de performance
+                const perfInfo = `FPS: ${window.performanceMetrics.fps} | Objetos: ${window.performanceMetrics.objectsRendered} | Frame: ${Math.round(window.performanceMetrics.frameTime)}ms`;
+                window.domElements.fpsCount.textContent = perfInfo;
+                
+                updateLayerIndicator(currentLayerIndex);
+                updateGPS();
+                window.lastUIUpdate = time;
+            }
+
+            // Renderizar cena com otimizações
             window.renderer.render(window.scene, window.camera);
         }
     }
@@ -673,4 +877,27 @@ export function initGame() {
     window.gameEnded = gameEnded;
     window.setBalloon = (b) => { if (b) { balloon = b; window.balloon = b; if (!window.scene.children.includes(b)) window.scene.add(b); } };
     window.showNoMarkersMessage = showNoMarkersMessage;
+}
+
+// Função de throttle para otimizar event listeners
+function throttle(func, limit) {
+    let inThrottle;
+    return function(...args) {
+        if (!inThrottle) {
+            func.apply(this, args);
+            inThrottle = true;
+            setTimeout(() => inThrottle = false, limit);
+        }
+    }
+}
+
+// Função para verificar se um objeto está visível na câmera
+function isInViewFrustum(object) {
+    window.camera.updateMatrixWorld();
+    window.cameraViewProjectionMatrix.multiplyMatrices(
+        window.camera.projectionMatrix,
+        window.camera.matrixWorldInverse
+    );
+    window.frustum.setFromProjectionMatrix(window.cameraViewProjectionMatrix);
+    return window.frustum.containsPoint(object.position);
 }
