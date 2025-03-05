@@ -19,14 +19,14 @@ export function initGame() {
     window.markers = window.markers || [];
     let lastTargetMoveTime = Date.now();
     let gameEnded = false;
-    let targetPosition = { x: 0, y: 100, z: 0 }; // Inicializado com valores padrão
+    let targetPosition = { x: 0, y: 100, z: 0 };
 
     const windLayers = [
         { minAlt: 0, maxAlt: 100, direction: { x: 0, z: 0 }, speed: 0, name: "Nenhum" },
-        { minAlt: 100, maxAlt: 200, direction: { x: 1, z: 0 }, speed: 0.3, name: "Leste" },
-        { minAlt: 200, maxAlt: 300, direction: { x: 0, z: 1 }, speed: 0.4, name: "Sul" },
-        { minAlt: 300, maxAlt: 400, direction: { x: -1, z: 0 }, speed: 0.4, name: "Oeste" },
-        { minAlt: 400, maxAlt: 500, direction: { x: 0, z: -1 }, speed: 0.6, name: "Norte" }
+        { minAlt: 100, maxAlt: 200, direction: { x: 1, z: 0 }, speed: 1.5, name: "Leste" },
+        { minAlt: 200, maxAlt: 300, direction: { x: 0, z: 1 }, speed: 2.0, name: "Sul" },
+        { minAlt: 300, maxAlt: 400, direction: { x: -1, z: 0 }, speed: 2.0, name: "Oeste" },
+        { minAlt: 400, maxAlt: 500, direction: { x: 0, z: -1 }, speed: 3.0, name: "Norte" }
     ];
 
     const keys = { W: false, S: false, A: false, D: false, U: false, SHIFT_RIGHT: false };
@@ -377,7 +377,7 @@ export function initGame() {
         message.style.transform = 'translate(-50%, -50%)';
         message.style.color = 'white';
         message.style.fontSize = '2em';
-        message.style.background = 'rgba(0, 0, 0, 0.7)';
+        message.style.background = 'rgba(0,0,0,0.7)';
         message.style.padding = '10px 20px';
         message.style.borderRadius = '5px';
         message.style.zIndex = '1001';
@@ -419,6 +419,23 @@ export function initGame() {
         window.camera.aspect = window.innerWidth / window.innerHeight;
         window.camera.updateProjectionMatrix();
         window.renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    function calculateDistanceToTarget() {
+        if (window.targets.length > 0 && window.balloon) {
+            const target = window.targets[0];
+            const dx = window.balloon.position.x - target.x;
+            const dz = window.balloon.position.z - target.z;
+            return Math.sqrt(dx * dx + dz * dz).toFixed(1);
+        }
+        return 'N/A';
+    }
+
+    function updateGPS() {
+        const gpsElement = document.getElementById('gps');
+        if (gpsElement && window.balloon) {
+            gpsElement.textContent = `Pos: (${window.balloon.position.x.toFixed(1)}, ${window.balloon.position.z.toFixed(1)})`;
+        }
     }
 
     window.restartGame = function() {
@@ -476,23 +493,16 @@ export function initGame() {
         // Enviar apenas a altitude ao servidor
         window.socket.emit('updatePosition', { y: altitude, mode: window.mode || 'world', roomName: window.roomName || null });
 
-        // Sincronizar posição com dados do servidor (debug do bug atual)
+        // Sincronizar posição com dados do servidor
         if (window.targetPosition) {
             balloon.position.x = window.targetPosition.x;
             balloon.position.y = window.targetPosition.y;
             balloon.position.z = window.targetPosition.z;
-            console.log('[BUG] Position Sync: x=', balloon.position.x.toFixed(2), 'z=', balloon.position.z.toFixed(2), 'y=', balloon.position.y.toFixed(2)); // Log para depuração
-            // Verificar se o movimento é aplicado visualmente
-            if (balloon.position.x === window.targetPosition.x - 0.3) {
-                console.log('[BUG] Movimento não aplicado visualmente, x esperado=', window.targetPosition.x, 'mas atual=', balloon.position.x);
-            }
-        } else {
-            console.log('[BUG] targetPosition não recebido do servidor');
         }
 
-        // Ajustar câmera para amplificar o movimento
+        // Ajustar câmera
         window.camera.position.x = balloon.position.x;
-        window.camera.position.z = balloon.position.z + 300; // Aumentar a distância Z para destacar movimento
+        window.camera.position.z = balloon.position.z + 300;
         window.camera.position.y = balloon.position.y + 300;
         window.camera.lookAt(balloon.position.x, balloon.position.y, balloon.position.z);
 
@@ -501,6 +511,11 @@ export function initGame() {
         document.getElementById('windDirection').textContent = getWindDirectionText(currentLayerIndex);
         document.getElementById('windSpeed').textContent = windLayers[currentLayerIndex].speed.toFixed(1);
         updateLayerIndicator(currentLayerIndex);
+
+        // Atualizar GPS e distância
+        updateGPS();
+        const distanceElement = document.getElementById('distanceToTarget');
+        if (distanceElement) distanceElement.textContent = `Dist: ${calculateDistanceToTarget()}m`;
 
         window.renderer.render(window.scene, window.camera);
     }
@@ -535,7 +550,7 @@ export function initGame() {
                 balloon = window.createBalloon(player.color || window.balloonColor || '#FF4500', player.name);
                 window.balloon = balloon;
                 balloon.position.set(player.x, player.y, player.z);
-                targetPosition = { x: player.x, y: player.y, z: player.z }; // Inicializar targetPosition
+                targetPosition = { x: player.x, y: player.y, z: player.z };
                 window.scene.add(balloon);
             } else {
                 balloon.position.set(player.x, player.y, player.z);

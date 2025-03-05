@@ -145,15 +145,13 @@ export function initSocket() {
         }
     });
 
-    socket.on('gameUpdate', ({ state, timeLeft }) => {
+    socket.on('gameUpdate', ({ state, timeLeft, targetTimeLeft }) => {
         const currentState = window.mode === 'world' ? state : state;
         const player = currentState.players[socket.id];
         if (player && window.balloon) {
-            window.targetPosition = { x: player.x, y: player.y, z: player.z }; // Garantir que targetPosition seja atualizado
-            console.log(`[GameUpdate Debug] Received for ${socket.id}: x=${player.x}, y=${player.y}, z=${player.z}, timeLeft=${timeLeft}`);
+            window.targetPosition = { x: player.x, y: player.y, z: player.z };
         }
-    
-        // Atualizar outros jogadores (mantém como está)
+        
         for (const id in currentState.players) {
             if (id !== socket.id) {
                 if (!window.otherPlayers[id] && currentState.players[id].color) {
@@ -166,14 +164,15 @@ export function initSocket() {
                 }
             }
         }
-    
-        // Atualizar marcadores e UI (mantém como está)
+        
         document.getElementById('markersLeft').textContent = player?.markers || window.markersLeft;
         document.getElementById('points').textContent = player?.score || 0;
         const minutes = Math.floor(timeLeft / 60);
         const seconds = Math.floor(timeLeft % 60);
-        document.getElementById('timerDisplay').textContent = `Tempo Restante: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+        document.getElementById('timerDisplay').textContent = `Tempo: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+        document.getElementById('targetTimer').textContent = `Mudança: ${Math.floor(targetTimeLeft)}s`;
     });
+    
     socket.on('markerDropped', ({ playerId, x, y, z, markers, score, markerId }) => {
         console.log('Marcador solto por:', playerId, 'Restantes:', markers);
         if (playerId === socket.id) {
