@@ -165,59 +165,56 @@ export function initSocket() {
             }
         }
         
-        document.getElementById('markersLeft').textContent = player?.markers || window.markersLeft;
-        document.getElementById('points').textContent = player?.score || 0;
-        const minutes = Math.floor(timeLeft / 60);
-        const seconds = Math.floor(timeLeft % 60);
-        document.getElementById('timerDisplay').textContent = `Tempo: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
-        document.getElementById('targetTimer').textContent = `Mudança: ${Math.floor(targetTimeLeft)}s`;
+        const timerDisplay = document.getElementById('timerDisplay');
+        if (timerDisplay) {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = Math.floor(timeLeft % 60);
+            timerDisplay.textContent = `Tempo: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+        }
+    
+        const targetTimer = document.getElementById('targetTimer');
+        if (targetTimer) {
+            targetTimer.textContent = `Mudança: ${Math.floor(targetTimeLeft)}s`;
+        }
+    
+        const markersLeftElement = document.getElementById('markersLeft');
+        if (markersLeftElement) markersLeftElement.textContent = player?.markers || window.markersLeft;
+    
+        const pointsElement = document.getElementById('points');
+        if (pointsElement) pointsElement.textContent = player?.score || 0;
     });
     
     socket.on('markerDropped', ({ playerId, x, y, z, markers, score, markerId }) => {
-        console.log('Marcador solto por:', playerId, 'Restantes:', markers);
         if (playerId === socket.id) {
             window.markersLeft = markers;
-            document.getElementById('markersLeft').textContent = markers;
-            document.getElementById('points').textContent = score;
+            const markersLeftElement = document.getElementById('markersLeft');
+            if (markersLeftElement) markersLeftElement.textContent = markers;
+            const pointsElement = document.getElementById('points');
+            if (pointsElement) pointsElement.textContent = score;
             window.markerDropped = false;
             if (markers === 0) {
                 window.showNoMarkersMessage();
             }
         }
-
-        const markerMesh = new THREE.Mesh(
-            new THREE.SphereGeometry(4.5, 16, 16),
-            new THREE.MeshLambertMaterial({ color: 0x0000FF })
-        );
-        const tailMesh = new THREE.Line(
-            new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, -45, 0)]),
-            new THREE.LineBasicMaterial({ color: 0xFFFFFF })
-        );
-        markerMesh.userData = { playerId, type: 'marker', markerId };
-        tailMesh.userData = { playerId, type: 'tail', markerId };
-        markerMesh.position.set(x, y, z);
-        tailMesh.position.set(x, y, z);
+    });
     
-        if (window.scene) {
-            window.scene.add(markerMesh);
-            window.scene.add(tailMesh);
-            window.markers.push({ marker: markerMesh, tail: tailMesh, playerId });
-        } else {
-            console.error('window.scene não está definido ao adicionar marcador');
+    socket.on('markerUpdate', ({ markerId, x, y, z }) => {
+        const markerObj = window.markers.find(m => m.marker.userData.markerId === markerId);
+        if (markerObj) {
+            markerObj.marker.position.set(x, y, z);
+            markerObj.tail.position.set(x, y, z);
         }
     });
-
+    
     socket.on('markerLanded', ({ x, y, z, playerId, markerId }) => {
-        console.log('Marcador pousou em:', { x, y, z }, 'por:', playerId);
-        const existingMarkerObj = window.markers.find(m => m.marker.userData.markerId === markerId);
-        if (existingMarkerObj) {
-            existingMarkerObj.marker.position.set(x, y, z);
-            existingMarkerObj.tail.position.set(x, y, z);
-        } else {
-            console.warn('Marcador não encontrado para markerId:', markerId);
+        const markerObj = window.markers.find(m => m.marker.userData.markerId === markerId);
+        if (markerObj) {
+            markerObj.marker.position.set(x, y, z);
+            markerObj.tail.position.set(x, y, z);
+            markerObj.marker.userData.falling = false;
         }
     });
-
+    
     socket.on('targetHitUpdate', ({ targetIndex }) => {
         if (targetIndex < 1) {
             window.scene.remove(window.scene.children.find(obj => 

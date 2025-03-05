@@ -340,14 +340,14 @@ export function initGame() {
             new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, -45, 0)]),
             new THREE.LineBasicMaterial({ color: 0xFFFFFF })
         );
-        markerMesh.userData = { playerId: window.socket.id, type: 'marker', markerId };
+        markerMesh.userData = { playerId: window.socket.id, type: 'marker', markerId, falling: true };
         tailMesh.userData = { playerId: window.socket.id, type: 'tail', markerId };
         markerMesh.position.set(markerStartPos.x, markerStartPos.y, markerStartPos.z);
         tailMesh.position.set(markerStartPos.x, markerStartPos.y, markerStartPos.z);
         
         window.scene.add(markerMesh);
         window.scene.add(tailMesh);
-        window.markers.push({ marker: markerMesh, tail: tailMesh, playerId: window.socket.id });
+        window.markers.push({ marker: markerMesh, tail: tailMesh, playerId: window.socket.id, startY: markerStartPos.y });
     
         window.socket.emit('dropMarker', { 
             x: markerStartPos.x, 
@@ -362,10 +362,6 @@ export function initGame() {
         marker.visible = true;
         tail.position.set(markerStartPos.x, markerStartPos.y, markerStartPos.z);
         tail.visible = true;
-        setTimeout(() => {
-            marker.visible = false;
-            tail.visible = false;
-        }, 100);
     }
 
     function showNoMarkersMessage() {
@@ -517,6 +513,18 @@ export function initGame() {
         const distanceElement = document.getElementById('distanceToTarget');
         if (distanceElement) distanceElement.textContent = `Dist: ${calculateDistanceToTarget()}m`;
 
+        // Aplicar gravidade local ao marcador
+        window.markers.forEach(markerObj => {
+            if (markerObj.marker.userData.falling) {
+                markerObj.marker.position.y -= 5.0; // Gravidade local
+                markerObj.tail.position.y = markerObj.marker.position.y;
+                if (markerObj.marker.position.y <= 0) {
+                    markerObj.marker.position.y = 0;
+                    markerObj.marker.userData.falling = false;
+                }
+            }
+        });
+
         window.renderer.render(window.scene, window.camera);
     }
 
@@ -579,7 +587,7 @@ export function initGame() {
                 new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, -45, 0)]),
                 new THREE.LineBasicMaterial({ color: 0xFFFFFF })
             );
-            markerMesh.userData = { playerId: markerData.playerId, type: 'marker', markerId };
+            markerMesh.userData = { playerId: markerData.playerId, type: 'marker', markerId, falling: false };
             tailMesh.userData = { playerId: markerData.playerId, type: 'tail', markerId };
             markerMesh.position.set(markerData.x, markerData.y, markerData.z);
             tailMesh.position.set(markerData.x, markerData.y, markerData.z);
@@ -592,6 +600,15 @@ export function initGame() {
         gameStarted = true;
         animate();
     };
+
+    // Lidar com atualizações de marcador
+    window.socket.on('markerUpdate', ({ markerId, x, y, z }) => {
+        const markerObj = window.markers.find(m => m.marker.userData.markerId === markerId);
+        if (markerObj) {
+            markerObj.marker.position.set(x, y, z);
+            markerObj.tail.position.set(x, y, z);
+        }
+    });
 
     window.addEventListener('gamepadconnected', (e) => {});
     window.addEventListener('gamepaddisconnected', (e) => {});
