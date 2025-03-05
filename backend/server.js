@@ -44,23 +44,18 @@ app.use(cors({
     allowedHeaders: ['Authorization', 'Content-Type']
 }));
 
-// Middleware adicional para reforçar CORS
 app.use((req, res, next) => {
-    console.log('Requisição recebida:', req.method, req.url);
     res.header('Access-Control-Allow-Origin', 'https://devsouzaedu.github.io');
     res.header('Access-Control-Allow-Methods', 'GET, POST');
     res.header('Access-Control-Allow-Headers', 'Authorization, Content-Type');
     res.header('Access-Control-Allow-Credentials', 'true');
-    if (req.method === 'OPTIONS') {
-        return res.sendStatus(200);
-    }
+    if (req.method === 'OPTIONS') return res.sendStatus(200);
     next();
 });
 
 app.use(express.json());
 app.use(passport.initialize());
 
-// Tratamento de erros não capturados para evitar travamento do servidor
 process.on('uncaughtException', (err) => {
     console.error('Erro não capturado:', err);
 });
@@ -71,7 +66,6 @@ passport.use(new GoogleStrategy({
     callbackURL: 'https://hotair-backend.onrender.com/auth/google/callback',
     scope: ['profile', 'email']
 }, async (accessToken, refreshToken, profile, done) => {
-    console.log('Perfil recebido do Google:', profile);
     try {
         let user = await User.findOne({ googleId: profile.id });
         if (!user) {
@@ -80,34 +74,24 @@ passport.use(new GoogleStrategy({
                 nickname: profile.displayName.substring(0, 18)
             });
             await user.save();
-            console.log('Novo usuário criado:', user.googleId);
         }
         done(null, user);
     } catch (err) {
-        console.error('Erro ao processar usuário:', err);
         done(err, null);
     }
 }));
 
-app.get('/auth/google', 
-    passport.authenticate('google', { 
-        scope: ['profile', 'email'],
-        prompt: 'select_account'
-    })
-);
+app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'], prompt: 'select_account' }));
 
 app.get('/auth/google/callback',
     passport.authenticate('google', { session: false, failureRedirect: 'https://devsouzaedu.github.io/Hotair_Hot_air_balloon_game/?auth=failed' }),
     (req, res) => {
         const user = req.user;
-        console.log('Autenticação bem-sucedida para usuário:', user.googleId);
-
         const token = jwt.sign(
             { id: user._id, googleId: user.googleId },
             process.env.JWT_SECRET || 'seu-segredo-super-seguro',
             { expiresIn: '24h' }
         );
-
         res.redirect(`https://devsouzaedu.github.io/Hotair_Hot_air_balloon_game/?auth=success&token=${token}`);
     }
 );
@@ -116,17 +100,10 @@ const authenticateToken = (req, res, next) => {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
 
-    if (!token) {
-        console.log('Nenhum token fornecido');
-        return res.status(401).json({ authenticated: false, message: 'Token não fornecido' });
-    }
+    if (!token) return res.status(401).json({ authenticated: false, message: 'Token não fornecido' });
 
     jwt.verify(token, process.env.JWT_SECRET || 'seu-segredo-super-seguro', (err, decoded) => {
-        if (err) {
-            console.log('Token inválido:', err);
-            return res.status(403).json({ authenticated: false, message: 'Token inválido' });
-        }
-
+        if (err) return res.status(403).json({ authenticated: false, message: 'Token inválido' });
         req.user = decoded;
         next();
     });
@@ -135,13 +112,9 @@ const authenticateToken = (req, res, next) => {
 app.get('/auth/check', authenticateToken, async (req, res) => {
     try {
         const user = await User.findById(req.user.id);
-        if (!user) {
-            return res.status(404).json({ authenticated: false, message: 'Usuário não encontrado' });
-        }
-        console.log('Usuário autenticado via JWT:', user.googleId);
+        if (!user) return res.status(404).json({ authenticated: false, message: 'Usuário não encontrado' });
         res.json({ authenticated: true, user: { googleId: user.googleId, nickname: user.nickname } });
     } catch (err) {
-        console.error('Erro ao verificar usuário:', err);
         res.status(500).json({ authenticated: false, message: 'Erro interno' });
     }
 });
@@ -149,10 +122,7 @@ app.get('/auth/check', authenticateToken, async (req, res) => {
 app.get('/profile', authenticateToken, async (req, res) => {
     try {
         const user = await User.findById(req.user.id);
-        if (!user) {
-            return res.status(404).json({ message: 'Usuário não encontrado' });
-        }
-        console.log('Perfil retornado para usuário:', user.googleId);
+        if (!user) return res.status(404).json({ message: 'Usuário não encontrado' });
         res.json({
             googleId: user.googleId,
             nickname: user.nickname,
@@ -161,41 +131,25 @@ app.get('/profile', authenticateToken, async (req, res) => {
             joinDate: user.joinDate
         });
     } catch (err) {
-        console.error('Erro ao carregar perfil:', err);
         res.status(500).json({ message: 'Erro interno' });
     }
 });
 
 app.post('/auth/set-nickname', async (req, res) => {
-    if (!req.isAuthenticated()) {
-        console.log('Tentativa de set-nickname sem autenticação');
-        return res.status(401).json({ error: 'Não autenticado' });
-    }
     const { nickname } = req.body;
-    if (!nickname || nickname.length > 18) {
-        console.log('Nickname inválido:', nickname);
-        return res.status(400).json({ error: 'Nickname inválido (máx. 18 caracteres)' });
-    }
+    if (!nickname || nickname.length > 18) return res.status(400).json({ error: 'Nickname inválido (máx. 18 caracteres)' });
 
     try {
         const existingUser = await User.findOne({ nickname });
-        if (existingUser) {
-            console.log('Nickname já em uso:', nickname);
-            return res.status(400).json({ error: 'Nickname já em uso' });
-        }
+        if (existingUser) return res.status(400).json({ error: 'Nickname já em uso' });
 
         const user = await User.findOne({ googleId: req.user.googleId });
-        if (user.nickname) {
-            console.log('Nickname já definido para usuário:', user.googleId);
-            return res.status(400).json({ error: 'Nickname já definido e não pode ser alterado' });
-        }
+        if (user.nickname) return res.status(400).json({ error: 'Nickname já definido e não pode ser alterado' });
 
         user.nickname = nickname;
         await user.save();
-        console.log('Nickname definido com sucesso para:', user.googleId, 'Nickname:', nickname);
         res.json({ success: true, nickname });
     } catch (err) {
-        console.error('Erro ao salvar nickname:', err);
         res.status(500).json({ error: 'Erro ao salvar nickname' });
     }
 });
@@ -213,10 +167,7 @@ const rooms = {};
 function generateTarget() {
     const mapSize = 2600;
     const centralArea = mapSize / 4;
-    return { 
-        x: Math.random() * centralArea - centralArea / 2, 
-        z: Math.random() * centralArea - centralArea / 2 
-    };
+    return { x: Math.random() * centralArea - centralArea / 2, z: Math.random() * centralArea - centralArea / 2 };
 }
 
 function moveTarget(state) {
@@ -247,9 +198,7 @@ function initializeWorldState() {
     addBots();
 }
 
-if (!worldState.players) {
-    initializeWorldState();
-}
+if (!worldState.players) initializeWorldState();
 
 function updateMarkersGravity(state, roomName = null) {
     for (const markerId in state.markers) {
@@ -258,13 +207,7 @@ function updateMarkersGravity(state, roomName = null) {
             marker.y -= 5.0;
             if (marker.y <= 0) {
                 marker.y = 0;
-                io.to(roomName || 'world').emit('markerLanded', { 
-                    x: marker.x, 
-                    y: marker.y, 
-                    z: marker.z, 
-                    playerId: marker.playerId, 
-                    markerId 
-                });
+                io.to(roomName || 'world').emit('markerLanded', { x: marker.x, y: marker.y, z: marker.z, playerId: marker.playerId, markerId });
                 const targets = state.targets;
                 const dx = marker.x - targets[0].x;
                 const dz = marker.z - targets[0].z;
@@ -319,10 +262,7 @@ function updateBots() {
     for (const id in worldState.players) {
         if (worldState.players[id].isBot) {
             const bot = worldState.players[id];
-            if (!worldState.targets || !worldState.targets[0]) {
-                console.error('Nenhum alvo definido para bots, gerando novo alvo');
-                worldState.targets = [generateTarget()];
-            }
+            if (!worldState.targets || !worldState.targets[0]) worldState.targets = [generateTarget()];
             const target = worldState.targets[0];
             const speed = 0.8;
 
@@ -350,13 +290,7 @@ function updateBots() {
                         bot.z += (dz / distance) * speed;
                     } else if (distance > 1 && bot.markers > 0) {
                         const markerId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-                        const markerData = {
-                            playerId: bot.id,
-                            x: bot.x + (Math.random() * 20 - 10),
-                            y: bot.y - 10,
-                            z: bot.z + (Math.random() * 20 - 10),
-                            markerId
-                        };
+                        const markerData = { playerId: bot.id, x: bot.x + (Math.random() * 20 - 10), y: bot.y - 10, z: bot.z + (Math.random() * 20 - 10), markerId };
                         bot.markers--;
                         worldState.markers[markerId] = markerData;
                         io.to('world').emit('markerDropped', { ...markerData, markers: bot.markers, score: bot.score, markerId });
@@ -366,9 +300,8 @@ function updateBots() {
                     break;
 
                 case 'climbNorth':
-                    if (bot.y < bot.targetAltitude) {
-                        bot.y += 2;
-                    } else {
+                    if (bot.y < bot.targetAltitude) bot.y += 2;
+                    else {
                         bot.state = 'waitNorth';
                         bot.waitTime = Date.now();
                     }
@@ -390,8 +323,6 @@ function updateBots() {
 }
 
 io.on('connection', (socket) => {
-    console.log(`Novo jogador conectado: ${socket.id}`);
-
     const token = socket.handshake.auth.token;
     if (!token) {
         socket.emit('authRequired', 'Token JWT necessário');
@@ -431,9 +362,7 @@ io.on('connection', (socket) => {
             isBot: false
         };
         socket.join('world');
-        console.log('Enviando gameState para jogador:', socket.id, 'Dados:', worldState);
         socket.emit('gameState', { mode: 'world', state: worldState });
-        console.log(`Jogador ${user.nickname} entrou no mundo global`);
     });
 
     socket.on('createRoom', async (roomData) => {
@@ -475,7 +404,6 @@ io.on('connection', (socket) => {
             isBot: false
         };
         socket.emit('roomCreated', { roomName, creator: socket.id });
-        console.log(`Sala ${roomName} criada pelo jogador ${user.nickname}`);
     });
 
     socket.on('joinRoom', async ({ roomName, playerData }) => {
@@ -503,7 +431,6 @@ io.on('connection', (socket) => {
             };
             socket.join(roomName);
             io.to(roomName).emit('playerJoined', { players: rooms[roomName].players, creator: rooms[roomName].creator });
-            console.log(`Jogador ${user.nickname} entrou na sala ${roomName}`);
         } else {
             socket.emit('roomError', 'Sala não encontrada');
         }
@@ -534,13 +461,11 @@ io.on('connection', (socket) => {
 
     socket.on('updatePosition', ({ y, mode, roomName }) => {
         if (mode === 'world' && worldState.players[socket.id]) {
-            worldState.players[socket.id].y = y; // Atualizar apenas a altitude
-            console.log(`[Server] UpdatePosition: ${socket.id} y=${y}`);
+            worldState.players[socket.id].y = y;
         } else if (mode === 'room' && rooms[roomName] && rooms[roomName].players[socket.id]) {
-            rooms[roomName].players[socket.id].y = y; // Atualizar apenas a altitude
-            console.log(`[Server] UpdatePosition Room ${roomName}: ${socket.id} y=${y}`);
+            rooms[roomName].players[socket.id].y = y;
         }
-    });;
+    });
 
     socket.on('dropMarker', ({ x, y, z, mode, roomName, markerId }) => {
         const player = mode === 'world' ? worldState.players[socket.id] : rooms[roomName]?.players[socket.id];
@@ -631,7 +556,7 @@ setInterval(() => {
             resetWorldState();
             io.to('world').emit('gameReset', { state: worldState });
             worldState.resetScheduled = false;
-        }, 7000); // 7 segundos de espera
+        }, 7000);
     }
 
     for (const roomName in rooms) {
@@ -642,7 +567,6 @@ setInterval(() => {
                 const currentLayer = windLayers.find(layer => player.y >= layer.minAlt && player.y < layer.maxAlt) || windLayers[0];
                 player.x += currentLayer.direction.x * currentLayer.speed;
                 player.z += currentLayer.direction.z * currentLayer.speed;
-                console.log(`[Server] Room ${roomName}, Player ${id}: x=${player.x.toFixed(2)}, y=${player.y.toFixed(2)}, z=${player.z.toFixed(2)}, Wind: ${currentLayer.direction.x},${currentLayer.direction.z}`);
             }
             updateMarkersGravity(room, roomName);
             const elapsed = (Date.now() - room.startTime) / 1000;

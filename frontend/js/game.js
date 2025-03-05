@@ -33,11 +33,9 @@ export function initGame() {
 
     const bestScoreElement = document.getElementById('bestScore');
     if (bestScoreElement) bestScoreElement.textContent = bestScore;
-    else console.error('Elemento bestScore não encontrado');
 
     const markersLeftElement = document.getElementById('markersLeft');
     if (markersLeftElement) markersLeftElement.textContent = window.markersLeft;
-    else console.error('Elemento markersLeft não encontrado');
 
     const mobileControls = document.getElementById('mobileControls');
     const controlsInfo = document.getElementById('controlsInfo');
@@ -52,7 +50,6 @@ export function initGame() {
     }
 
     function initThreeJS() {
-        console.log('Inicializando Three.js');
         window.scene = new THREE.Scene();
         window.scene.background = new THREE.Color(0x87CEEB);
     
@@ -166,113 +163,84 @@ export function initGame() {
             window.scene.add(step);
         }
     
-        const npcGeometry = new THREE.SphereGeometry(4, 16, 16);
-        const npcMaterial = new THREE.MeshLambertMaterial({ color: 0xFF0000 });
         window.spectators = [];
-        let npcCount = 0;
-    
         for (let i = 0; i < 6; i++) {
             const yPos = i * stepHeight + stepHeight;
-    
             for (let x = -mapSize / 2 + 10; x < mapSize / 2 - 10; x += 10) {
-                const npc = new THREE.Mesh(npcGeometry, npcMaterial);
+                const npc = new THREE.Mesh(new THREE.SphereGeometry(4, 16, 16), new THREE.MeshLambertMaterial({ color: 0xFF0000 }));
                 npc.scale.y = 1.5;
                 npc.position.set(x, yPos + 2, mapSize / 2 + stepDepth / 2 + i * stepDepth);
                 window.spectators.push({ mesh: npc, baseY: yPos + 2, phase: Math.random() * Math.PI * 2 });
                 window.scene.add(npc);
-                npcCount++;
             }
-    
             for (let x = -mapSize / 2 + 10; x < mapSize / 2 - 10; x += 10) {
-                const npc = new THREE.Mesh(npcGeometry, npcMaterial);
+                const npc = new THREE.Mesh(new THREE.SphereGeometry(4, 16, 16), new THREE.MeshLambertMaterial({ color: 0xFF0000 }));
                 npc.scale.y = 1.5;
                 npc.position.set(x, yPos + 2, -mapSize / 2 - stepDepth / 2 - i * stepDepth);
                 window.spectators.push({ mesh: npc, baseY: yPos + 2, phase: Math.random() * Math.PI * 2 });
                 window.scene.add(npc);
-                npcCount++;
             }
-    
             for (let z = -mapSize / 2 + 10; z < mapSize / 2 - 10; z += 10) {
-                const npc = new THREE.Mesh(npcGeometry, npcMaterial);
+                const npc = new THREE.Mesh(new THREE.SphereGeometry(4, 16, 16), new THREE.MeshLambertMaterial({ color: 0xFF0000 }));
                 npc.scale.y = 1.5;
                 npc.position.set(mapSize / 2 + stepDepth / 2 + i * stepDepth, yPos + 2, z);
                 window.spectators.push({ mesh: npc, baseY: yPos + 2, phase: Math.random() * Math.PI * 2 });
                 window.scene.add(npc);
-                npcCount++;
             }
-    
             for (let z = -mapSize / 2 + 10; z < mapSize / 2 - 10; z += 10) {
-                const npc = new THREE.Mesh(npcGeometry, npcMaterial);
+                const npc = new THREE.Mesh(new THREE.SphereGeometry(4, 16, 16), new THREE.MeshLambertMaterial({ color: 0xFF0000 }));
                 npc.scale.y = 1.5;
                 npc.position.set(-mapSize / 2 - stepDepth / 2 - i * stepDepth, yPos + 2, z);
                 window.spectators.push({ mesh: npc, baseY: yPos + 2, phase: Math.random() * Math.PI * 2 });
                 window.scene.add(npc);
-                npcCount++;
             }
         }
-    
-        console.log(`Total de NPCs criados: ${npcCount}`);
-    
+
         for (let i = 0; i < 30; i++) {
-            const houseGeometry = new THREE.BoxGeometry(15, 15, 15);
-            const houseMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
-            const house = new THREE.Mesh(houseGeometry, houseMaterial);
+            const house = new THREE.Mesh(new THREE.BoxGeometry(15, 15, 15), new THREE.MeshLambertMaterial({ color: 0x8B4513 }));
             house.position.set(Math.random() * (mapSize - 100) - (mapSize - 100) / 2, 7.5, Math.random() * (mapSize - 100) - (mapSize - 100) / 2);
             window.scene.add(house);
         }
-    
+
         for (let i = 0; i < 45; i++) {
-            const cowGeometry = new THREE.SphereGeometry(4.5, 16, 16);
-            const cowMaterial = new THREE.MeshLambertMaterial({ color: 0xFFFFFF });
-            const cow = new THREE.Mesh(cowGeometry, cowMaterial);
+            const cow = new THREE.Mesh(new THREE.SphereGeometry(4.5, 16, 16), new THREE.MeshLambertMaterial({ color: 0xFFFFFF }));
             cow.position.set(Math.random() * (mapSize - 100) - (mapSize - 100) / 2, 2.25, Math.random() * (mapSize - 100) - (mapSize - 100) / 2);
             window.scene.add(cow);
         }
-    
-        const roadMaterial = new THREE.LineBasicMaterial({ color: 0x808080 });
+
         for (let i = 0; i < 15; i++) {
-            const roadGeometry = new THREE.BufferGeometry().setFromPoints([
+            const road = new THREE.Line(new THREE.BufferGeometry().setFromPoints([
                 new THREE.Vector3(Math.random() * (mapSize - 100) - (mapSize - 100) / 2, 0.2, Math.random() * (mapSize - 100) - (mapSize - 100) / 2),
                 new THREE.Vector3(Math.random() * (mapSize - 100) - (mapSize - 100) / 2, 0.2, Math.random() * (mapSize - 100) - (mapSize - 100) / 2)
-            ]);
-            const road = new THREE.Line(roadGeometry, roadMaterial);
+            ]), new THREE.LineBasicMaterial({ color: 0x808080 }));
             road.scale.set(1.5, 1, 1.5);
             window.scene.add(road);
         }
-    
+
         for (let i = 0; i < 10; i++) {
-            const lakeGeometry = new THREE.CircleGeometry(30, 32);
-            const lakeMaterial = new THREE.MeshLambertMaterial({ color: 0x00BFFF, side: THREE.DoubleSide });
-            const lake = new THREE.Mesh(lakeGeometry, lakeMaterial);
+            const lake = new THREE.Mesh(new THREE.CircleGeometry(30, 32), new THREE.MeshLambertMaterial({ color: 0x00BFFF, side: THREE.DoubleSide }));
             lake.rotation.x = -Math.PI / 2;
             lake.position.set(Math.random() * (mapSize - 100) - (mapSize - 100) / 2, 0.1, Math.random() * (mapSize - 100) - (mapSize - 100) / 2);
             window.scene.add(lake);
         }
-    
-        const loader = new THREE.FontLoader();
-        loader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', function(font) {
+
+        new THREE.FontLoader().load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', function(font) {
             const textGeometry = new THREE.TextGeometry("ESPAÇOS PARA DIVULGAÇÃO", {
                 font: font,
                 size: 50,
                 height: 1,
             });
-            const textMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
-            const textMesh = new THREE.Mesh(textGeometry, textMaterial);
+            const textMesh = new THREE.Mesh(textGeometry, new THREE.MeshBasicMaterial({ color: 0x000000 }));
             textMesh.rotation.x = -Math.PI / 2;
             textMesh.position.set(-400, 0.2, 0);
             window.scene.add(textMesh);
-        }, undefined, function(error) {
-            console.error('Erro ao carregar fonte para texto de divulgação:', error);
         });
     }
 
     window.createBalloon = function(color, name) {
-        console.log('Criando balão com cor:', color, 'e nome:', name);
         color = color || '#FF4500';
         const group = new THREE.Group();
-        const basketGeometry = new THREE.BoxGeometry(15, 12, 15);
-        const basketMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
-        const basket = new THREE.Mesh(basketGeometry, basketMaterial);
+        const basket = new THREE.Mesh(new THREE.BoxGeometry(15, 12, 15), new THREE.MeshLambertMaterial({ color: 0x8B4513 }));
         basket.position.y = -15;
         group.add(basket);
 
@@ -295,60 +263,47 @@ export function initGame() {
         balloonMesh.position.y = 30;
         group.add(balloonMesh);
 
-        const ropeMaterial = new THREE.LineBasicMaterial({ color: 0x000000 });
         for (let i = 0; i < 4; i++) {
             const x = (i % 2 === 0) ? -7.5 : 7.5;
             const z = (i < 2) ? -7.5 : 7.5;
-            const ropeGeometry = new THREE.BufferGeometry().setFromPoints([
+            const rope = new THREE.Line(new THREE.BufferGeometry().setFromPoints([
                 new THREE.Vector3(x, -10, z),
                 new THREE.Vector3(x, 30, z)
-            ]);
-            const rope = new THREE.Line(ropeGeometry, ropeMaterial);
+            ]), new THREE.LineBasicMaterial({ color: 0x000000 }));
             group.add(rope);
         }
 
-        const loader = new THREE.FontLoader();
-        loader.load('https://threejs.org/examples/fonts/optimer_regular.typeface.json', function(font) {
-            const textGeometry = new THREE.TextGeometry(name || 'Jogador', {
+        new THREE.FontLoader().load('https://threejs.org/examples/fonts/optimer_regular.typeface.json', function(font) {
+            const textMesh = new THREE.Mesh(new THREE.TextGeometry(name || 'Jogador', {
                 font: font,
                 size: 7,
                 height: 1,
-            });
-            const textMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
-            const textMesh = new THREE.Mesh(textGeometry, textMaterial);
+            }), new THREE.MeshBasicMaterial({ color: 0x000000 }));
             textMesh.position.set(-15, 80, 0);
             group.add(textMesh);
-            console.log('Nome do jogador adicionado:', name);
         }, undefined, function(error) {
-            console.error('Erro ao carregar fonte para nome do jogador:', error);
-            const fallbackGeometry = new THREE.BoxGeometry(5, 5, 5);
-            const fallbackMaterial = new THREE.MeshBasicMaterial({ color: 0xFF0000 });
-            const fallbackMesh = new THREE.Mesh(fallbackGeometry, fallbackMaterial);
+            const fallbackMesh = new THREE.Mesh(new THREE.BoxGeometry(5, 5, 5), new THREE.MeshBasicMaterial({ color: 0xFF0000 }));
             fallbackMesh.position.set(-15, 80, 0);
             group.add(fallbackMesh);
-            console.log('Fallback adicionado para nome do jogador');
         });
 
         group.position.set(0, altitude, 0);
-        console.log('Balão criado:', group);
         return group;
     };
 
     window.createTarget = function(x, z) {
         const targetMesh = new THREE.Group();
-        const material = new THREE.LineBasicMaterial({ color: 0xFF0000, linewidth: 10 });
-        const line1Geometry = new THREE.BufferGeometry().setFromPoints([
+        const material = new THREE.LineBasicMaterial({ color: 0xFF0000 });
+        const line1 = new THREE.Line(new THREE.BufferGeometry().setFromPoints([
             new THREE.Vector3(-45, 0, -45),
             new THREE.Vector3(45, 0, 45)
-        ]);
-        const line1 = new THREE.Line(line1Geometry, material);
+        ]), material);
         targetMesh.add(line1);
 
-        const line2Geometry = new THREE.BufferGeometry().setFromPoints([
+        const line2 = new THREE.Line(new THREE.BufferGeometry().setFromPoints([
             new THREE.Vector3(45, 0, -45),
             new THREE.Vector3(-45, 0, 45)
-        ]);
-        const line2 = new THREE.Line(line2Geometry, material);
+        ]), material);
         targetMesh.add(line2);
 
         targetMesh.position.set(x, 0.1, z);
@@ -357,7 +312,6 @@ export function initGame() {
 
     function handleKeyDown(event) {
         if (!gameStarted || gameOver) return;
-        console.log('Tecla pressionada:', event.code, 'markerDropped:', window.markerDropped, 'markersLeft:', window.markersLeft);
         switch(event.code) {
             case 'KeyW': keys.W = true; break;
             case 'KeyS': keys.S = true; break;
@@ -365,10 +319,7 @@ export function initGame() {
             case 'KeyD': keys.D = true; break;
             case 'KeyU': keys.U = true; break;
             case 'ShiftRight': 
-                if (!window.markerDropped && window.markersLeft > 0) {
-                    console.log('ShiftRight detectado, soltando marcador');
-                    dropMarker();
-                }
+                if (!window.markerDropped && window.markersLeft > 0) dropMarker();
                 break;
         }
     }
@@ -384,16 +335,8 @@ export function initGame() {
     }
 
     function dropMarker() {
-        if (!window.balloon) {
-            console.error('Balão não existe ao tentar soltar marcador');
-            return;
-        }
-        console.log('Soltando marcador na posição:', window.balloon.position);
-        const markerStartPos = { 
-            x: window.balloon.position.x, 
-            y: window.balloon.position.y - 10, 
-            z: window.balloon.position.z 
-        };
+        if (!window.balloon) return;
+        const markerStartPos = { x: window.balloon.position.x, y: window.balloon.position.y - 10, z: window.balloon.position.z };
         const markerId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
         
         const markerMesh = new THREE.Mesh(
@@ -462,9 +405,7 @@ export function initGame() {
 
     function getCurrentWindLayer() {
         for (let i = 0; i < windLayers.length; i++) {
-            if (altitude >= windLayers[i].minAlt && altitude < windLayers[i].maxAlt) {
-                return i;
-            }
+            if (altitude >= windLayers[i].minAlt && altitude < windLayers[i].maxAlt) return i;
         }
         return 0;
     }
@@ -487,17 +428,6 @@ export function initGame() {
         window.renderer.setSize(window.innerWidth, window.innerHeight);
     }
 
-    function getDirectionToTarget(balloonX, balloonZ, targetX, targetZ) {
-        const dx = targetX - balloonX;
-        const dz = targetZ - balloonZ;
-        const angle = Math.atan2(dx, dz) * (180 / Math.PI);
-        if (angle >= -45 && angle < 45) return "N";
-        if (angle >= 45 && angle < 135) return "L";
-        if (angle >= 135 || angle < -135) return "S";
-        if (angle >= -135 && angle < -45) return "O";
-        return "-";
-    }
-
     window.restartGame = function() {
         gameOver = false;
         hasLiftedOff = false;
@@ -512,7 +442,7 @@ export function initGame() {
         window.balloon.position.set(0, altitude, 0);
         window.scene.add(window.balloon);
         document.getElementById('markersLeft').textContent = window.markersLeft;
-        window.socket.emit('updatePosition', { x: window.balloon.position.x, y: window.balloon.position.y, z: window.balloon.position.z, mode: window.mode || 'world', roomName: window.roomName || null });
+        window.socket.emit('updatePosition', { y: altitude, mode: window.mode || 'world', roomName: window.roomName || null });
     };
 
     function handleGamepad() {
@@ -520,67 +450,67 @@ export function initGame() {
         const gamepad = gamepads[0];
         if (gamepad) {
             const buttons = gamepad.buttons;
-            if (buttons[0].pressed) keys.S = true; else if (!buttons[0].pressed && keys.S) keys.S = false; // X
+            if (buttons[0].pressed) keys.S = true; else if (!buttons[0].pressed && keys.S) keys.S = false;
             if (buttons[1].pressed && !window.markerDropped && window.markersLeft > 0) {
                 if (!keys.SHIFT_RIGHT) { dropMarker(); keys.SHIFT_RIGHT = true; }
-            } else if (!buttons[1].pressed) keys.SHIFT_RIGHT = false; // Círculo
-            if (buttons[2].pressed) keys.U = true; else if (!buttons[2].pressed && keys.U) keys.U = false; // Quadrado
-            if (buttons[3].pressed) keys.W = true; else if (!buttons[3].pressed && keys.W) keys.W = false; // Triângulo
+            } else if (!buttons[1].pressed) keys.SHIFT_RIGHT = false;
+            if (buttons[2].pressed) keys.U = true; else if (!buttons[2].pressed && keys.U) keys.U = false;
+            if (buttons[3].pressed) keys.W = true; else if (!buttons[3].pressed && keys.W) keys.W = false;
         }
     }
 
     function animate() {
         requestAnimationFrame(animate);
         if (!gameStarted) return;
-    
+
+        if (!window.scene || !window.camera || !window.renderer || !balloon) return;
+
+        const currentTime = performance.now();
+        frameCount++;
+        if (currentTime - lastTime >= 1000) {
+            fps = frameCount;
+            frameCount = 0;
+            lastTime = currentTime;
+            document.getElementById('fpsCount').textContent = fps;
+        }
+
         // Controles locais apenas para altitude
         if (keys.W) { altitude += 1; hasLiftedOff = true; }
         if (keys.U) { altitude += 5; hasLiftedOff = true; }
         if (keys.S) altitude = Math.max(20, altitude - 1);
         altitude = Math.min(altitude, 500);
-    
+
         // Enviar apenas a altitude ao servidor
-        window.socket.emit('updatePosition', { 
-            y: altitude, 
-            mode: window.mode || 'world', 
-            roomName: window.roomName || null 
-        });
-    
-        // Sincronizar posição com dados do servidor
+        window.socket.emit('updatePosition', { y: altitude, mode: window.mode || 'world', roomName: window.roomName || null });
+
+        // Sincronizar posição com dados do servidor (debug do bug atual)
         if (window.targetPosition) {
             balloon.position.x = window.targetPosition.x;
             balloon.position.y = window.targetPosition.y;
             balloon.position.z = window.targetPosition.z;
-            console.log(`[Position Sync] Updated balloon: x=${balloon.position.x.toFixed(2)}, y=${balloon.position.y.toFixed(2)}, z=${balloon.position.z.toFixed(2)}`);
+            console.log('[BUG] Position Sync: x=', balloon.position.x.toFixed(2), 'z=', balloon.position.z.toFixed(2), 'y=', balloon.position.y.toFixed(2)); // Log apenas para depuração do movimento
+        } else {
+            console.log('[BUG] targetPosition não recebido do servidor'); // Log se a sincronização falhar
         }
-    
-        // Atualizar câmera e renderizar (mantém como está)
+
+        // Atualizar câmera
         window.camera.position.x = balloon.position.x;
         window.camera.position.z = balloon.position.z + 200;
         window.camera.position.y = balloon.position.y + 200;
         window.camera.lookAt(balloon.position.x, balloon.position.y, balloon.position.z);
-        window.renderer.render(window.scene, window.camera);
-    
-        // Atualizar UI e outros elementos (mantém como está)
+
         const currentLayerIndex = getCurrentWindLayer();
         document.getElementById('altitude').textContent = `${Math.floor(altitude)}m`;
         document.getElementById('windDirection').textContent = getWindDirectionText(currentLayerIndex);
         document.getElementById('windSpeed').textContent = windLayers[currentLayerIndex].speed.toFixed(1);
         updateLayerIndicator(currentLayerIndex);
-    
+
         window.renderer.render(window.scene, window.camera);
-        console.log('Renderizando cena: FPS', fps, 'Altitude:', altitude);
     }
 
     window.initGameScene = function(state) {
-        console.log('Inicializando cena com estado:', state);
-        if (!window.scene) {
-            console.log('Cena não existe, chamando initThreeJS');
-            initThreeJS();
-        } else {
-            console.log('Cena já existe, reutilizando');
-        }
-    
+        if (!window.scene) initThreeJS();
+
         window.scene.children.filter(obj => obj instanceof THREE.Group && obj.userData?.type === 'target').forEach(obj => window.scene.remove(obj));
         window.setTargets(state.targets || []);
         window.targets.forEach(target => {
@@ -588,36 +518,29 @@ export function initGame() {
             targetMesh.userData = { type: 'target' };
             window.scene.add(targetMesh);
         });
-    
+
         const player = state.players[window.socket.id];
         if (player) {
             altitude = player.y;
             window.markersLeft = player.markers;
             points = player.score;
-            console.log('Dados do jogador recebidos:', player);
         
             const markersLeftElement = document.getElementById('markersLeft');
             if (markersLeftElement) markersLeftElement.textContent = window.markersLeft;
-            else console.error('Elemento markersLeft não encontrado');
-        
+
             const pointsElement = document.getElementById('points');
             if (pointsElement) pointsElement.textContent = points;
-            else console.error('Elemento points não encontrado');
-        
+
             const playerNameDisplay = document.getElementById('playerNameDisplay');
             if (playerNameDisplay) playerNameDisplay.textContent = player.name;
-        
-            // Garantir que o balão seja sempre criado ou atualizado
+
             if (!balloon || !window.scene.children.includes(balloon)) {
-                console.log('Criando novo balão com cor do servidor:', player.color);
                 balloon = window.createBalloon(player.color || window.balloonColor || '#FF4500', player.name);
                 window.balloon = balloon;
                 balloon.position.set(player.x, player.y, player.z);
                 targetPosition = { x: player.x, y: player.y, z: player.z };
                 window.scene.add(balloon);
-                console.log('Balão adicionado à cena:', balloon);
             } else {
-                console.log('Atualizando posição do balão existente:', balloon.position);
                 balloon.position.set(player.x, player.y, player.z);
                 targetPosition = { x: player.x, y: player.y, z: player.z };
             }
@@ -632,7 +555,7 @@ export function initGame() {
                 window.scene.add(otherBalloon);
             }
         }
-    
+
         window.setMarkers([]);
         for (const markerId in state.markers) {
             const markerData = state.markers[markerId];
@@ -652,32 +575,19 @@ export function initGame() {
             window.scene.add(tailMesh);
             window.markers.push({ marker: markerMesh, tail: tailMesh, playerId: markerData.playerId });
         }
-    
+
         window.lastTargetMoveTime = state.lastTargetMoveTime || Date.now();
         gameStarted = true;
-        console.log('Cena inicializada, iniciando animação');
         animate();
     };
 
-    window.addEventListener('gamepadconnected', (e) => console.log('Controle conectado:', e.gamepad));
-    window.addEventListener('gamepaddisconnected', (e) => console.log('Controle desconectado:', e.gamepad));
+    window.addEventListener('gamepadconnected', (e) => {});
+    window.addEventListener('gamepaddisconnected', (e) => {});
 
     window.gameStarted = () => gameStarted = true;
     window.gameOver = () => gameOver = true;
     window.gameEnded = gameEnded;
-    window.setBalloon = (b) => {
-        console.log('Definindo balão:', b);
-        if (b) {
-            balloon = b;
-            window.balloon = b;
-            if (!window.scene.children.includes(b)) {
-                console.log('Re-adicionando balão à cena:', b);
-                window.scene.add(b);
-            }
-        } else {
-            console.error('Tentativa de definir balão como null, ignorando...');
-        }
-    };
+    window.setBalloon = (b) => { if (b) { balloon = b; window.balloon = b; if (!window.scene.children.includes(b)) window.scene.add(b); } };
     window.setTargets = (t) => window.targets = t;
     window.setOtherPlayers = (op) => window.otherPlayers = op;
     window.setMarkers = (m) => window.markers = m;
