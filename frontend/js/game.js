@@ -739,12 +739,11 @@ export function initGame() {
 
             // Câmera seguindo o balão
             if (window.balloon) {
-                const cameraHeight = 200;
-                const cameraDistance = 200;
+                const cameraOffset = 200;
                 window.camera.position.set(
-                    window.balloon.position.x,
-                    cameraHeight,
-                    window.balloon.position.z + cameraDistance
+                    window.balloon.position.x - cameraOffset,
+                    window.balloon.position.y + cameraOffset,
+                    window.balloon.position.z + cameraOffset
                 );
                 window.camera.lookAt(window.balloon.position);
             }
