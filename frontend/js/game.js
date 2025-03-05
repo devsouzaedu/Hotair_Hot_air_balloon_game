@@ -218,29 +218,22 @@ export function initGame() {
     }
 
     function createTarget(x, z) {
-        const targetGeometry = new THREE.RingGeometry(15, 20, 32);
-        const targetMaterial = new THREE.MeshBasicMaterial({ 
-            color: 0xff0000,
-            side: THREE.DoubleSide,
-            transparent: true,
-            opacity: 0.7
-        });
-        const target = new THREE.Mesh(targetGeometry, targetMaterial);
-        target.rotation.x = Math.PI / 2;
-        target.position.set(x, 0.5, z);
+        const targetGeometry = new THREE.RingGeometry(35, 40, 32);
+        const targetMaterial = new THREE.MeshBasicMaterial({ color: 0xFF0000, side: THREE.DoubleSide });
+        const targetMesh = new THREE.Mesh(targetGeometry, targetMaterial);
+        targetMesh.rotation.x = Math.PI / 2;
+        targetMesh.position.set(x, 0, z);
 
-        // Adicionar um ponto central
         const centerGeometry = new THREE.CircleGeometry(5, 32);
-        const centerMaterial = new THREE.MeshBasicMaterial({ 
-            color: 0xff0000,
-            side: THREE.DoubleSide
-        });
-        const center = new THREE.Mesh(centerGeometry, centerMaterial);
-        center.rotation.x = Math.PI / 2;
-        center.position.y = 0.6;
-        target.add(center);
+        const centerMaterial = new THREE.MeshBasicMaterial({ color: 0xFF0000, side: THREE.DoubleSide });
+        const centerMesh = new THREE.Mesh(centerGeometry, centerMaterial);
+        centerMesh.rotation.x = Math.PI / 2;
+        centerMesh.position.set(x, 1, z);
 
-        return target;
+        const targetGroup = new THREE.Group();
+        targetGroup.add(targetMesh);
+        targetGroup.add(centerMesh);
+        return targetGroup;
     }
 
     function handleKeyDown(event) {
@@ -708,89 +701,22 @@ export function initGame() {
         animate(performance.now());
     };
 
-    // Exportar funções globais
-    window.setTargets = function(t) { window.targets = t; };
-    window.setOtherPlayers = function(op) { window.otherPlayers = op; };
-    window.setMarkers = function(m) { window.markers = m; };
+    // Expor funções necessárias globalmente
+    window.createTarget = createTarget;
+    window.createBalloon = createBalloon;
+    window.setTargets = (targets) => { window.targets = targets; };
+    window.setMarkers = (markers) => { window.markers = markers; };
+    window.setOtherPlayers = (players) => { window.otherPlayers = players; };
+    window.setBalloon = (newBalloon) => { balloon = newBalloon; window.balloon = newBalloon; };
+    window.showNoMarkersMessage = showNoMarkersMessage;
     window.gameStarted = () => { gameStarted = true; };
     window.gameOver = () => { gameOver = true; };
+    window.initGameScene = initGameScene;
 
     window.addEventListener('gamepadconnected', (e) => {});
     window.addEventListener('gamepaddisconnected', (e) => {});
 
     window.gameEnded = gameEnded;
-    window.setBalloon = (b) => { if (b) { balloon = b; window.balloon = b; if (!window.scene.children.includes(b)) window.scene.add(b); } };
-    window.showNoMarkersMessage = showNoMarkersMessage;
-
-    function createBalloon(color, name) {
-        color = color || '#FF4500';
-        const group = new THREE.Group();
-        
-        // Cesta
-        const basketGeometry = new THREE.BoxGeometry(15, 12, 15);
-        const basketMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
-        const basket = new THREE.Mesh(basketGeometry, basketMaterial);
-        basket.position.y = -15;
-        group.add(basket);
-
-        // Balão
-        const balloonGeometry = new THREE.SphereGeometry(30, 32, 32);
-        const balloonMaterial = new THREE.MeshLambertMaterial({ 
-            color: color === 'rainbow' ? 0xffffff : parseInt(color.replace('#', '0x'), 16),
-            vertexColors: color === 'rainbow'
-        });
-        const balloonMesh = new THREE.Mesh(balloonGeometry, balloonMaterial);
-
-        if (color === 'rainbow') {
-            const colors = new Float32Array(balloonGeometry.attributes.position.count * 3);
-            for (let i = 0; i < balloonGeometry.attributes.position.count; i++) {
-                colors[i * 3] = Math.random();
-                colors[i * 3 + 1] = Math.random();
-                colors[i * 3 + 2] = Math.random();
-            }
-            balloonGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-        }
-
-        balloonMesh.scale.y = 1.2;
-        balloonMesh.position.y = 30;
-        group.add(balloonMesh);
-
-        // Cordas
-        const ropePositions = [
-            [-7.5, -10, -7.5, -7.5, 30, -7.5],
-            [7.5, -10, -7.5, 7.5, 30, -7.5],
-            [-7.5, -10, 7.5, -7.5, 30, 7.5],
-            [7.5, -10, 7.5, 7.5, 30, 7.5]
-        ];
-
-        const ropeGeometry = new THREE.BufferGeometry();
-        const ropeVertices = new Float32Array(ropePositions.flat());
-        ropeGeometry.setAttribute('position', new THREE.BufferAttribute(ropeVertices, 3));
-        const ropeMaterial = new THREE.LineBasicMaterial({ color: 0x000000 });
-        const ropes = new THREE.LineSegments(ropeGeometry, ropeMaterial);
-        group.add(ropes);
-
-        // Nome do jogador
-        const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d');
-        canvas.width = 256;
-        canvas.height = 64;
-        context.font = 'Bold 32px Arial';
-        context.fillStyle = '#000000';
-        context.textAlign = 'center';
-        context.fillText(name || 'Jogador', canvas.width / 2, canvas.height / 2);
-
-        const texture = new THREE.CanvasTexture(canvas);
-        const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
-        const sprite = new THREE.Sprite(spriteMaterial);
-        sprite.position.y = 80;
-        sprite.scale.set(50, 12.5, 1);
-        group.add(sprite);
-
-        return group;
-    }
-
-    window.createBalloon = createBalloon; // Expor a função globalmente
 }
 
 // Função de throttle para otimizar event listeners
