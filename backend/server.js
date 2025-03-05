@@ -204,7 +204,7 @@ function updateMarkersGravity(state, roomName = null) {
     for (const markerId in state.markers) {
         const marker = state.markers[markerId];
         if (marker.y > 0) {
-            marker.y -= 5.0; // Gravidade aplicada no backend
+            marker.y -= 9.8; // Aumentando a gravidade para dar mais peso às marcas
             io.to(roomName || 'world').emit('markerUpdate', { markerId, x: marker.x, y: marker.y, z: marker.z });
             if (marker.y <= 0) {
                 marker.y = 0;
@@ -229,7 +229,7 @@ function updateMarkersGravity(state, roomName = null) {
                         });
                     }
                 }
-                delete state.markers[markerId]; // Remover marcador após aterrissar
+                delete state.markers[markerId];
             }
         }
     }
@@ -541,10 +541,9 @@ io.on('connection', (socket) => {
 
 const windLayers = [
     { minAlt: 0, maxAlt: 100, direction: { x: 0, z: 0 }, speed: 0 },
-    { minAlt: 100, maxAlt: 200, direction: { x: 1, z: 0 }, speed: 1.5 },
-    { minAlt: 200, maxAlt: 300, direction: { x: 0, z: 1 }, speed: 2.0 },
-    { minAlt: 300, maxAlt: 400, direction: { x: -1, z: 0 }, speed: 2.0 },
-    { minAlt: 400, maxAlt: 500, direction: { x: 0, z: -1 }, speed: 3.0 }
+    { minAlt: 100, maxAlt: 200, direction: { x: 1, z: 0 }, speed: 2.0 },
+    { minAlt: 200, maxAlt: 350, direction: { x: -1, z: 0 }, speed: 2.5 },
+    { minAlt: 350, maxAlt: 500, direction: { x: 0, z: -1 }, speed: 3.0 }
 ];
 
 setInterval(() => {
@@ -558,7 +557,7 @@ setInterval(() => {
     updateBots();
 
     const elapsedWorld = (Date.now() - worldState.startTime) / 1000;
-    const timeLeft = Math.max(300 - elapsedWorld, 0);
+    const timeLeft = Math.max(307 - elapsedWorld, 0); // Alterado para 307 segundos
     const timeSinceLastTargetMove = (Date.now() - worldState.lastTargetMoveTime) / 1000;
     if (timeSinceLastTargetMove >= 60) {
         moveTarget(worldState);
@@ -566,7 +565,6 @@ setInterval(() => {
     }
     const targetTimeLeft = 60 - (timeSinceLastTargetMove % 60);
 
-    // Emitir apenas se houver mudanças significativas
     if (Object.keys(worldState.players).length > 0 || Object.keys(worldState.markers).length > 0) {
         io.to('world').emit('gameUpdate', { state: worldState, timeLeft, targetTimeLeft });
     }
@@ -578,7 +576,7 @@ setInterval(() => {
             resetWorldState();
             io.to('world').emit('gameReset', { state: worldState });
             worldState.resetScheduled = false;
-        }, 7000);
+        }, 7000); // 7 segundos para reinício
     }
 
     for (const roomName in rooms) {
@@ -592,7 +590,7 @@ setInterval(() => {
             }
             updateMarkersGravity(room, roomName);
             const elapsed = (Date.now() - room.startTime) / 1000;
-            const roomTimeLeft = Math.max(300 - elapsed, 0);
+            const roomTimeLeft = Math.max(307 - elapsed, 0);
             const roomTargetTimeLeft = 60 - ((Date.now() - room.lastTargetMoveTime) / 1000 % 60);
             if (Object.keys(room.players).length > 0 || Object.keys(room.markers).length > 0) {
                 io.to(roomName).emit('gameUpdate', { state: room, timeLeft: roomTimeLeft, targetTimeLeft: roomTargetTimeLeft });

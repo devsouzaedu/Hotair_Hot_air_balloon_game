@@ -23,10 +23,9 @@ export function initGame() {
 
     const windLayers = [
         { minAlt: 0, maxAlt: 100, direction: { x: 0, z: 0 }, speed: 0, name: "Nenhum" },
-        { minAlt: 100, maxAlt: 200, direction: { x: 1, z: 0 }, speed: 1.5, name: "Leste" },
-        { minAlt: 200, maxAlt: 300, direction: { x: 0, z: 1 }, speed: 2.0, name: "Sul" },
-        { minAlt: 300, maxAlt: 400, direction: { x: -1, z: 0 }, speed: 2.0, name: "Oeste" },
-        { minAlt: 400, maxAlt: 500, direction: { x: 0, z: -1 }, speed: 3.0, name: "Norte" }
+        { minAlt: 100, maxAlt: 200, direction: { x: 1, z: 0 }, speed: 2.0, name: "Leste" },
+        { minAlt: 200, maxAlt: 350, direction: { x: -1, z: 0 }, speed: 2.5, name: "Oeste" },
+        { minAlt: 350, maxAlt: 500, direction: { x: 0, z: -1 }, speed: 3.0, name: "Norte" }
     ];
 
     const keys = { W: false, S: false, A: false, D: false, U: false, SHIFT_RIGHT: false };
@@ -180,9 +179,10 @@ export function initGame() {
         const mapSize = 2600;
         
         // Melhorar geometria do chão
-        const groundGeometry = new THREE.PlaneGeometry(mapSize, mapSize, 25, 25);
+        const groundGeometry = new THREE.PlaneGeometry(mapSize, mapSize, 50, 50);
         const groundMaterial = new THREE.MeshLambertMaterial({ 
-            color: 0x7CBA3D
+            color: 0x7CBA3D,
+            side: THREE.DoubleSide
         });
         const ground = new THREE.Mesh(groundGeometry, groundMaterial);
         ground.rotation.x = -Math.PI / 2;
@@ -190,7 +190,7 @@ export function initGame() {
         window.scene.add(ground);
 
         // Grid helper melhorado
-        const gridHelper = new THREE.GridHelper(mapSize, 26, 0x000000, 0x000000);
+        const gridHelper = new THREE.GridHelper(mapSize, 52, 0x000000, 0x000000);
         gridHelper.position.y = 0.1;
         gridHelper.material.opacity = 0.2;
         gridHelper.material.transparent = true;
@@ -201,7 +201,7 @@ export function initGame() {
         const stepMaterial = new THREE.MeshLambertMaterial({ 
             color: 0x808080
         });
-        const maxSteps = 8;
+        const maxSteps = 6; // 6 andares
         const stepsPerSide = Math.floor((mapSize - 40) / 30);
         const totalInstances = (stepsPerSide * 4) * maxSteps;
         const stepMesh = new THREE.InstancedMesh(stepGeometry, stepMaterial, totalInstances);
@@ -214,7 +214,7 @@ export function initGame() {
             const offset = i * 20;
             
             // Norte e Sul
-            for (let x = -mapSize/2 + 40; x < mapSize/2 - 40; x += 40) {
+            for (let x = -mapSize/2 + 40; x < mapSize/2 - 40; x += 30) {
                 // Norte
                 matrix.makeTranslation(x, yPos, mapSize/2 - offset);
                 stepMesh.setMatrixAt(instanceCount++, matrix);
@@ -225,7 +225,7 @@ export function initGame() {
             }
             
             // Leste e Oeste
-            for (let z = -mapSize/2 + 40; z < mapSize/2 - 40; z += 40) {
+            for (let z = -mapSize/2 + 40; z < mapSize/2 - 40; z += 30) {
                 // Leste
                 matrix.makeTranslation(mapSize/2 - offset, yPos, z);
                 stepMesh.setMatrixAt(instanceCount++, matrix);
@@ -239,20 +239,20 @@ export function initGame() {
         window.scene.add(stepMesh);
 
         // Melhorar criação de espectadores
-        const spectatorGeometry = new THREE.SphereGeometry(4, 8, 8);
+        const spectatorGeometry = new THREE.SphereGeometry(3, 8, 8);
         const spectatorMaterial = new THREE.MeshLambertMaterial({ 
             color: 0xFF0000
         });
-        const maxSpectators = Math.min(window.qualitySettings.maxSpectators * 2, 1000);
+        const maxSpectators = 6000; // Aumentado para 6000 espectadores
         const spectatorMesh = new THREE.InstancedMesh(spectatorGeometry, spectatorMaterial, maxSpectators);
 
         let spectatorCount = 0;
         for (let i = 0; i < maxSteps && spectatorCount < maxSpectators; i++) {
-            const yPos = i * 10 + 12;
+            const yPos = i * 12 + 15;
             const offset = i * 20;
             
             // Norte e Sul
-            for (let x = -mapSize/2 + 45; x < mapSize/2 - 45; x += 20) {
+            for (let x = -mapSize/2 + 45; x < mapSize/2 - 45; x += 15) {
                 if (spectatorCount >= maxSpectators) break;
                 
                 // Norte
@@ -267,7 +267,7 @@ export function initGame() {
             }
             
             // Leste e Oeste
-            for (let z = -mapSize/2 + 45; z < mapSize/2 - 45; z += 20) {
+            for (let z = -mapSize/2 + 45; z < mapSize/2 - 45; z += 15) {
                 if (spectatorCount >= maxSpectators) break;
                 
                 // Leste
@@ -283,6 +283,23 @@ export function initGame() {
         }
 
         window.scene.add(spectatorMesh);
+
+        // Adicionar elementos decorativos
+        const decorations = [
+            { geometry: new THREE.BoxGeometry(40, 20, 40), position: { x: 200, y: 10, z: 200 }, color: 0x8B4513 }, // Quiosque
+            { geometry: new THREE.CylinderGeometry(15, 15, 100, 8), position: { x: -200, y: 50, z: -200 }, color: 0x4CAF50 }, // Torre
+            { geometry: new THREE.SphereGeometry(30, 16, 16), position: { x: -200, y: 30, z: 200 }, color: 0x4CAF50 }, // Árvore
+            { geometry: new THREE.BoxGeometry(80, 10, 80), position: { x: 200, y: 5, z: -200 }, color: 0x2196F3 } // Lago
+        ];
+
+        decorations.forEach(dec => {
+            const mesh = new THREE.Mesh(
+                dec.geometry,
+                new THREE.MeshLambertMaterial({ color: dec.color })
+            );
+            mesh.position.set(dec.position.x, dec.position.y, dec.position.z);
+            window.scene.add(mesh);
+        });
     }
 
     window.createBalloon = function(color, name) {
@@ -536,7 +553,7 @@ export function initGame() {
     }
 
     function updateLayerIndicator(currentLayer) {
-        for (let i = 1; i <= 5; i++) {
+        for (let i = 1; i <= 4; i++) {
             const element = document.getElementById(`layer${i}`);
             if (element && i === currentLayer + 1) element.classList.add('active');
             else if (element) element.classList.remove('active');
@@ -741,8 +758,8 @@ export function initGame() {
             if (window.balloon) {
                 window.camera.position.set(
                     window.balloon.position.x,
-                    window.balloon.position.y + 100,
-                    window.balloon.position.z + 100
+                    window.balloon.position.y + 200,
+                    window.balloon.position.z + 200
                 );
                 window.camera.lookAt(window.balloon.position);
             }
