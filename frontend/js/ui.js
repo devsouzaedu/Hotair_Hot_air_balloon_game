@@ -3,6 +3,7 @@ export function initUI() {
     window.balloonColor = null;
     window.mode = null;
     window.roomName = null;
+    window.isCreator = false; // Adicionado para rastrear se o jogador é criador
 
     document.getElementById('createRoomButton').addEventListener('click', () => {
         const inputRoomName = document.getElementById('roomName').value.trim();
@@ -13,6 +14,9 @@ export function initUI() {
                 return;
             }
             window.socket.emit('createRoom', { name: window.roomName });
+            window.isCreator = true; // Marca como criador
+            document.getElementById('roomScreen').style.display = 'none';
+            document.getElementById('lobbyScreen').style.display = 'flex';
         } else {
             alert("Digite o nome da sala!");
         }
@@ -42,6 +46,28 @@ export function initUI() {
         } else {
             alert("Digite o nome da sala!");
         }
+    });
+
+    window.socket.on('roomCreated', (data) => {
+        if (data.creator === window.socket.id) {
+            window.isCreator = true;
+            document.getElementById('lobbyScreen').style.display = 'flex';
+            document.getElementById('startRoomButton').style.display = 'block';
+        }
+    });
+
+    window.socket.on('playerJoined', ({ players, creator }) => {
+        const playersList = document.getElementById('playersList');
+        if (playersList) {
+            playersList.innerHTML = '';
+            for (const id in players) {
+                const playerDiv = document.createElement('div');
+                playerDiv.textContent = players[id].name;
+                playersList.appendChild(playerDiv);
+            }
+        }
+        window.isCreator = (creator === window.socket.id);
+        document.getElementById('startRoomButton').style.display = window.isCreator ? 'block' : 'none';
     });
 
     document.getElementById('startRoomButton').addEventListener('click', () => {

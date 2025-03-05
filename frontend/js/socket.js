@@ -1,4 +1,6 @@
+// socket.js
 console.log('socket.js carregado');
+
 export function initSocket() {
     if (typeof io === 'undefined') {
         console.error('Socket.IO não foi carregado corretamente.');
@@ -104,7 +106,7 @@ export function initSocket() {
                 window.scene.add(targetMesh);
             });
         }
-        const playerName = document.getElementById('playerName')?.value || 'Jogador';
+        const playerName = document.getElementById('playerNameDisplay')?.textContent || 'Jogador';
         window.setBalloon(window.createBalloon(window.balloonColor, playerName));
         if (window.balloon) {
             console.log('Adicionando balão à cena:', window.balloon);
@@ -171,15 +173,15 @@ export function initSocket() {
             const seconds = Math.floor(timeLeft % 60);
             timerDisplay.textContent = `Tempo: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
         }
-    
-        const targetTimer = document.getElementById('targetTimer');
+
+        const targetTimer = document.getElementById('targetMoveTimer'); // Usando targetMoveTimer conforme index.html
         if (targetTimer) {
-            targetTimer.textContent = `Mudança: ${Math.floor(targetTimeLeft)}s`;
+            targetTimer.textContent = `Próxima mudança: ${Math.floor(targetTimeLeft)}s`;
         }
-    
+
         const markersLeftElement = document.getElementById('markersLeft');
         if (markersLeftElement) markersLeftElement.textContent = player?.markers || window.markersLeft;
-    
+
         const pointsElement = document.getElementById('points');
         if (pointsElement) pointsElement.textContent = player?.score || 0;
     });
@@ -307,7 +309,7 @@ export function initSocket() {
         window.setMarkers([]);
         window.setOtherPlayers({});
 
-        const playerName = document.getElementById('playerName')?.value || 'Jogador';
+        const playerName = document.getElementById('playerNameDisplay')?.textContent || 'Jogador';
         window.setBalloon(window.createBalloon(window.balloonColor, playerName));
         if (window.balloon) {
             window.balloon.position.set(state.players[socket.id].x, state.players[socket.id].y, state.players[socket.id].z);

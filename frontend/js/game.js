@@ -50,6 +50,7 @@ export function initGame() {
     }
 
     function initThreeJS() {
+        console.log('Inicializando Three.js');
         window.scene = new THREE.Scene();
         window.scene.background = new THREE.Color(0x87CEEB);
     
@@ -328,7 +329,7 @@ export function initGame() {
     }
 
     function dropMarker() {
-        if (!window.balloon) return;
+        if (!window.balloon || !window.socket) return;
         const markerStartPos = { x: window.balloon.position.x, y: window.balloon.position.y - 10, z: window.balloon.position.z };
         const markerId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
         
@@ -406,15 +407,19 @@ export function initGame() {
     function updateLayerIndicator(currentLayer) {
         for (let i = 1; i <= 5; i++) {
             const element = document.getElementById(`layer${i}`);
-            if (i === currentLayer + 1) element.classList.add('active');
-            else element.classList.remove('active');
+            if (element && i === currentLayer + 1) element.classList.add('active');
+            else if (element) element.classList.remove('active');
         }
     }
 
     function onWindowResize() {
-        window.camera.aspect = window.innerWidth / window.innerHeight;
-        window.camera.updateProjectionMatrix();
-        window.renderer.setSize(window.innerWidth, window.innerHeight);
+        if (window.camera) {
+            window.camera.aspect = window.innerWidth / window.innerHeight;
+            window.camera.updateProjectionMatrix();
+        }
+        if (window.renderer) {
+            window.renderer.setSize(window.innerWidth, window.innerHeight);
+        }
     }
 
     function calculateDistanceToTarget() {
@@ -444,11 +449,13 @@ export function initGame() {
         document.getElementById('loseScreen').style.display = 'none';
         document.getElementById('gameScreen').style.display = 'block';
         if (window.balloon) window.scene.remove(window.balloon);
-        window.balloon = window.createBalloon(window.balloonColor, document.getElementById('playerName').value);
+        window.balloon = window.createBalloon(window.balloonColor, document.getElementById('playerNameDisplay').textContent || 'Jogador');
         window.balloon.position.set(0, altitude, 0);
         window.scene.add(window.balloon);
+        if (window.socket && window.socket.emit) {
+            window.socket.emit('updatePosition', { y: altitude, mode: window.mode || 'world', roomName: window.roomName || null });
+        }
         document.getElementById('markersLeft').textContent = window.markersLeft;
-        window.socket.emit('updatePosition', { y: altitude, mode: window.mode || 'world', roomName: window.roomName || null });
     };
 
     function handleGamepad() {
@@ -469,7 +476,10 @@ export function initGame() {
         requestAnimationFrame(animate);
         if (!gameStarted) return;
 
-        if (!window.scene || !window.camera || !window.renderer || !balloon) return;
+        if (!window.scene || !window.camera || !window.renderer || !balloon) {
+            console.error('Erro na renderização: cena, câmera, renderer ou balão não inicializados');
+            return;
+        }
 
         const currentTime = performance.now();
         frameCount++;
@@ -487,7 +497,9 @@ export function initGame() {
         altitude = Math.min(altitude, 500);
 
         // Enviar apenas a altitude ao servidor
-        window.socket.emit('updatePosition', { y: altitude, mode: window.mode || 'world', roomName: window.roomName || null });
+        if (window.socket && window.socket.emit) {
+            window.socket.emit('updatePosition', { y: altitude, mode: window.mode || 'world', roomName: window.roomName || null });
+        }
 
         // Sincronizar posição com dados do servidor
         if (window.targetPosition) {
@@ -503,9 +515,12 @@ export function initGame() {
         window.camera.lookAt(balloon.position.x, balloon.position.y, balloon.position.z);
 
         const currentLayerIndex = getCurrentWindLayer();
-        document.getElementById('altitude').textContent = `${Math.floor(altitude)}m`;
-        document.getElementById('windDirection').textContent = getWindDirectionText(currentLayerIndex);
-        document.getElementById('windSpeed').textContent = windLayers[currentLayerIndex].speed.toFixed(1);
+        const altitudeElement = document.getElementById('altitude');
+        if (altitudeElement) altitudeElement.textContent = `${Math.floor(altitude)}m`;
+        const windDirectionElement = document.getElementById('windDirection');
+        if (windDirectionElement) windDirectionElement.textContent = getWindDirectionText(currentLayerIndex);
+        const windSpeedElement = document.getElementById('windSpeed');
+        if (windSpeedElement) windSpeedElement.textContent = windLayers[currentLayerIndex].speed.toFixed(1);
         updateLayerIndicator(currentLayerIndex);
 
         // Atualizar GPS e distância
@@ -516,11 +531,21 @@ export function initGame() {
         // Aplicar gravidade local ao marcador
         window.markers.forEach(markerObj => {
             if (markerObj.marker.userData.falling) {
-                markerObj.marker.position.y -= 5.0; // Gravidade local
+                markerObj.marker.position.y -= 5.0;
                 markerObj.tail.position.y = markerObj.marker.position.y;
                 if (markerObj.marker.position.y <= 0) {
                     markerObj.marker.position.y = 0;
                     markerObj.marker.userData.falling = false;
+                    if (window.socket && window.socket.emit) {
+                        window.socket.emit('markerLanded', {
+                            x: markerObj.marker.position.x,
+                            y: 0,
+                            z: markerObj.marker.position.z,
+                            mode: window.mode || 'world',
+                            roomName: window.roomName || null,
+                            markerId: markerObj.marker.userData.markerId
+                        });
+                    }
                 }
             }
         });
@@ -529,6 +554,7 @@ export function initGame() {
     }
 
     window.initGameScene = function(state) {
+        console.log('Inicializando cena com state:', state);
         if (!window.scene) initThreeJS();
 
         window.scene.children.filter(obj => obj instanceof THREE.Group && obj.userData?.type === 'target').forEach(obj => window.scene.remove(obj));
@@ -601,14 +627,10 @@ export function initGame() {
         animate();
     };
 
-    // Lidar com atualizações de marcador
-    window.socket.on('markerUpdate', ({ markerId, x, y, z }) => {
-        const markerObj = window.markers.find(m => m.marker.userData.markerId === markerId);
-        if (markerObj) {
-            markerObj.marker.position.set(x, y, z);
-            markerObj.tail.position.set(x, y, z);
-        }
-    });
+    // Restaurar funções globais
+    window.setTargets = function(t) { window.targets = t; };
+    window.setOtherPlayers = function(op) { window.otherPlayers = op; };
+    window.setMarkers = function(m) { window.markers = m; };
 
     window.addEventListener('gamepadconnected', (e) => {});
     window.addEventListener('gamepaddisconnected', (e) => {});
@@ -617,8 +639,5 @@ export function initGame() {
     window.gameOver = () => gameOver = true;
     window.gameEnded = gameEnded;
     window.setBalloon = (b) => { if (b) { balloon = b; window.balloon = b; if (!window.scene.children.includes(b)) window.scene.add(b); } };
-    window.setTargets = (t) => window.targets = t;
-    window.setOtherPlayers = (op) => window.otherPlayers = op;
-    window.setMarkers = (m) => window.markers = m;
     window.showNoMarkersMessage = showNoMarkersMessage;
 }

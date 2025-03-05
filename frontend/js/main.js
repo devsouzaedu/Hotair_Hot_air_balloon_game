@@ -58,7 +58,8 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('startGameButton clicado');
             document.getElementById('profileScreen').style.display = 'none';
             document.getElementById('modeScreen').style.display = 'flex';
-            initGame(); // Inicializa variáveis e funções do jogo
+            initSocket(); // Inicializa o socket primeiro
+            initGame();   // Depois inicializa o jogo
         });
     }
 
@@ -95,21 +96,14 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('okButton clicado, cor selecionada:', selectedColor);
             window.balloonColor = selectedColor; // Define a cor globalmente antes de prosseguir
             document.getElementById('colorScreen').style.display = 'none';
-            document.getElementById('gameScreen').style.display = 'block';
-            initSocket();
-            initUI();
-            const token = localStorage.getItem('jwtToken');
-            fetch('https://hotair-backend.onrender.com/auth/check', {
-                method: 'GET',
-                headers: { 'Authorization': `Bearer ${token}` }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.authenticated) {
-                    window.socket.emit('joinNow', { color: selectedColor });
-                }
-            })
-            .catch(err => console.error('Erro ao verificar autenticação ao entrar no jogo:', err));
+            if (window.mode === 'world') {
+                document.getElementById('gameScreen').style.display = 'block';
+                initUI();
+                window.socket.emit('joinNow', { color: selectedColor });
+            } else if (window.roomName) {
+                document.getElementById('lobbyScreen').style.display = 'flex';
+                window.socket.emit('setColor', { roomName: window.roomName, color: selectedColor });
+            }
         });
     }
 });
