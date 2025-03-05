@@ -491,7 +491,7 @@ export function initGame() {
         window.balloon.position.set(0, altitude, 0);
         window.scene.add(window.balloon);
         if (window.socket && window.socket.emit) {
-            window.socket.emit('updatePosition', { y: altitude, mode: window.mode || 'world', roomName: window.roomName || null });
+            window.socket.emit('updatePosition', { x: 0, y: altitude, z: 0, mode: window.mode || 'world', roomName: window.roomName || null });
         }
         document.getElementById('markersLeft').textContent = window.markersLeft;
     };
@@ -511,16 +511,16 @@ export function initGame() {
     }
 
     function animate(time) {
-        // Limitar a 30 FPS para testar fluidez
+        requestAnimationFrame(animate); // Chamar sempre para manter a animação ativa
+        if (!gameStarted || gameOver) return;
+
+        if (!window.scene || !window.camera || !window.renderer || !balloon) {
+            console.error('Erro na renderização: cena, câmera, renderer ou balão não inicializados');
+            return;
+        }
+
+        // Limitar a renderização a 30 FPS, mas processar controles a cada frame
         if (time - lastTime >= 1000 / 30) {
-            requestAnimationFrame(animate);
-            if (!gameStarted) return;
-
-            if (!window.scene || !window.camera || !window.renderer || !balloon) {
-                console.error('Erro na renderização: cena, câmera, renderer ou balão não inicializados');
-                return;
-            }
-
             frameCount++;
             if (time - lastTime >= 1000) {
                 fps = frameCount;
@@ -529,15 +529,21 @@ export function initGame() {
                 document.getElementById('fpsCount').textContent = fps;
             }
 
-            // Controles locais apenas para altitude
-            if (keys.W) { altitude += 0.5; hasLiftedOff = true; }
-            if (keys.U) { altitude += 2.5; hasLiftedOff = true; }
+            // Controles locais para altitude
+            if (keys.W) altitude += 0.5; hasLiftedOff = true;
+            if (keys.U) altitude += 2.5; hasLiftedOff = true;
             if (keys.S) altitude = Math.max(20, altitude - 0.5);
             altitude = Math.min(altitude, 500);
 
-            // Enviar apenas a altitude ao servidor
-            if (window.socket && window.socket.emit) {
-                window.socket.emit('updatePosition', { y: altitude, mode: window.mode || 'world', roomName: window.roomName || null });
+            // Sincronizar posição completa com o servidor
+            if (window.balloon && window.socket && window.socket.emit) {
+                window.socket.emit('updatePosition', {
+                    x: window.balloon.position.x,
+                    y: altitude,
+                    z: window.balloon.position.z,
+                    mode: window.mode || 'world',
+                    roomName: window.roomName || null
+                });
             }
 
             // Sincronizar posição com dados do servidor
