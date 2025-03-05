@@ -58,29 +58,29 @@ export function initGame() {
         const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         window.qualitySettings = {
             drawDistance: isMobileDevice ? 1000 : 2000,
-            shadowsEnabled: !isMobileDevice,
-            maxSpectators: isMobileDevice ? 100 : Math.floor((2600 - 20) / 10) * 24,
-            geometryDetail: isMobileDevice ? 8 : 16,
+            shadowsEnabled: false, // Desabilitando sombras para melhor performance
+            maxSpectators: isMobileDevice ? 50 : 100,
+            geometryDetail: isMobileDevice ? 6 : 12,
             updateRate: isMobileDevice ? 1000/30 : 1000/60
         };
     
+        // Configuração da câmera com posição fixa
         window.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, window.qualitySettings.drawDistance);
-        window.camera.position.set(0, 150, 150);
-        window.camera.lookAt(0, 100, 0);
+        window.camera.position.set(0, 200, 200); // Posição fixa mais alta
+        window.camera.lookAt(0, 0, 0);
     
         // Configurações otimizadas do renderer
         window.renderer = new THREE.WebGLRenderer({ 
             antialias: false,
             powerPreference: "high-performance",
-            precision: isMobileDevice ? "lowp" : "mediump",
+            precision: "lowp",
             stencil: false,
             depth: true,
             logarithmicDepthBuffer: false
         });
         window.renderer.setSize(window.innerWidth, window.innerHeight);
-        window.renderer.setPixelRatio(isMobileDevice ? 0.7 : 1);
-        window.renderer.shadowMap.enabled = window.qualitySettings.shadowsEnabled;
-        window.renderer.shadowMap.type = THREE.BasicShadowMap;
+        window.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1));
+        window.renderer.shadowMap.enabled = false;
         document.getElementById('gameScreen').appendChild(window.renderer.domElement);
     
         // Geometrias compartilhadas com LOD
@@ -187,15 +187,15 @@ export function initGame() {
         const mapSize = 2600;
         
         // Otimizar geometria do chão reduzindo segmentos
-        const groundGeometry = new THREE.PlaneGeometry(mapSize, mapSize, 25, 25);
-        const groundMaterial = new THREE.MeshLambertMaterial({ color: 0x7CFC00 });
+        const groundGeometry = new THREE.PlaneGeometry(mapSize, mapSize, 20, 20);
+        const groundMaterial = new THREE.MeshBasicMaterial({ color: 0x7CFC00 });
         const ground = new THREE.Mesh(groundGeometry, groundMaterial);
         ground.rotation.x = -Math.PI / 2;
         ground.position.y = 0;
         window.scene.add(ground);
 
-        // Otimizar grid helper
-        const gridHelper = new THREE.GridHelper(mapSize, 13, 0x000000, 0x000000);
+        // Grid helper simplificado
+        const gridHelper = new THREE.GridHelper(mapSize, 10, 0x000000, 0x000000);
         gridHelper.position.y = 0.1;
         gridHelper.material.opacity = 0.2;
         gridHelper.material.transparent = true;
@@ -203,9 +203,9 @@ export function initGame() {
 
         // Otimizar criação de arquibancadas usando instancing
         const stepGeometry = new THREE.BoxGeometry(10, 10, 20);
-        const stepMaterial = new THREE.MeshLambertMaterial({ color: 0x808080 });
-        const maxSteps = 6;
-        const stepsPerSide = Math.floor((mapSize - 40) / 20);
+        const stepMaterial = new THREE.MeshBasicMaterial({ color: 0x808080 });
+        const maxSteps = 4; // Reduzido de 6 para 4
+        const stepsPerSide = Math.floor((mapSize - 40) / 40); // Aumentado o espaçamento
         const totalInstances = (stepsPerSide * 4) * maxSteps;
         const stepMesh = new THREE.InstancedMesh(stepGeometry, stepMaterial, totalInstances);
 
@@ -217,7 +217,7 @@ export function initGame() {
             const offset = i * 20;
             
             // Norte e Sul
-            for (let x = -mapSize/2 + 20; x < mapSize/2 - 20; x += 20) {
+            for (let x = -mapSize/2 + 40; x < mapSize/2 - 40; x += 40) {
                 // Norte
                 matrix.makeTranslation(x, yPos, mapSize/2 - offset);
                 stepMesh.setMatrixAt(instanceCount++, matrix);
@@ -228,7 +228,7 @@ export function initGame() {
             }
             
             // Leste e Oeste
-            for (let z = -mapSize/2 + 20; z < mapSize/2 - 20; z += 20) {
+            for (let z = -mapSize/2 + 40; z < mapSize/2 - 40; z += 40) {
                 // Leste
                 matrix.makeTranslation(mapSize/2 - offset, yPos, z);
                 stepMesh.setMatrixAt(instanceCount++, matrix);
@@ -242,8 +242,8 @@ export function initGame() {
         window.scene.add(stepMesh);
 
         // Otimizar criação de espectadores usando instancing
-        const spectatorGeometry = new THREE.SphereGeometry(4, 8, 8);
-        const spectatorMaterial = new THREE.MeshLambertMaterial({ color: 0xFF0000 });
+        const spectatorGeometry = new THREE.SphereGeometry(4, 6, 6);
+        const spectatorMaterial = new THREE.MeshBasicMaterial({ color: 0xFF0000 });
         const maxSpectators = window.qualitySettings.maxSpectators;
         const spectatorMesh = new THREE.InstancedMesh(spectatorGeometry, spectatorMaterial, maxSpectators);
 
@@ -253,7 +253,7 @@ export function initGame() {
             const offset = i * 20;
             
             // Norte e Sul
-            for (let x = -mapSize/2 + 25; x < mapSize/2 - 25; x += 10) {
+            for (let x = -mapSize/2 + 45; x < mapSize/2 - 45; x += 20) {
                 if (spectatorCount >= maxSpectators) break;
                 
                 // Norte
@@ -268,7 +268,7 @@ export function initGame() {
             }
             
             // Leste e Oeste
-            for (let z = -mapSize/2 + 25; z < mapSize/2 - 25; z += 10) {
+            for (let z = -mapSize/2 + 45; z < mapSize/2 - 45; z += 20) {
                 if (spectatorCount >= maxSpectators) break;
                 
                 // Leste
@@ -715,14 +715,12 @@ export function initGame() {
                 window.performanceMetrics.frameTime = deltaTime;
                 frameCount = 0;
                 lastTime = time;
-                window.domElements.fpsCount.textContent = window.performanceMetrics.fps;
             }
 
-            // Atualizar posição do balão e sincronizar com servidor
+            // Atualizar posição do balão
             if (window.balloon) {
                 window.balloon.position.y = altitude;
                 
-                // Sincronização com servidor throttled
                 if (window.socket && window.socket.emit && time - window.lastServerSync >= 100) {
                     window.socket.emit('updatePosition', {
                         x: window.balloon.position.x,
@@ -740,57 +738,28 @@ export function initGame() {
                 }
             }
 
-            // Atualizar câmera com interpolação mais suave
+            // Câmera fixa seguindo o balão
             if (window.balloon) {
-                const targetCameraPos = new THREE.Vector3(
-                    window.balloon.position.x,
-                    window.balloon.position.y + 150,
-                    window.balloon.position.z + 150
+                const offset = new THREE.Vector3(0, 200, 200);
+                window.camera.position.set(
+                    window.balloon.position.x + offset.x,
+                    offset.y,
+                    window.balloon.position.z + offset.z
                 );
-                
-                window.camera.position.lerp(targetCameraPos, 0.05);
-                const lookAtPos = new THREE.Vector3(
+                window.camera.lookAt(
                     window.balloon.position.x,
                     window.balloon.position.y,
                     window.balloon.position.z
                 );
-                window.camera.lookAt(lookAtPos);
             }
 
-            // Atualizar frustum para occlusion culling
+            // Otimizar renderização com frustum culling
             window.camera.updateMatrixWorld();
             window.cameraViewProjectionMatrix.multiplyMatrices(
                 window.camera.projectionMatrix,
                 window.camera.matrixWorldInverse
             );
             window.frustum.setFromProjectionMatrix(window.cameraViewProjectionMatrix);
-
-            // Atualizar queda das marcas com interpolação suave
-            window.markers.forEach(markerObj => {
-                if (markerObj.marker.userData.falling) {
-                    const fallSpeed = 2.0 * (deltaTime / 16.67);
-                    markerObj.marker.position.y = Math.max(0, markerObj.marker.position.y - fallSpeed);
-                    markerObj.tail.position.y = markerObj.marker.position.y;
-                    
-                    if (markerObj.marker.position.y <= 0) {
-                        markerObj.marker.userData.falling = false;
-                    }
-                }
-            });
-
-            // Otimizar renderização com occlusion culling
-            window.scene.traverse(function(object) {
-                if (object.isMesh || object.isLine) {
-                    if (object === window.balloon) {
-                        object.visible = true;
-                    } else {
-                        const distance = window.camera.position.distanceTo(object.position);
-                        object.visible = distance <= window.qualitySettings.drawDistance && 
-                                       isInViewFrustum(object);
-                    }
-                    if (object.visible) window.performanceMetrics.objectsRendered++;
-                }
-            });
 
             // Atualizar UI com throttling
             if (time - window.lastUIUpdate >= 500) {
@@ -799,17 +768,14 @@ export function initGame() {
                 if (window.domElements.windDirection) window.domElements.windDirection.textContent = getWindDirectionText(currentLayerIndex);
                 if (window.domElements.windSpeed) window.domElements.windSpeed.textContent = windLayers[currentLayerIndex].speed.toFixed(1);
                 if (window.domElements.distanceToTarget) window.domElements.distanceToTarget.textContent = `Dist: ${calculateDistanceToTarget()}m`;
-                
-                // Atualizar indicadores de performance
-                const perfInfo = `FPS: ${window.performanceMetrics.fps} | Objetos: ${window.performanceMetrics.objectsRendered} | Frame: ${Math.round(window.performanceMetrics.frameTime)}ms`;
-                window.domElements.fpsCount.textContent = perfInfo;
+                if (window.domElements.fpsCount) window.domElements.fpsCount.textContent = `FPS: ${window.performanceMetrics.fps}`;
                 
                 updateLayerIndicator(currentLayerIndex);
                 updateGPS();
                 window.lastUIUpdate = time;
             }
 
-            // Renderizar cena com otimizações
+            // Renderizar cena
             window.renderer.render(window.scene, window.camera);
         }
     }
