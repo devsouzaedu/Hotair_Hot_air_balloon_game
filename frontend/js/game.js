@@ -197,12 +197,12 @@ export function initGame() {
         window.scene.add(gridHelper);
 
         // Melhorar criação de arquibancadas
-        const stepGeometry = new THREE.BoxGeometry(15, 12, 30);
+        const stepGeometry = new THREE.BoxGeometry(20, 15, 40);
         const stepMaterial = new THREE.MeshLambertMaterial({ 
             color: 0x808080
         });
-        const maxSteps = 6;
-        const stepsPerSide = Math.floor((mapSize - 40) / 40);
+        const maxSteps = 8;
+        const stepsPerSide = Math.floor((mapSize - 40) / 30);
         const totalInstances = (stepsPerSide * 4) * maxSteps;
         const stepMesh = new THREE.InstancedMesh(stepGeometry, stepMaterial, totalInstances);
 
@@ -210,8 +210,8 @@ export function initGame() {
         let instanceCount = 0;
 
         for (let i = 0; i < maxSteps; i++) {
-            const yPos = i * 15 + 7.5;
-            const offset = i * 25;
+            const yPos = i * 12 + 7.5;
+            const offset = i * 20;
             
             // Norte e Sul
             for (let x = -mapSize/2 + 40; x < mapSize/2 - 40; x += 40) {
