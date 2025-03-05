@@ -1,9 +1,8 @@
 // socket.js
+const lerpFactor = 0.1; // Fator de interpolação para movimentos suaves
 console.log('socket.js carregado');
 
 export function initSocket() {
-    const lerpFactor = 0.1; // Fator de interpolação para movimentos suaves
-
     if (typeof io === 'undefined') {
         console.error('Socket.IO não foi carregado corretamente.');
         return;
