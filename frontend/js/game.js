@@ -66,14 +66,14 @@ export function initGame() {
     
         // Configuração da câmera com posição fixa
         window.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, window.qualitySettings.drawDistance);
-        window.camera.position.set(0, 200, 200); // Posição fixa mais alta
+        window.camera.position.set(0, 300, 300); // Aumentada a altura da câmera
         window.camera.lookAt(0, 0, 0);
     
         // Configurações otimizadas do renderer
         window.renderer = new THREE.WebGLRenderer({ 
-            antialias: false,
+            antialias: true, // Habilitando antialiasing
             powerPreference: "high-performance",
-            precision: "lowp",
+            precision: "highp", // Aumentando a precisão
             stencil: false,
             depth: true,
             logarithmicDepthBuffer: false
@@ -85,24 +85,24 @@ export function initGame() {
     
         // Geometrias compartilhadas com LOD
         window.sharedGeometries = {
-            sphere: new THREE.SphereGeometry(4.5, window.qualitySettings.geometryDetail, window.qualitySettings.geometryDetail),
+            sphere: new THREE.SphereGeometry(4.5, 32, 32), // Aumentando a qualidade
             box: new THREE.BoxGeometry(15, 12, 15),
-            balloon: new THREE.SphereGeometry(30, window.qualitySettings.geometryDetail * 2, window.qualitySettings.geometryDetail * 2)
+            balloon: new THREE.SphereGeometry(30, 32, 32) // Aumentando a qualidade
         };
     
         // Materiais compartilhados com otimizações
         window.sharedMaterials = {
-            blue: new THREE.MeshLambertMaterial({ 
+            blue: new THREE.MeshPhongMaterial({ // Usando MeshPhongMaterial para melhor qualidade
                 color: 0x0000FF,
-                shadowSide: null
+                shininess: 30
             }),
-            brown: new THREE.MeshLambertMaterial({ 
+            brown: new THREE.MeshPhongMaterial({ // Usando MeshPhongMaterial para melhor qualidade
                 color: 0x8B4513,
-                shadowSide: null
+                shininess: 30
             }),
-            white: new THREE.MeshLambertMaterial({ 
+            white: new THREE.MeshPhongMaterial({ // Usando MeshPhongMaterial para melhor qualidade
                 color: 0xFFFFFF,
-                shadowSide: null
+                shininess: 30
             })
         };
     
@@ -186,26 +186,32 @@ export function initGame() {
     function createGround() {
         const mapSize = 2600;
         
-        // Otimizar geometria do chão reduzindo segmentos
-        const groundGeometry = new THREE.PlaneGeometry(mapSize, mapSize, 20, 20);
-        const groundMaterial = new THREE.MeshBasicMaterial({ color: 0x7CFC00 });
+        // Melhorar geometria do chão
+        const groundGeometry = new THREE.PlaneGeometry(mapSize, mapSize, 50, 50);
+        const groundMaterial = new THREE.MeshPhongMaterial({ 
+            color: 0x7CFC00,
+            shininess: 10
+        });
         const ground = new THREE.Mesh(groundGeometry, groundMaterial);
         ground.rotation.x = -Math.PI / 2;
         ground.position.y = 0;
         window.scene.add(ground);
 
-        // Grid helper simplificado
-        const gridHelper = new THREE.GridHelper(mapSize, 10, 0x000000, 0x000000);
+        // Grid helper melhorado
+        const gridHelper = new THREE.GridHelper(mapSize, 26, 0x000000, 0x000000);
         gridHelper.position.y = 0.1;
         gridHelper.material.opacity = 0.2;
         gridHelper.material.transparent = true;
         window.scene.add(gridHelper);
 
-        // Otimizar criação de arquibancadas usando instancing
-        const stepGeometry = new THREE.BoxGeometry(10, 10, 20);
-        const stepMaterial = new THREE.MeshBasicMaterial({ color: 0x808080 });
-        const maxSteps = 4; // Reduzido de 6 para 4
-        const stepsPerSide = Math.floor((mapSize - 40) / 40); // Aumentado o espaçamento
+        // Melhorar criação de arquibancadas
+        const stepGeometry = new THREE.BoxGeometry(20, 15, 30);
+        const stepMaterial = new THREE.MeshPhongMaterial({ 
+            color: 0x808080,
+            shininess: 30
+        });
+        const maxSteps = 6;
+        const stepsPerSide = Math.floor((mapSize - 40) / 40);
         const totalInstances = (stepsPerSide * 4) * maxSteps;
         const stepMesh = new THREE.InstancedMesh(stepGeometry, stepMaterial, totalInstances);
 
@@ -213,8 +219,8 @@ export function initGame() {
         let instanceCount = 0;
 
         for (let i = 0; i < maxSteps; i++) {
-            const yPos = i * 10 + 5;
-            const offset = i * 20;
+            const yPos = i * 15 + 7.5;
+            const offset = i * 25;
             
             // Norte e Sul
             for (let x = -mapSize/2 + 40; x < mapSize/2 - 40; x += 40) {
@@ -241,10 +247,13 @@ export function initGame() {
 
         window.scene.add(stepMesh);
 
-        // Otimizar criação de espectadores usando instancing
-        const spectatorGeometry = new THREE.SphereGeometry(4, 6, 6);
-        const spectatorMaterial = new THREE.MeshBasicMaterial({ color: 0xFF0000 });
-        const maxSpectators = window.qualitySettings.maxSpectators;
+        // Melhorar criação de espectadores
+        const spectatorGeometry = new THREE.SphereGeometry(4, 16, 16);
+        const spectatorMaterial = new THREE.MeshPhongMaterial({ 
+            color: 0xFF0000,
+            shininess: 30
+        });
+        const maxSpectators = Math.min(window.qualitySettings.maxSpectators * 2, 1000);
         const spectatorMesh = new THREE.InstancedMesh(spectatorGeometry, spectatorMaterial, maxSpectators);
 
         let spectatorCount = 0;
@@ -738,13 +747,14 @@ export function initGame() {
                 }
             }
 
-            // Câmera fixa seguindo o balão
+            // Câmera seguindo o balão com altura relativa
             if (window.balloon) {
-                const offset = new THREE.Vector3(0, 200, 200);
+                const cameraHeight = 300; // Altura fixa da câmera
+                const cameraDistance = 300; // Distância fixa da câmera
                 window.camera.position.set(
-                    window.balloon.position.x + offset.x,
-                    offset.y,
-                    window.balloon.position.z + offset.z
+                    window.balloon.position.x,
+                    cameraHeight,
+                    window.balloon.position.z + cameraDistance
                 );
                 window.camera.lookAt(
                     window.balloon.position.x,
