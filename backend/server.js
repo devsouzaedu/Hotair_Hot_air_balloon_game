@@ -267,8 +267,8 @@ function updateBots() {
             const bot = worldState.players[id];
             if (!worldState.targets || !worldState.targets[0]) worldState.targets = [generateTarget()];
             const target = worldState.targets[0];
-            const speed = 1.5; // Aumentado de 0.8 para 1.5 para maior agilidade
-            const dropInterval = 5000; // Intervalo de 5 segundos para soltar marcas
+            const speed = 1.5;
+            const dropInterval = 5000;
 
             // Repulsão entre bots
             for (const otherId in worldState.players) {
@@ -304,7 +304,6 @@ function updateBots() {
                         bot.state = 'climbNorth';
                         bot.targetAltitude = 500;
                     }
-                    // Ajustar altitude para o alvo
                     const targetLayer = windLayers.find(layer => bot.y >= layer.minAlt && bot.y < layer.maxAlt) || windLayers[0];
                     if (Math.abs(bot.y - targetLayer.minAlt) > 50) {
                         bot.y += (targetLayer.minAlt > bot.y ? 1 : -1);
@@ -567,7 +566,10 @@ setInterval(() => {
     }
     const targetTimeLeft = 60 - (timeSinceLastTargetMove % 60);
 
-    io.to('world').emit('gameUpdate', { state: worldState, timeLeft, targetTimeLeft });
+    // Emitir apenas se houver mudanças significativas
+    if (Object.keys(worldState.players).length > 0 || Object.keys(worldState.markers).length > 0) {
+        io.to('world').emit('gameUpdate', { state: worldState, timeLeft, targetTimeLeft });
+    }
 
     if (timeLeft <= 0 && !worldState.resetScheduled) {
         io.to('world').emit('gameEnd', { players: worldState.players });
@@ -592,10 +594,12 @@ setInterval(() => {
             const elapsed = (Date.now() - room.startTime) / 1000;
             const roomTimeLeft = Math.max(300 - elapsed, 0);
             const roomTargetTimeLeft = 60 - ((Date.now() - room.lastTargetMoveTime) / 1000 % 60);
-            io.to(roomName).emit('gameUpdate', { state: room, timeLeft: roomTimeLeft, targetTimeLeft: roomTargetTimeLeft });
+            if (Object.keys(room.players).length > 0 || Object.keys(room.markers).length > 0) {
+                io.to(roomName).emit('gameUpdate', { state: room, timeLeft: roomTimeLeft, targetTimeLeft: roomTargetTimeLeft });
+            }
         }
     }
-}, 200); // Aumentado de 100ms para 200ms para melhorar o FPS
+}, 300); // Intervalo aumentado para 300ms
 
 function resetWorldState() {
     const mapSize = 2600;
