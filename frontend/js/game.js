@@ -5,7 +5,7 @@ export function initGame() {
     let altitude = 100;
     window.markerDropped = false;
     window.markersLeft = 5;
-    let points = 0;
+    let points = 0; // Variável global para pontos
     let bestScore = localStorage.getItem('bestScore') || 0;
     let gameStarted = false;
     let hasLiftedOff = false;
@@ -334,7 +334,7 @@ export function initGame() {
                 if (marker.position.y <= 0) {
                     marker.position.y = 0;
                     tail.position.y = 0;
-                    console.log('Marcador atingiu o chão:', m.markerId, 'Posição:', marker.position);
+                    console.log(`Marcador atingiu o chão: ${m.markerId}, Posição: x=${marker.position.x}, y=${marker.position.y}, z=${marker.position.z}`);
                     window.socket.emit('markerLanded', {
                         x: marker.position.x,
                         y: marker.position.y,
@@ -343,10 +343,10 @@ export function initGame() {
                         roomName: window.roomName || null,
                         markerId: m.markerId
                     });
-                    // Opcional: remover marcador após atingir o chão (descomente se desejar)
-                    // scene.remove(marker);
-                    // scene.remove(tail);
-                    // window.markers.splice(index, 1);
+                    // Remover marcador após atingir o chão para evitar repetição
+                    scene.remove(marker);
+                    scene.remove(tail);
+                    window.markers.splice(index, 1);
                 }
             }
         });
@@ -432,6 +432,7 @@ export function initGame() {
         window.balloon.position.set(0, altitude, 0);
         scene.add(window.balloon);
         document.getElementById('markersLeft').textContent = window.markersLeft;
+        document.getElementById('points').textContent = points;
         window.socket.emit('updatePosition', { x: window.balloon.position.x, y: window.balloon.position.y, z: window.balloon.position.z, mode: window.mode || 'world', roomName: window.roomName || null });
     };
 
@@ -552,6 +553,12 @@ export function initGame() {
 
         renderer.render(scene, camera);
     }
+
+    // Função para atualizar pontos na UI
+    window.updatePoints = function(newPoints) {
+        points = newPoints;
+        document.getElementById('points').textContent = points;
+    };
 
     window.addEventListener('gamepadconnected', (e) => console.log('Controle conectado:', e.gamepad));
     window.addEventListener('gamepaddisconnected', (e) => console.log('Controle desconectado:', e.gamepad));

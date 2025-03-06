@@ -1,3 +1,4 @@
+// server.js
 const express = require('express');
 const http = require('http');
 const socketIO = require('socket.io');
@@ -18,7 +19,7 @@ const io = socketIO(server, {
     }
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000;
 
 app.use(cors({
     origin: 'https://devsouzaedu.github.io',
@@ -144,7 +145,6 @@ app.get('/', (req, res) => {
 });
 
 function updateMarkersGravity(state, roomName = null) {
-    // Esta função agora apenas atualiza a posição dos marcadores no backend
     for (const markerId in state.markers) {
         const marker = state.markers[markerId];
         if (marker.y > 0) {
@@ -318,7 +318,7 @@ io.on('connection', (socket) => {
         };
         rooms[roomName].players[socket.id] = {
             id: socket.id,
-            name: roomData.name,
+            name: roomData.playerName,
             color: null,
             x: 0,
             z: 0,
@@ -435,7 +435,7 @@ io.on('connection', (socket) => {
                 if (distance < 40) {
                     const score = calculateScore(distance);
                     player.score = (player.score || 0) + score;
-                    io.to('world').emit('targetHitUpdate', { targetIndex: worldState.currentTargetIndex });
+                    io.to('world').emit('targetHitUpdate', { targetIndex: worldState.currentTargetIndex, playerId: player.id, score: player.score });
                     worldState.currentTargetIndex++;
                     console.log(`Alvo acertado por ${player.name}! Distância: ${distance}, Pontos ganhos: ${score}, Novo score: ${player.score}`);
                     
@@ -458,6 +458,8 @@ io.on('connection', (socket) => {
                 } else {
                     console.log(`Marcador fora do alcance do alvo: distância ${distance} > 40`);
                 }
+                // Remover marcador após processar para evitar repetição
+                delete worldState.markers[markerId];
             } else {
                 console.warn(`Marcador ${markerId} não encontrado em worldState.markers`);
             }
@@ -483,7 +485,7 @@ io.on('connection', (socket) => {
             if (distance < 40) {
                 const score = calculateScore(distance);
                 player.score = (player.score || 0) + score;
-                io.to(roomName || 'world').emit('targetHitUpdate', { targetIndex: state.currentTargetIndex });
+                io.to(roomName || 'world').emit('targetHitUpdate', { targetIndex: state.currentTargetIndex, playerId: player.id, score: player.score });
                 state.currentTargetIndex++;
                 console.log(`Alvo acertado por ${player.name}! Distância: ${distance}, Pontos ganhos: ${score}, Novo score: ${player.score}`);
                 
@@ -506,6 +508,8 @@ io.on('connection', (socket) => {
             } else {
                 console.log(`Marcador fora do alcance do alvo: distância ${distance} > 40`);
             }
+            // Remover marcador após processar para evitar repetição
+            delete state.markers[markerId];
         } else {
             console.warn(`Marcador ${markerId} não encontrado em state.markers`);
         }
