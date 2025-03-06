@@ -18,28 +18,41 @@
 </head>
 <body>
     <div id="loginScreen" class="screen">
-        <h1>Hotair - Jogo de Balão</h1>
-        <button onclick="window.location.href='https://hotair-backend.onrender.com/auth/google'">
-            Entrar com Google
-        </button>
+        <div class="login-container">
+            <h1>Hotair - Jogo de Balão</h1>
+            <p>Faça login para começar sua aventura!</p>
+            <button id="googleLoginBtn" class="google-btn" onclick="window.location.href='https://hotair-backend.onrender.com/auth/google'">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" alt="Google Logo">
+                Entrar com Google
+            </button>
+        </div>
     </div>
 
     <div id="profileScreen" class="screen">
-        <h1>Seu Perfil</h1>
-    </div>
-
-    <div id="nameScreen">
-        <h1>Jogo de Balão de Ar Quente</h1>
-        <div id="nameForm">
-            <h2>Digite seu nome</h2>
-            <input type="text" id="playerName" placeholder="Seu nome aqui" required>
-            <button id="nameButton">OK</button>
-            <p style="font-size: 0.9em; color: #666; margin-top: 10px;">
-                Controles: W (subir), S (descer), E (turbo subir), Q (lançar marca)<br>
-                Regras: 5 minutos, 5 alvos, 5 marcas. Acerte os alvos para pontuar!
-            </p>
+        <div class="profile-container">
+            <h1>Seu Perfil</h1>
+            <div class="profile-info">
+                <img id="profilePicture" alt="Foto do perfil">
+                <h2 id="profileName"></h2>
+                <div class="stats">
+                    <div class="stat-item">
+                        <span>Pontuação Total</span>
+                        <span id="profileScore">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>Alvos Acertados</span>
+                        <span id="profileTargets">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>Membro desde</span>
+                        <span id="profileStartDate"></span>
+                    </div>
+                </div>
+                <button id="continueButton" class="primary-btn">Começar a Jogar</button>
+            </div>
         </div>
     </div>
+
     <div id="modeScreen">
         <h1>Escolha o Modo</h1>
         <div id="modeForm">

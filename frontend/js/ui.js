@@ -1,4 +1,16 @@
 export function initUI() {
+    // Mostrar apenas a tela de login inicialmente
+    document.getElementById('loginScreen').style.display = 'flex';
+    
+    // Esconder todas as outras telas
+    document.getElementById('modeScreen').style.display = 'none';
+    document.getElementById('colorScreen').style.display = 'none';
+    document.getElementById('roomScreen').style.display = 'none';
+    document.getElementById('lobbyScreen').style.display = 'none';
+    document.getElementById('gameScreen').style.display = 'none';
+    document.getElementById('loseScreen').style.display = 'none';
+    document.getElementById('leaderboardScreen').style.display = 'none';
+    
     window.balloonColor = null;
     window.mode = null; // Inicializa explicitamente
     window.roomName = null; // Inicializa explicitamente
