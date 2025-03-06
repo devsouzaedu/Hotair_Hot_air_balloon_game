@@ -329,11 +329,10 @@ export function initGame() {
             const marker = m.marker;
             const tail = m.tail;
             if (marker.position.y > 0) {
-                marker.position.y -= 5.0; // Simula gravidade
+                // Aplicar gravidade de forma consistente e suave
+                marker.position.y = Math.max(0, marker.position.y - 5.0); // Garante que não passe de y=0
                 tail.position.y = marker.position.y;
-                if (marker.position.y <= 0) {
-                    marker.position.y = 0;
-                    tail.position.y = 0;
+                if (marker.position.y === 0) { // Só processa quando atinge exatamente y=0
                     console.log(`Marcador atingiu o chão: ${m.markerId}, Posição: x=${marker.position.x}, y=${marker.position.y}, z=${marker.position.z}`);
                     window.socket.emit('markerLanded', {
                         x: marker.position.x,
