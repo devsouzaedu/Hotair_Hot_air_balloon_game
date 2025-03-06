@@ -23,7 +23,7 @@ const PORT = process.env.PORT || 3000;
 app.use(cors({
     origin: 'https://devsouzaedu.github.io',
     methods: ['GET', 'POST'],
-    allowedHeaders: ['Content-Type'],
+    allowedHeaders: ['Content-Type', 'Authorization'], // Adicionado 'Authorization'
     credentials: false
 }));
 

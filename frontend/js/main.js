@@ -16,20 +16,24 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (token) {
         try {
+            console.log('Token capturado:', token); // Debug
             // Faz a requisição ao backend para pegar os dados do jogador
             const response = await fetch('https://hotair-backend.onrender.com/api/profile', {
+                method: 'GET',
                 headers: {
-                    'Authorization': `Bearer ${token}`
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
                 }
             });
 
             if (!response.ok) {
-                throw new Error('Erro ao buscar perfil');
+                throw new Error(`Erro na requisição: ${response.status} - ${response.statusText}`);
             }
 
             const playerData = await response.json();
-            localStorage.setItem('jwtToken', token); // Armazena o token para uso posterior
-            localStorage.setItem('playerName', playerData.name); // Armazena o nome para uso no jogo
+            console.log('Dados do jogador recebidos:', playerData); // Debug
+            localStorage.setItem('jwtToken', token); // Armazena o token
+            localStorage.setItem('playerName', playerData.name); // Armazena o nome
 
             // Preenche os dados na tela de perfil
             document.getElementById('profileName').textContent = playerData.name || 'Aventureiro';
@@ -41,14 +45,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Mostra a tela de perfil
             showScreen('profileScreen');
 
-            // Remove o token da URL para limpar a barra de endereço
+            // Remove o token da URL
             window.history.replaceState({}, document.title, '/Hotair_Hot_air_balloon_game/');
         } catch (error) {
-            console.error('Erro ao carregar perfil:', error);
-            showScreen('loginScreen'); // Volta para a tela de login em caso de erro
+            console.error('Erro ao carregar perfil:', error.message); // Melhor log de erro
+            console.error('Stack trace:', error.stack); // Mais detalhes
+            showScreen('loginScreen'); // Volta para login em caso de erro
         }
     } else {
-        // Se não houver token, mostra a tela de login
+        console.log('Nenhum token encontrado na URL'); // Debug
         showScreen('loginScreen');
     }
 
