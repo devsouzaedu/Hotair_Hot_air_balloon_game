@@ -157,19 +157,6 @@ function updateMarkersGravity(state, roomName = null) {
                     playerId: marker.playerId, 
                     markerId 
                 });
-                const targets = state.targets;
-                const dx = marker.x - targets[0].x;
-                const dz = marker.z - targets[0].z;
-                const distance = Math.sqrt(dx * dx + dz * dz);
-                if (distance < 40) {
-                    const player = state.players[marker.playerId];
-                    if (player) {
-                        const score = calculateScore(distance);
-                        player.score += score;
-                        io.to(roomName || 'world').emit('targetHitUpdate', { targetIndex: state.currentTargetIndex });
-                        state.currentTargetIndex++;
-                    }
-                }
             }
         }
     }
@@ -280,9 +267,22 @@ function updateBots() {
 io.on('connection', (socket) => {
     console.log(`Novo jogador conectado: ${socket.id}`);
 
-    socket.on('joinNow', (playerData) => {
+    socket.on('joinNow', async (playerData) => {
+        let playerId = socket.id; // Default para socket.id
+        const token = socket.handshake.auth.token;
+        if (token) {
+            try {
+                const decoded = jwt.verify(token, process.env.SESSION_SECRET);
+                playerId = decoded.id; // Usa o _id do MongoDB
+                console.log(`Token verificado, usando _id do MongoDB: ${playerId}`);
+            } catch (error) {
+                console.error('Erro ao verificar token no joinNow:', error);
+            }
+        } else {
+            console.warn('Nenhum token fornecido no handshake, usando socket.id como fallback');
+        }
         worldState.players[socket.id] = {
-            id: socket.id,
+            id: playerId, // Usa o _id do MongoDB ou socket.id
             name: playerData.name,
             color: playerData.color,
             x: 0,
@@ -428,14 +428,18 @@ io.on('connection', (socket) => {
                     player.score += score;
                     io.to('world').emit('targetHitUpdate', { targetIndex: worldState.currentTargetIndex });
                     worldState.currentTargetIndex++;
-                    // Atualiza o jogador no MongoDB
+                    // Atualiza o jogador no MongoDB usando o player.id (que agora é o _id do MongoDB)
                     try {
-                        await Player.findOneAndUpdate(
+                        const updatedPlayer = await Player.findOneAndUpdate(
                             { _id: player.id },
                             { $inc: { totalScore: score, targetsHit: 1 } },
                             { new: true }
                         );
-                        console.log(`Pontuação e alvos atualizados para jogador ${player.name}: +${score} pontos, +1 alvo`);
+                        if (updatedPlayer) {
+                            console.log(`Pontuação e alvos atualizados para jogador ${player.name}: +${score} pontos, +1 alvo`);
+                        } else {
+                            console.error(`Jogador com _id ${player.id} não encontrado no MongoDB`);
+                        }
                     } catch (error) {
                         console.error('Erro ao atualizar jogador no MongoDB:', error);
                     }
@@ -458,14 +462,18 @@ io.on('connection', (socket) => {
                 player.score += score;
                 io.to(roomName || 'world').emit('targetHitUpdate', { targetIndex: state.currentTargetIndex });
                 state.currentTargetIndex++;
-                // Atualiza o jogador no MongoDB
+                // Atualiza o jogador no MongoDB usando o player.id (que agora é o _id do MongoDB)
                 try {
-                    await Player.findOneAndUpdate(
+                    const updatedPlayer = await Player.findOneAndUpdate(
                         { _id: player.id },
                         { $inc: { totalScore: score, targetsHit: 1 } },
                         { new: true }
                     );
-                    console.log(`Pontuação e alvos atualizados para jogador ${player.name}: +${score} pontos, +1 alvo`);
+                    if (updatedPlayer) {
+                        console.log(`Pontuação e alvos atualizados para jogador ${player.name}: +${score} pontos, +1 alvo`);
+                    } else {
+                        console.error(`Jogador com _id ${player.id} não encontrado no MongoDB`);
+                    }
                 } catch (error) {
                     console.error('Erro ao atualizar jogador no MongoDB:', error);
                 }

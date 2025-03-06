@@ -4,7 +4,15 @@ export function initSocket() {
         return;
     }
 
-    window.socket = io('https://hotair-backend.onrender.com');
+    const token = localStorage.getItem('jwtToken');
+    if (!token) {
+        console.error('Nenhum token JWT encontrado no localStorage');
+    }
+    window.socket = io('https://hotair-backend.onrender.com', {
+        auth: {
+            token: token // Envia o token no handshake
+        }
+    });
     const socket = window.socket;
 
     if (!socket) {
@@ -132,7 +140,6 @@ export function initSocket() {
                     window.scene.add(targetMesh);
                 });
             }
-            // Corrigido: Usa localStorage em vez de #playerName
             const playerName = localStorage.getItem('playerName') || 'Jogador';
             window.setBalloon(window.createBalloon(window.balloonColor, playerName));
             if (window.balloon) {
