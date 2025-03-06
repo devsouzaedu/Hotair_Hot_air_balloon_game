@@ -1,30 +1,11 @@
 export function initUI() {
-    // Mostrar apenas a tela de login inicialmente
-    document.getElementById('loginScreen').style.display = 'flex';
-    
-    // Esconder todas as outras telas
-    document.getElementById('modeScreen').style.display = 'none';
-    document.getElementById('colorScreen').style.display = 'none';
-    document.getElementById('roomScreen').style.display = 'none';
-    document.getElementById('lobbyScreen').style.display = 'none';
-    document.getElementById('gameScreen').style.display = 'none';
-    document.getElementById('loseScreen').style.display = 'none';
-    document.getElementById('leaderboardScreen').style.display = 'none';
-    
-    window.balloonColor = null;
-    window.mode = null; // Inicializa explicitamente
-    window.roomName = null; // Inicializa explicitamente
-    let playerName = '';
+    // Mostrar apenas a tela de login inicialmente (controlado por main.js)
+    // Esconder todas as outras telas (controlado por main.js)
 
-    document.getElementById('nameButton').addEventListener('click', () => {
-        playerName = document.getElementById('playerName').value.trim();
-        if (playerName) {
-            document.getElementById('nameScreen').style.display = 'none';
-            document.getElementById('modeScreen').style.display = 'flex';
-        } else {
-            alert("Digite seu nome!");
-        }
-    });
+    window.balloonColor = null;
+    window.mode = null;
+    window.roomName = null;
+    let playerName = localStorage.getItem('playerName') || 'Aventureiro'; // Usa o nome do Google ou fallback
 
     document.getElementById('playNowButton').addEventListener('click', () => {
         window.mode = 'world';
