@@ -144,12 +144,14 @@ app.get('/', (req, res) => {
 });
 
 function updateMarkersGravity(state, roomName = null) {
+    // Esta função agora apenas atualiza a posição dos marcadores no backend
     for (const markerId in state.markers) {
         const marker = state.markers[markerId];
         if (marker.y > 0) {
             marker.y -= 5.0;
             if (marker.y <= 0) {
                 marker.y = 0;
+                console.log(`Marcador ${markerId} atingiu o chão em x=${marker.x}, z=${marker.z}`);
                 io.to(roomName || 'world').emit('markerLanded', { 
                     x: marker.x, 
                     y: marker.y, 

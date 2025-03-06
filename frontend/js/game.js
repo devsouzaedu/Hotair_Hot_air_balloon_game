@@ -2,7 +2,6 @@
 export function initGame() {
     let scene, camera, renderer;
     let balloon;
-    let marker, tail;
     let altitude = 100;
     window.markerDropped = false;
     window.markersLeft = 5;
@@ -17,7 +16,7 @@ export function initGame() {
     let isMobile = detectMobile();
     window.targets = [];
     window.otherPlayers = {};
-    window.markers = window.markers || [];
+    window.markers = []; // Array para rastrear todos os marcadores
     let lastTargetMoveTime = Date.now();
     let gameEnded = false;
 
@@ -73,21 +72,6 @@ export function initGame() {
         scene.add(directionalLight);
 
         createGround();
-
-        const markerGeometry = new THREE.SphereGeometry(4.5, 16, 16);
-        const markerMaterial = new THREE.MeshLambertMaterial({ color: 0x0000FF });
-        marker = new THREE.Mesh(markerGeometry, markerMaterial);
-        marker.visible = false;
-        scene.add(marker);
-
-        const tailGeometry = new THREE.BufferGeometry().setFromPoints([
-            new THREE.Vector3(0, 0, 0),
-            new THREE.Vector3(0, -45, 0)
-        ]);
-        const tailMaterial = new THREE.LineBasicMaterial({ color: 0xFFFFFF });
-        tail = new THREE.Line(tailGeometry, tailMaterial);
-        tail.visible = false;
-        scene.add(tail);
 
         window.addEventListener('keydown', handleKeyDown);
         window.addEventListener('keyup', handleKeyUp);
@@ -307,6 +291,28 @@ export function initGame() {
             z: window.balloon.position.z 
         };
         const markerId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+        // Criar novo marcador e cauda
+        const markerGeometry = new THREE.SphereGeometry(4.5, 16, 16);
+        const markerMaterial = new THREE.MeshLambertMaterial({ color: 0x0000FF });
+        const newMarker = new THREE.Mesh(markerGeometry, markerMaterial);
+        newMarker.position.set(markerStartPos.x, markerStartPos.y, markerStartPos.z);
+        newMarker.userData = { markerId: markerId };
+        scene.add(newMarker);
+
+        const tailGeometry = new THREE.BufferGeometry().setFromPoints([
+            new THREE.Vector3(0, 0, 0),
+            new THREE.Vector3(0, -45, 0)
+        ]);
+        const tailMaterial = new THREE.LineBasicMaterial({ color: 0xFFFFFF });
+        const newTail = new THREE.Line(tailGeometry, tailMaterial);
+        newTail.position.set(markerStartPos.x, markerStartPos.y, markerStartPos.z);
+        scene.add(newTail);
+
+        // Adicionar ao array de marcadores
+        window.markers.push({ marker: newMarker, tail: newTail, markerId: markerId });
+
+        // Emitir evento para o backend
         window.socket.emit('dropMarker', { 
             x: markerStartPos.x, 
             y: markerStartPos.y, 
@@ -316,10 +322,34 @@ export function initGame() {
             markerId
         });
         window.markerDropped = true;
-        marker.position.set(markerStartPos.x, markerStartPos.y, markerStartPos.z);
-        marker.visible = true;
-        tail.position.set(markerStartPos.x, markerStartPos.y, markerStartPos.z);
-        tail.visible = true;
+    }
+
+    function updateMarkers() {
+        window.markers.forEach((m, index) => {
+            const marker = m.marker;
+            const tail = m.tail;
+            if (marker.position.y > 0) {
+                marker.position.y -= 5.0; // Simula gravidade
+                tail.position.y = marker.position.y;
+                if (marker.position.y <= 0) {
+                    marker.position.y = 0;
+                    tail.position.y = 0;
+                    console.log('Marcador atingiu o chão:', m.markerId, 'Posição:', marker.position);
+                    window.socket.emit('markerLanded', {
+                        x: marker.position.x,
+                        y: marker.position.y,
+                        z: marker.position.z,
+                        mode: window.mode || 'world',
+                        roomName: window.roomName || null,
+                        markerId: m.markerId
+                    });
+                    // Opcional: remover marcador após atingir o chão (descomente se desejar)
+                    // scene.remove(marker);
+                    // scene.remove(tail);
+                    // window.markers.splice(index, 1);
+                }
+            }
+        });
     }
 
     function showNoMarkersMessage() {
@@ -480,6 +510,9 @@ export function initGame() {
         document.getElementById('windIndicator').textContent = `Vento: ${currentLayer.name.charAt(0)}`;
 
         updateLayerIndicator(currentLayerIndex);
+
+        // Atualizar marcadores
+        updateMarkers();
 
         camera.position.x = balloon.position.x;
         camera.position.z = balloon.position.z + 200;
