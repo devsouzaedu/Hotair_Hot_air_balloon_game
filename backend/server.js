@@ -23,7 +23,7 @@ const PORT = process.env.PORT || 3000;
 app.use(cors({
     origin: 'https://devsouzaedu.github.io',
     methods: ['GET', 'POST'],
-    allowedHeaders: ['Content-Type', 'Authorization'], // Adicionado 'Authorization'
+    allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: false
 }));
 
@@ -95,6 +95,9 @@ app.get('/api/profile', async (req, res) => {
         const token = req.headers.authorization?.split(' ')[1];
         const decoded = jwt.verify(token, process.env.SESSION_SECRET);
         const player = await Player.findById(decoded.id);
+        if (!player) {
+            return res.status(404).json({ error: 'Jogador não encontrado' });
+        }
         res.json(player);
     } catch (error) {
         res.status(401).json({ error: 'Não autorizado' });
@@ -405,7 +408,7 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('markerLanded', ({ x, y, z, mode, roomName, markerId }) => {
+    socket.on('markerLanded', async ({ x, y, z, mode, roomName, markerId }) => {
         console.log('markerLanded recebido:', { x, y, z, mode, roomName, markerId });
         const state = mode === 'world' ? worldState : (rooms[roomName] || null);
         if (!state) {
@@ -420,11 +423,22 @@ io.on('connection', (socket) => {
                 const dz = z - targets[0].z;
                 const distance = Math.sqrt(dx * dx + dz * dz);
                 const player = worldState.players[worldState.markers[markerId].playerId];
-                if (distance < 40 && player) {
+                if (distance < 40 && player && !player.isBot) {
                     const score = calculateScore(distance);
                     player.score += score;
                     io.to('world').emit('targetHitUpdate', { targetIndex: worldState.currentTargetIndex });
                     worldState.currentTargetIndex++;
+                    // Atualiza o jogador no MongoDB
+                    try {
+                        await Player.findOneAndUpdate(
+                            { _id: player.id },
+                            { $inc: { totalScore: score, targetsHit: 1 } },
+                            { new: true }
+                        );
+                        console.log(`Pontuação e alvos atualizados para jogador ${player.name}: +${score} pontos, +1 alvo`);
+                    } catch (error) {
+                        console.error('Erro ao atualizar jogador no MongoDB:', error);
+                    }
                 }
             }
             return;
@@ -439,11 +453,22 @@ io.on('connection', (socket) => {
             const dz = z - targets[0].z;
             const distance = Math.sqrt(dx * dx + dz * dz);
             const player = state.players[state.markers[markerId].playerId];
-            if (distance < 40 && player) {
+            if (distance < 40 && player && !player.isBot) {
                 const score = calculateScore(distance);
                 player.score += score;
                 io.to(roomName || 'world').emit('targetHitUpdate', { targetIndex: state.currentTargetIndex });
                 state.currentTargetIndex++;
+                // Atualiza o jogador no MongoDB
+                try {
+                    await Player.findOneAndUpdate(
+                        { _id: player.id },
+                        { $inc: { totalScore: score, targetsHit: 1 } },
+                        { new: true }
+                    );
+                    console.log(`Pontuação e alvos atualizados para jogador ${player.name}: +${score} pontos, +1 alvo`);
+                } catch (error) {
+                    console.error('Erro ao atualizar jogador no MongoDB:', error);
+                }
             }
         } else {
             console.warn(`Marcador ${markerId} não encontrado em state.markers`);
