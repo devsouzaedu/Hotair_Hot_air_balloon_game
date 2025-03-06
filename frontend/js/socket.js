@@ -243,11 +243,11 @@ export function initSocket() {
                 window.showNoMarkersMessage();
             }
         }
-        // Verificar se o marcador existe antes de atualizar
+        // Não atualizar posição aqui; o frontend já controla a queda localmente
+        // Apenas logar se o marcador não for encontrado para depuração
         const markerEntry = window.markers.find(m => m.marker.userData.markerId === markerId);
-        if (markerEntry) {
-            markerEntry.marker.position.set(x, y, z);
-            markerEntry.tail.position.set(x, y, z);
+        if (!markerEntry && playerId !== socket.id) {
+            console.log(`Marcador ${markerId} não encontrado localmente para playerId ${playerId}. Ignorando atualização.`);
         }
     });
 
