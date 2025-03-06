@@ -243,7 +243,7 @@ export function initSocket() {
                 window.showNoMarkersMessage();
             }
         } else {
-            // Para outros jogadores, criar marcador se não existir, mas sem interferir na queda local
+            // Apenas criar marcadores de outros jogadores se não existirem
             const markerEntry = window.markers.find(m => m.marker.userData.markerId === markerId);
             if (!markerEntry) {
                 const marker = new THREE.Mesh(new THREE.SphereGeometry(4.5, 16, 16), new THREE.MeshLambertMaterial({ color: 0x0000FF }));
@@ -257,7 +257,7 @@ export function initSocket() {
                 window.markers.push({ marker, tail, playerId, markerId });
             }
         }
-        // Não interferir na posição de marcadores locais; deixar updateMarkers gerenciar
+        // Não atualizar posição de marcadores locais aqui; deixar o updateMarkers controlar
     });
 
     socket.on('markerLanded', ({ x, y, z, playerId, markerId }) => {

@@ -332,10 +332,10 @@ export function initGame() {
             const marker = m.marker;
             const tail = m.tail;
             if (marker.position.y > 0) {
-                // Aplicar gravidade de forma consistente e suave
-                marker.position.y = Math.max(0, marker.position.y - 5.0); // Garante que não passe de y=0
+                // Reduzir a velocidade de queda para um movimento mais suave
+                marker.position.y = Math.max(0, marker.position.y - 2.0); // Velocidade reduzida de 5.0 para 2.0
                 tail.position.y = marker.position.y;
-                if (marker.position.y === 0) { // Só processa quando atinge exatamente y=0
+                if (marker.position.y === 0) {
                     console.log(`Marcador atingiu o chão: ${m.markerId}, Posição: x=${marker.position.x}, y=${marker.position.y}, z=${marker.position.z}`);
                     window.socket.emit('markerLanded', {
                         x: marker.position.x,
@@ -345,7 +345,6 @@ export function initGame() {
                         roomName: window.roomName || null,
                         markerId: m.markerId
                     });
-                    // Remover marcador após atingir o chão para evitar repetição
                     scene.remove(marker);
                     scene.remove(tail);
                     window.markers.splice(index, 1);
