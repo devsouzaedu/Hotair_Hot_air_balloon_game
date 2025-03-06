@@ -3,6 +3,10 @@ const http = require('http');
 const socketIO = require('socket.io');
 const cors = require('cors');
 const path = require('path');
+const passport = require('passport');
+const GoogleStrategy = require('passport-google-oauth20').Strategy;
+const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
 const app = express();
 const server = http.createServer(app);
 
@@ -32,6 +36,70 @@ let worldState = {
     lastTargetMoveTime: Date.now()
 };
 const rooms = {};
+
+// Conectar MongoDB
+mongoose.connect(process.env.MONGODB_URI);
+
+// Schema do Jogador
+const PlayerSchema = new mongoose.Schema({
+    googleId: String,
+    email: String,
+    name: String,
+    picture: String,
+    totalScore: { type: Number, default: 0 },
+    targetsHit: { type: Number, default: 0 },
+    startDate: { type: Date, default: Date.now }
+});
+
+const Player = mongoose.model('Player', PlayerSchema);
+
+// Configurar Passport
+app.use(passport.initialize());
+
+passport.use(new GoogleStrategy({
+    clientID: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    callbackURL: "https://hotair-backend.onrender.com/auth/google/callback"
+}, async (accessToken, refreshToken, profile, done) => {
+    try {
+        let player = await Player.findOne({ googleId: profile.id });
+        if (!player) {
+            player = await Player.create({
+                googleId: profile.id,
+                email: profile.emails[0].value,
+                name: profile.displayName,
+                picture: profile.photos[0].value
+            });
+        }
+        return done(null, player);
+    } catch (error) {
+        return done(error, null);
+    }
+}));
+
+// Rotas de Auth
+app.get('/auth/google',
+    passport.authenticate('google', { scope: ['profile', 'email'] })
+);
+
+app.get('/auth/google/callback', 
+    passport.authenticate('google', { session: false }),
+    (req, res) => {
+        const token = jwt.sign({ id: req.user._id }, process.env.SESSION_SECRET);
+        res.redirect(`https://devsouzaedu.github.io/Hotair_Hot_air_balloon_game/?token=${token}`);
+    }
+);
+
+app.get('/api/profile', async (req, res) => {
+    try {
+        const token = req.headers.authorization?.split(' ')[1];
+        const decoded = jwt.verify(token, process.env.SESSION_SECRET);
+        const player = await Player.findById(decoded.id);
+        res.json(player);
+    } catch (error) {
+        res.status(401).json({ error: 'Não autorizado' });
+    }
+});
 
 function generateTarget() {
     const mapSize = 2600;
