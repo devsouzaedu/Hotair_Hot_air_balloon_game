@@ -242,12 +242,21 @@ export function initSocket() {
             if (markers === 0) {
                 window.showNoMarkersMessage();
             }
-        }
-        // Não atualizar posição aqui; o frontend já controla a queda localmente
-        // Apenas logar se o marcador não for encontrado para depuração
-        const markerEntry = window.markers.find(m => m.marker.userData.markerId === markerId);
-        if (!markerEntry && playerId !== socket.id) {
-            console.log(`Marcador ${markerId} não encontrado localmente para playerId ${playerId}. Ignorando atualização.`);
+            // Não atualizar posição para marcadores locais; o updateMarkers já faz isso
+        } else {
+            // Para marcadores de outros jogadores, criar se não existir
+            const markerEntry = window.markers.find(m => m.marker.userData.markerId === markerId);
+            if (!markerEntry) {
+                const marker = new THREE.Mesh(new THREE.SphereGeometry(4.5, 16, 16), new THREE.MeshLambertMaterial({ color: 0x0000FF }));
+                const tail = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, -45, 0)]), new THREE.LineBasicMaterial({ color: 0xFFFFFF }));
+                marker.userData = { playerId, type: 'marker', markerId };
+                tail.userData = { playerId, type: 'tail', markerId };
+                marker.position.set(x, y, z);
+                tail.position.set(x, y, z);
+                window.scene.add(marker);
+                window.scene.add(tail);
+                window.markers.push({ marker, tail, playerId });
+            }
         }
     });
 
