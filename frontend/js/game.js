@@ -495,8 +495,6 @@ export function initGame() {
         balloon.position.x += currentLayer.direction.x * currentLayer.speed;
         balloon.position.z += currentLayer.direction.z * currentLayer.speed;
 
-        if (keys.A) balloon.position.x -= 0.5;
-        if (keys.D) balloon.position.x += 0.5;
 
         balloon.rotation.y += 0.001;
 
