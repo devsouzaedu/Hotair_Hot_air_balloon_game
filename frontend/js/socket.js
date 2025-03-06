@@ -1,4 +1,3 @@
-// socket.js
 export function initSocket() {
     if (typeof io === 'undefined') {
         console.error('Socket.IO não foi carregado corretamente.');
@@ -95,7 +94,7 @@ export function initSocket() {
                 window.scene.add(targetMesh);
             });
         }
-        const playerName = document.getElementById('playerName').value || 'Jogador';
+        const playerName = localStorage.getItem('playerName') || 'Jogador';
         window.setBalloon(window.createBalloon(window.balloonColor, playerName));
         if (window.balloon) {
             console.log('Adicionando balão à cena:', window.balloon);
@@ -116,6 +115,7 @@ export function initSocket() {
         }
         window.gameStarted();
     });
+
     socket.on('gameState', ({ mode: gameMode, state }) => {
         console.log('gameState recebido:', state);
         if (gameMode === 'world') {
@@ -132,7 +132,7 @@ export function initSocket() {
                     window.scene.add(targetMesh);
                 });
             }
-            // Usa o nome do localStorage em vez de #playerName
+            // Corrigido: Usa localStorage em vez de #playerName
             const playerName = localStorage.getItem('playerName') || 'Jogador';
             window.setBalloon(window.createBalloon(window.balloonColor, playerName));
             if (window.balloon) {
@@ -157,7 +157,7 @@ export function initSocket() {
             window.gameStarted();
         }
     });
-    
+
     socket.on('gameUpdate', ({ state, timeLeft }) => {
         const currentState = window.mode === 'world' ? state : state;
 
@@ -353,7 +353,7 @@ export function initSocket() {
         window.setMarkers([]);
         window.setOtherPlayers({});
 
-        const playerName = document.getElementById('playerName').value || 'Jogador';
+        const playerName = localStorage.getItem('playerName') || 'Jogador';
         window.setBalloon(window.createBalloon(window.balloonColor, playerName));
         if (window.balloon) {
             window.balloon.position.set(state.players[socket.id].x, state.players[socket.id].y, state.players[socket.id].z);
