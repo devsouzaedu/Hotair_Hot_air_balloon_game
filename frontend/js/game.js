@@ -291,15 +291,15 @@ export function initGame() {
             z: window.balloon.position.z 
         };
         const markerId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
+    
         // Criar novo marcador e cauda
         const markerGeometry = new THREE.SphereGeometry(4.5, 16, 16);
         const markerMaterial = new THREE.MeshLambertMaterial({ color: 0x0000FF });
         const newMarker = new THREE.Mesh(markerGeometry, markerMaterial);
         newMarker.position.set(markerStartPos.x, markerStartPos.y, markerStartPos.z);
-        newMarker.userData = { markerId: markerId };
+        newMarker.userData = { markerId: markerId, playerId: window.socket.id };
         scene.add(newMarker);
-
+    
         const tailGeometry = new THREE.BufferGeometry().setFromPoints([
             new THREE.Vector3(0, 0, 0),
             new THREE.Vector3(0, -45, 0)
@@ -307,12 +307,15 @@ export function initGame() {
         const tailMaterial = new THREE.LineBasicMaterial({ color: 0xFFFFFF });
         const newTail = new THREE.Line(tailGeometry, tailMaterial);
         newTail.position.set(markerStartPos.x, markerStartPos.y, markerStartPos.z);
+        newTail.userData = { markerId: markerId, playerId: window.socket.id };
         scene.add(newTail);
-
-        // Adicionar ao array de marcadores
-        window.markers.push({ marker: newMarker, tail: newTail, markerId: markerId });
-
-        // Emitir evento para o backend
+    
+        // Adicionar ao array de marcadores apenas se ainda não existir
+        if (!window.markers.some(m => m.markerId === markerId)) {
+            window.markers.push({ marker: newMarker, tail: newTail, markerId: markerId, playerId: window.socket.id });
+        }
+    
+        // Emitir evento para o backend apenas uma vez
         window.socket.emit('dropMarker', { 
             x: markerStartPos.x, 
             y: markerStartPos.y, 
