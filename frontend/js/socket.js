@@ -116,7 +116,6 @@ export function initSocket() {
         }
         window.gameStarted();
     });
-
     socket.on('gameState', ({ mode: gameMode, state }) => {
         console.log('gameState recebido:', state);
         if (gameMode === 'world') {
@@ -133,7 +132,8 @@ export function initSocket() {
                     window.scene.add(targetMesh);
                 });
             }
-            const playerName = document.getElementById('playerName').value || 'Jogador';
+            // Usa o nome do localStorage em vez de #playerName
+            const playerName = localStorage.getItem('playerName') || 'Jogador';
             window.setBalloon(window.createBalloon(window.balloonColor, playerName));
             if (window.balloon) {
                 console.log('Adicionando balão à cena via gameState:', window.balloon);
@@ -157,7 +157,7 @@ export function initSocket() {
             window.gameStarted();
         }
     });
-
+    
     socket.on('gameUpdate', ({ state, timeLeft }) => {
         const currentState = window.mode === 'world' ? state : state;
 
