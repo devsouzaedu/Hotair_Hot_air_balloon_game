@@ -418,32 +418,46 @@ io.on('connection', (socket) => {
                 worldState.markers[markerId].y = y;
                 worldState.markers[markerId].z = z;
                 io.to('world').emit('markerLanded', { x, y, z, playerId: worldState.markers[markerId].playerId, markerId });
+                
                 const targets = worldState.targets;
                 const dx = x - targets[0].x;
                 const dz = z - targets[0].z;
                 const distance = Math.sqrt(dx * dx + dz * dz);
+                console.log(`Distância calculada: ${distance}, alvo em x=${targets[0].x}, z=${targets[0].z}, marcador em x=${x}, z=${z}`);
+                
                 const player = worldState.players[worldState.markers[markerId].playerId];
-                if (distance < 40 && player && !player.isBot) {
+                if (!player) {
+                    console.error(`Jogador com ID ${worldState.markers[markerId].playerId} não encontrado no worldState.players`);
+                    return;
+                }
+                if (distance < 40) {
                     const score = calculateScore(distance);
-                    player.score += score;
+                    player.score = (player.score || 0) + score;
                     io.to('world').emit('targetHitUpdate', { targetIndex: worldState.currentTargetIndex });
                     worldState.currentTargetIndex++;
-                    // Atualiza o jogador no MongoDB usando o player.id (que agora é o _id do MongoDB)
-                    try {
-                        const updatedPlayer = await Player.findOneAndUpdate(
-                            { _id: player.id },
-                            { $inc: { totalScore: score, targetsHit: 1 } },
-                            { new: true }
-                        );
-                        if (updatedPlayer) {
-                            console.log(`Pontuação e alvos atualizados para jogador ${player.name}: +${score} pontos, +1 alvo`);
-                        } else {
-                            console.error(`Jogador com _id ${player.id} não encontrado no MongoDB`);
+                    console.log(`Alvo acertado por ${player.name}! Distância: ${distance}, Pontos ganhos: ${score}, Novo score: ${player.score}`);
+                    
+                    if (!player.isBot) {
+                        try {
+                            const updatedPlayer = await Player.findOneAndUpdate(
+                                { _id: player.id },
+                                { $inc: { totalScore: score, targetsHit: 1 } },
+                                { new: true }
+                            );
+                            if (updatedPlayer) {
+                                console.log(`Pontuação e alvos atualizados no MongoDB para jogador ${player.name}: +${score} pontos, +1 alvo`);
+                            } else {
+                                console.error(`Jogador com _id ${player.id} não encontrado no MongoDB`);
+                            }
+                        } catch (error) {
+                            console.error('Erro ao atualizar jogador no MongoDB:', error);
                         }
-                    } catch (error) {
-                        console.error('Erro ao atualizar jogador no MongoDB:', error);
                     }
+                } else {
+                    console.log(`Marcador fora do alcance do alvo: distância ${distance} > 40`);
                 }
+            } else {
+                console.warn(`Marcador ${markerId} não encontrado em worldState.markers`);
             }
             return;
         }
@@ -452,31 +466,43 @@ io.on('connection', (socket) => {
             state.markers[markerId].y = y;
             state.markers[markerId].z = z;
             io.to(roomName || 'world').emit('markerLanded', { x, y, z, playerId: state.markers[markerId].playerId, markerId });
+            
             const targets = state.targets;
             const dx = x - targets[0].x;
             const dz = z - targets[0].z;
             const distance = Math.sqrt(dx * dx + dz * dz);
+            console.log(`Distância calculada: ${distance}, alvo em x=${targets[0].x}, z=${targets[0].z}, marcador em x=${x}, z=${z}`);
+            
             const player = state.players[state.markers[markerId].playerId];
-            if (distance < 40 && player && !player.isBot) {
+            if (!player) {
+                console.error(`Jogador com ID ${state.markers[markerId].playerId} não encontrado em state.players`);
+                return;
+            }
+            if (distance < 40) {
                 const score = calculateScore(distance);
-                player.score += score;
+                player.score = (player.score || 0) + score;
                 io.to(roomName || 'world').emit('targetHitUpdate', { targetIndex: state.currentTargetIndex });
                 state.currentTargetIndex++;
-                // Atualiza o jogador no MongoDB usando o player.id (que agora é o _id do MongoDB)
-                try {
-                    const updatedPlayer = await Player.findOneAndUpdate(
-                        { _id: player.id },
-                        { $inc: { totalScore: score, targetsHit: 1 } },
-                        { new: true }
-                    );
-                    if (updatedPlayer) {
-                        console.log(`Pontuação e alvos atualizados para jogador ${player.name}: +${score} pontos, +1 alvo`);
-                    } else {
-                        console.error(`Jogador com _id ${player.id} não encontrado no MongoDB`);
+                console.log(`Alvo acertado por ${player.name}! Distância: ${distance}, Pontos ganhos: ${score}, Novo score: ${player.score}`);
+                
+                if (!player.isBot) {
+                    try {
+                        const updatedPlayer = await Player.findOneAndUpdate(
+                            { _id: player.id },
+                            { $inc: { totalScore: score, targetsHit: 1 } },
+                            { new: true }
+                        );
+                        if (updatedPlayer) {
+                            console.log(`Pontuação e alvos atualizados no MongoDB para jogador ${player.name}: +${score} pontos, +1 alvo`);
+                        } else {
+                            console.error(`Jogador com _id ${player.id} não encontrado no MongoDB`);
+                        }
+                    } catch (error) {
+                        console.error('Erro ao atualizar jogador no MongoDB:', error);
                     }
-                } catch (error) {
-                    console.error('Erro ao atualizar jogador no MongoDB:', error);
                 }
+            } else {
+                console.log(`Marcador fora do alcance do alvo: distância ${distance} > 40`);
             }
         } else {
             console.warn(`Marcador ${markerId} não encontrado em state.markers`);
