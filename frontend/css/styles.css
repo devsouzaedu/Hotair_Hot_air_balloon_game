@@ -359,3 +359,36 @@ body {
         gap: 5px;
     }
 }
+
+#banner {
+    position: absolute;
+    top: 10%; /* 10% de margem do topo */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80%; /* Largura ajustável, pode mudar se quiser */
+    background: #1a3c34; /* Verde escuro */
+    color: white;
+    padding: 5px;
+    border-radius: 3px;
+    text-align: center;
+    z-index: 100; /* Fica acima do jogo, mas abaixo de telas como loseScreen */
+    font-family: Arial, sans-serif; /* Mesma fonte do jogo */
+    font-size: 0.5em; /* Tamanho consistente com o resto do jogo */
+    overflow: hidden; /* Para o texto rotativo não vazar */
+    display: none; /* Começa escondido, só aparece no modo "Jogue Agora" */
+}
+
+#bannerText {
+    display: inline-block;
+    white-space: nowrap; /* Mantém o texto em uma linha */
+    animation: scrollText 10s linear infinite; /* Animação de rolagem */
+}
+
+@keyframes scrollText {
+    0% {
+        transform: translateX(100%);
+    }
+    100% {
+        transform: translateX(-100%);
+    }
+}
