@@ -1,13 +1,17 @@
 export function initSocket() {
+    // Verifica se o Socket.IO está carregado
     if (typeof io === 'undefined') {
         console.error('Socket.IO não foi carregado corretamente.');
         return;
     }
 
+    // Pega o token do localStorage
     const token = localStorage.getItem('jwtToken');
     if (!token) {
         console.error('Nenhum token JWT encontrado no localStorage');
     }
+
+    // Inicializa o socket com o token
     window.socket = io('https://hotair-backend.onrender.com', {
         auth: {
             token: token // Envia o token no handshake
@@ -15,25 +19,43 @@ export function initSocket() {
     });
     const socket = window.socket;
 
+    // Verifica se o socket foi inicializado
     if (!socket) {
         console.error('Falha ao inicializar o socket.');
         return;
     }
 
+    // Declaração global dentro da função initSocket para banner e bannerText
+    const banner = document.getElementById('banner');
+    const bannerText = document.getElementById('bannerText');
+
+    // Verifica se os elementos do banner existem no DOM
+    if (!banner || !bannerText) {
+        console.error('Elementos banner ou bannerText não encontrados no DOM! Verifique o index.html.');
+        return;
+    }
+
+    // Confirma que os elementos foram inicializados
+    console.log('Banner e bannerText inicializados com sucesso:', banner, bannerText);
+
+    // Inicializa variáveis globais
     window.markers = window.markers || [];
     window.targets = window.targets || [];
     window.otherPlayers = window.otherPlayers || {};
     window.balloonColor = window.balloonColor || '#FF4500';
     window.markersLeft = 5;
 
+    // Evento de conexão
     socket.on('connect', () => {
         console.log('Conectado ao backend via Socket.IO');
     });
 
+    // Evento de erro de conexão
     socket.on('connect_error', (err) => {
         console.error('Erro de conexão com o backend:', err.message);
     });
 
+    // Evento de sala criada
     socket.on('roomCreated', ({ roomName, creator }) => {
         window.roomName = roomName;
         window.isCreator = (creator === socket.id);
@@ -42,12 +64,14 @@ export function initSocket() {
         socket.emit('setColor', { roomName, color: null });
     });
 
+    // Evento de erro de sala
     socket.on('roomError', (msg) => {
         alert(msg);
         document.getElementById('colorScreen').style.display = 'none';
         document.getElementById('roomScreen').style.display = 'flex';
     });
 
+    // Evento de jogador entrando
     socket.on('playerJoined', ({ players, creator }) => {
         const playersList = document.getElementById('playersList');
         playersList.innerHTML = '';
@@ -66,6 +90,7 @@ export function initSocket() {
         }
     });
 
+    // Evento de jogador saindo
     socket.on('playerLeft', (id) => {
         if (window.otherPlayers[id]) {
             window.scene.remove(window.otherPlayers[id]);
@@ -73,6 +98,7 @@ export function initSocket() {
         }
     });
 
+    // Evento de sala fechada
     socket.on('roomClosed', () => {
         alert('O criador da sala saiu. A sala foi fechada.');
         document.getElementById('lobbyScreen').style.display = 'none';
@@ -80,10 +106,12 @@ export function initSocket() {
         resetGameState();
     });
 
+    // Evento de contagem regressiva
     socket.on('countdown', (count) => {
         document.getElementById('countdown').textContent = count > 0 ? count : 'GO!';
     });
 
+    // Evento de início do jogo
     socket.on('startGame', ({ state }) => {
         console.log('startGame recebido:', state);
         document.getElementById('lobbyScreen').style.display = 'none';
@@ -124,20 +152,15 @@ export function initSocket() {
         window.gameStarted();
     });
 
+    // Evento de estado do jogo
     socket.on('gameState', ({ mode: gameMode, state }) => {
         console.log('gameState recebido:', state);
         if (gameMode === 'world') {
-            // Exibir o gameScreen
+            console.log('Modo world detectado, exibindo banner');
             document.getElementById('colorScreen').style.display = 'none';
             document.getElementById('gameScreen').style.display = 'block';
-    
-            // Mostrar o banner no modo "world"
-            const banner = document.getElementById('banner');
-            const bannerText = document.getElementById('bannerText');
             banner.style.display = 'block';
             bannerText.textContent = 'Hajime é o Campeão do dia com 62k de pontos, 134 alvos acertados';
-    
-            // Configuração do jogo (mantém o resto do código)
             if (typeof window.setTargets === 'function') {
                 window.setTargets(state.targets || []);
             } else {
@@ -174,9 +197,9 @@ export function initSocket() {
         }
     });
 
+    // Evento de atualização do jogo
     socket.on('gameUpdate', ({ state, timeLeft }) => {
         const currentState = window.mode === 'world' ? state : state;
-
         if (state.targets && Array.isArray(state.targets) && 
             (!window.targets.length || state.targets[0].x !== window.targets[0]?.x || state.targets[0].z !== window.targets[0]?.z)) {
             window.lastTargetMoveTime = Date.now();
@@ -241,6 +264,7 @@ export function initSocket() {
         document.getElementById('timerDisplay').textContent = `Tempo Restante: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
     });
 
+    // Evento de marcador solto
     socket.on('markerDropped', ({ playerId, x, y, z, markers, score, markerId }) => {
         console.log('Marcador solto por:', playerId, 'Restantes:', markers);
         if (playerId === socket.id) {
@@ -252,7 +276,6 @@ export function initSocket() {
                 window.showNoMarkersMessage();
             }
         } else {
-            // Apenas criar marcadores de outros jogadores se não existirem
             const markerEntry = window.markers.find(m => m.marker.userData.markerId === markerId);
             if (!markerEntry) {
                 const marker = new THREE.Mesh(new THREE.SphereGeometry(4.5, 16, 16), new THREE.MeshLambertMaterial({ color: 0x0000FF }));
@@ -266,9 +289,9 @@ export function initSocket() {
                 window.markers.push({ marker, tail, playerId, markerId });
             }
         }
-        // Não atualizar posição de marcadores locais aqui; deixar o updateMarkers controlar
     });
 
+    // Evento de marcador no chão
     socket.on('markerLanded', ({ x, y, z, playerId, markerId }) => {
         console.log('Marcador pousou em:', { x, y, z }, 'por:', playerId);
         let markerEntry = window.markers.find(m => m.marker.userData.markerId === markerId);
@@ -296,6 +319,7 @@ export function initSocket() {
         }
     });
 
+    // Evento de alvo atingido
     socket.on('targetHitUpdate', ({ targetIndex, playerId, score }) => {
         if (playerId === socket.id) {
             window.updatePoints(score); // Atualiza os pontos na UI
@@ -313,13 +337,13 @@ export function initSocket() {
         }
     });
 
+    // Evento de fim de jogo (perdeu)
     socket.on('gameOver', (winner) => {
         if (!window.gameEnded) {
             window.gameOver();
             window.gameEnded = true;
             document.getElementById('gameScreen').style.display = 'none';
             document.getElementById('nameScreen').style.display = 'flex';
-            const banner = document.getElementById('banner');
             banner.style.display = 'none'; // Esconde o banner
             resetGameState();
             if (window.mode === 'world') socket.emit('leaveWorld');
@@ -327,18 +351,21 @@ export function initSocket() {
         }
     });
 
+    // Evento de fim de jogo (tempo esgotado)
     socket.on('gameEnd', ({ players }) => {
         if (!window.gameEnded) {
             window.gameOver();
             window.gameEnded = true;
             document.getElementById('gameScreen').style.display = 'none';
             document.getElementById('nameScreen').style.display = 'flex';
+            banner.style.display = 'none'; // Esconde o banner
             resetGameState();
             if (window.mode === 'world') socket.emit('leaveWorld');
             else if (window.mode === 'room' && window.roomName) socket.emit('leaveRoom', { roomName: window.roomName });
         }
     });
 
+    // Evento de exibir leaderboard
     socket.on('showLeaderboard', ({ players }) => {
         console.log('showLeaderboard recebido:', players);
         window.gameOver();
@@ -346,6 +373,7 @@ export function initSocket() {
         document.getElementById('gameScreen').style.display = 'none';
         document.getElementById('loseScreen').style.display = 'none';
         document.getElementById('leaderboardScreen').style.display = 'block';
+        banner.style.display = 'none'; // Esconde o banner
         const leaderboardList = document.getElementById('leaderboardList');
         leaderboardList.innerHTML = '';
         const sortedPlayers = Object.values(players).sort((a, b) => b.score - a.score);
@@ -379,6 +407,7 @@ export function initSocket() {
         }, 1000);
     });
 
+    // Evento de reset do jogo
     socket.on('gameReset', ({ state }) => {
         console.log('gameReset recebido:', state);
         document.getElementById('leaderboardScreen').style.display = 'none';
@@ -425,6 +454,7 @@ export function initSocket() {
         window.gameStarted();
     });
 
+    // Função para resetar o estado do jogo
     function resetGameState() {
         window.gameStarted = false;
         window.markerDropped = false;
