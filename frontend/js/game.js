@@ -156,7 +156,7 @@ export function initGame() {
 
         const loader = new THREE.FontLoader();
         loader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', function(font) {
-            const textGeometry = new THREE.TextGeometry("ESPAÇOS PARA DIVULGAÇÃO", {
+            const textGeometry = new THREE.TextGeometry("DIVULGUE AQUI", {
                 font: font,
                 size: 50,
                 height: 1,

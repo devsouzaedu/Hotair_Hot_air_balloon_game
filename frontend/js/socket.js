@@ -160,7 +160,7 @@ export function initSocket() {
             document.getElementById('colorScreen').style.display = 'none';
             document.getElementById('gameScreen').style.display = 'block';
             banner.style.display = 'block';
-            bannerText.textContent = 'Hajime é o Campeão do dia com 62k de pontos, 134 alvos acertados';
+            bannerText.textContent = 'Hajime é o Campeão do dia com 62k de pontos, 134 alvos acertados - Hajime é o Campeão do dia com 62k de pontos, 134 alvos acertados - Hajime é o Campeão do dia com 62k de pontos, 134 alvos acertados - Divulgue aqui';
             if (typeof window.setTargets === 'function') {
                 window.setTargets(state.targets || []);
             } else {
