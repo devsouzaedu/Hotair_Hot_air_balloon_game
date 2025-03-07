@@ -127,6 +127,17 @@ export function initSocket() {
     socket.on('gameState', ({ mode: gameMode, state }) => {
         console.log('gameState recebido:', state);
         if (gameMode === 'world') {
+            // Exibir o gameScreen
+            document.getElementById('colorScreen').style.display = 'none';
+            document.getElementById('gameScreen').style.display = 'block';
+    
+            // Mostrar o banner no modo "world"
+            const banner = document.getElementById('banner');
+            const bannerText = document.getElementById('bannerText');
+            banner.style.display = 'block';
+            bannerText.textContent = 'Hajime é o Campeão do dia com 62k de pontos, 134 alvos acertados';
+    
+            // Configuração do jogo (mantém o resto do código)
             if (typeof window.setTargets === 'function') {
                 window.setTargets(state.targets || []);
             } else {
@@ -151,8 +162,6 @@ export function initSocket() {
             }
             document.getElementById('playerNameDisplay').textContent = playerName;
             document.getElementById('markersLeft').textContent = window.markersLeft;
-            document.getElementById('colorScreen').style.display = 'none';
-            document.getElementById('gameScreen').style.display = 'block';
             for (const id in state.players) {
                 if (id !== socket.id && state.players[id].color) {
                     const otherBalloon = window.createBalloon(state.players[id].color, state.players[id].name);
@@ -310,6 +319,8 @@ export function initSocket() {
             window.gameEnded = true;
             document.getElementById('gameScreen').style.display = 'none';
             document.getElementById('nameScreen').style.display = 'flex';
+            const banner = document.getElementById('banner');
+            banner.style.display = 'none'; // Esconde o banner
             resetGameState();
             if (window.mode === 'world') socket.emit('leaveWorld');
             else if (window.mode === 'room' && window.roomName) socket.emit('leaveRoom', { roomName: window.roomName });
