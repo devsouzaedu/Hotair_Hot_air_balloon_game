@@ -1,4 +1,5 @@
 // server.js
+require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const socketIO = require('socket.io');
@@ -11,22 +12,26 @@ const mongoose = require('mongoose');
 const app = express();
 const server = http.createServer(app);
 
+
 const io = socketIO(server, {
     cors: {
-        origin: "https://devsouzaedu.github.io",
-        methods: ["GET", "POST"],
+        origin: 'http://localhost:8080', // Ajuste para 8080
+        methods: ['GET', 'POST'],
         credentials: false
     }
 });
 
 const PORT = process.env.PORT || 10000;
 
+
+
 app.use(cors({
-    origin: 'https://devsouzaedu.github.io',
+    origin: 'http://localhost:8080', // Ajuste para 8080
     methods: ['GET', 'POST'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: false
 }));
+
 
 let worldState = { 
     players: {}, 
@@ -54,13 +59,20 @@ const PlayerSchema = new mongoose.Schema({
 
 const Player = mongoose.model('Player', PlayerSchema);
 
+
+console.log('GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID);
+console.log('GOOGLE_CLIENT_SECRET:', process.env.GOOGLE_CLIENT_SECRET);
+console.log('MONGODB_URI:', process.env.MONGODB_URI);
+console.log('SESSION_SECRET:', process.env.SESSION_SECRET);
+console.log('PORT:', process.env.PORT);
+
 // Configurar Passport
 app.use(passport.initialize());
 
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: "https://hotair-backend.onrender.com/auth/google/callback"
+    callbackURL: "http://localhost:3000/auth/google/callback"
 }, async (accessToken, refreshToken, profile, done) => {
     try {
         let player = await Player.findOne({ googleId: profile.id });
@@ -87,7 +99,14 @@ app.get('/auth/google/callback',
     passport.authenticate('google', { session: false }),
     (req, res) => {
         const token = jwt.sign({ id: req.user._id }, process.env.SESSION_SECRET);
-        res.redirect(`https://devsouzaedu.github.io/Hotair_Hot_air_balloon_game/?token=${token}`);
+        const frontendUrl = process.env.FRONTEND_URL; // Removido o fallback
+        console.log('FRONTEND_URL do .env:', process.env.FRONTEND_URL);
+        console.log('Redirecionando para:', `${frontendUrl}?token=${token}`);
+        if (!frontendUrl) {
+            console.error('Erro: FRONTEND_URL não está definido no .env');
+            return res.status(500).send('Erro de configuração do servidor: FRONTEND_URL não definido');
+        }
+        res.redirect(`${frontendUrl}?token=${token}`);
     }
 );
 

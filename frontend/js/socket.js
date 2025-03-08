@@ -12,7 +12,7 @@ export function initSocket() {
     }
 
     // Inicializa o socket com o token
-    window.socket = io('https://hotair-backend.onrender.com', {
+    window.socket = io('http://localhost:3000', {
         auth: {
             token: token // Envia o token no handshake
         }

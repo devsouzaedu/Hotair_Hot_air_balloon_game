@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             console.log('Token capturado:', token); // Debug
             // Faz a requisição ao backend para pegar os dados do jogador
-            const response = await fetch('https://hotair-backend.onrender.com/api/profile', {
+            const response = await fetch('http://localhost:3000/api/profile', {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`,

@@ -28,10 +28,18 @@
             <h1>Hotair - Jogo de Balão</h1>
             <p>Versão Beta - Divulgue conosco!</p>
             <p>Faça login para começar sua aventura!</p>
-            <button id="googleLoginBtn" class="google-btn" onclick="window.location.href='https://hotair-backend.onrender.com/auth/google'">
+            <button id="googleLoginBtn" class="google-btn">
                 <img src="/Hotair_Hot_air_balloon_game/google_icon.svg" alt="Google Logo">
                 Entrar com Google
             </button>
+            <script>
+                document.getElementById('googleLoginBtn').addEventListener('click', () => {
+                    const backendUrl = window.location.hostname === 'localhost' 
+                        ? 'http://localhost:3000/auth/google' 
+                        : 'https://hotair-backend.onrender.com/auth/google';
+                    window.location.href = backendUrl;
+                });
+            </script>
         </div>
     </div>
 
@@ -150,7 +158,7 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
-    <script src="https://hotair-backend.onrender.com/socket.io/socket.io.js" defer></script>
+    <script src="http://localhost:3000/socket.io/socket.io.js" defer></script>
     <script src="js/game.js" type="module" defer></script>
     <script src="js/socket.js" type="module" defer></script>
     <script src="js/ui.js" type="module" defer></script>
