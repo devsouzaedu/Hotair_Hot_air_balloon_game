@@ -1,11 +1,10 @@
-// game.js
 export function initGame() {
     let scene, camera, renderer;
     let balloon;
     let altitude = 100;
     window.markerDropped = false;
     window.markersLeft = 5;
-    let points = 0; // Variável global para pontos
+    let points = 0;
     let bestScore = localStorage.getItem('bestScore') || 0;
     let gameStarted = false;
     let hasLiftedOff = false;
@@ -16,7 +15,7 @@ export function initGame() {
     let isMobile = detectMobile();
     window.targets = [];
     window.otherPlayers = {};
-    window.markers = []; // Array para rastrear todos os marcadores
+    window.markers = [];
     let lastTargetMoveTime = Date.now();
     let gameEnded = false;
 
@@ -73,6 +72,69 @@ export function initGame() {
 
         createGround();
 
+        // Carregar o balão inicial apenas se não houver window.balloon
+        if (!window.balloon) {
+            const loader = new THREE.GLTFLoader();
+            loader.load(
+                '/js/balloon_new.glb',
+                (gltf) => {
+                    const group = new THREE.Group();
+                    const model = gltf.scene;
+                    model.scale.set(4, 4, 4);
+                    model.position.y = 0;
+
+                    model.traverse((child) => {
+                        if (child.isMesh) {
+                            if (child.name === 'Balloon') {
+                                let balloonMaterial;
+                                if (window.balloonColor === 'rainbow') {
+                                    balloonMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff, vertexColors: true });
+                                    const geometry = child.geometry;
+                                    const colors = new Float32Array(geometry.attributes.position.count * 3);
+                                    for (let i = 0; i < geometry.attributes.position.count; i++) {
+                                        colors[i * 3] = Math.random();
+                                        colors[i * 3 + 1] = Math.random();
+                                        colors[i * 3 + 2] = Math.random();
+                                    }
+                                    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+                                } else {
+                                    balloonMaterial = new THREE.MeshLambertMaterial({ color: window.balloonColor || '#FF4500' });
+                                }
+                                child.material = balloonMaterial;
+                            } else if (child.name === 'Basket') {
+                                child.material = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
+                            }
+                        }
+                    });
+
+                    group.add(model);
+
+                    const loaderFont = new THREE.FontLoader();
+                    loaderFont.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', function(font) {
+                        const textGeometry = new THREE.TextGeometry(localStorage.getItem('playerName') || 'Jogador', {
+                            font: font,
+                            size: 7,
+                            height: 1,
+                        });
+                        const textMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+                        const textMesh = new THREE.Mesh(textGeometry, textMaterial);
+                        textMesh.position.set(-15, 100, 0);
+                        group.add(textMesh);
+                    });
+
+                    group.position.set(0, altitude, 0);
+                    console.log('Balão inicial criado com modelo GLB:', group);
+                    window.balloon = group;
+                    balloon = group;
+                    scene.add(group);
+                },
+                undefined,
+                (error) => {
+                    console.error('Erro ao carregar o modelo GLB inicial:', error);
+                }
+            );
+        }
+
         window.addEventListener('keydown', handleKeyDown);
         window.addEventListener('keyup', handleKeyUp);
         window.addEventListener('resize', onWindowResize);
@@ -94,7 +156,6 @@ export function initGame() {
                 if (!window.markerDropped && window.markersLeft > 0) dropMarker();
             });
 
-            // Prevenir zoom por double-tap
             [upButton, turboButton, downButton, dropButton].forEach(button => {
                 button.addEventListener('dblclick', (e) => e.preventDefault());
             });
@@ -102,6 +163,7 @@ export function initGame() {
 
         animate();
     }
+
 
     function createGround() {
         const mapSize = 2600;
@@ -111,13 +173,13 @@ export function initGame() {
         ground.rotation.x = -Math.PI / 2;
         ground.position.y = 0;
         scene.add(ground);
-
+    
         const gridHelper = new THREE.GridHelper(mapSize, 26, 0x000000, 0x000000);
         gridHelper.position.y = 0.1;
         gridHelper.material.opacity = 0.2;
         gridHelper.material.transparent = true;
         scene.add(gridHelper);
-
+    
         for (let i = 0; i < 30; i++) {
             const houseGeometry = new THREE.BoxGeometry(15, 15, 15);
             const houseMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
@@ -125,7 +187,7 @@ export function initGame() {
             house.position.set(Math.random() * mapSize - mapSize / 2, 7.5, Math.random() * mapSize - mapSize / 2);
             scene.add(house);
         }
-
+    
         for (let i = 0; i < 45; i++) {
             const cowGeometry = new THREE.SphereGeometry(4.5, 16, 16);
             const cowMaterial = new THREE.MeshLambertMaterial({ color: 0xFFFFFF });
@@ -133,7 +195,7 @@ export function initGame() {
             cow.position.set(Math.random() * mapSize - mapSize / 2, 2.25, Math.random() * mapSize - mapSize / 2);
             scene.add(cow);
         }
-
+    
         const roadMaterial = new THREE.LineBasicMaterial({ color: 0x808080 });
         for (let i = 0; i < 15; i++) {
             const roadGeometry = new THREE.BufferGeometry().setFromPoints([
@@ -144,7 +206,7 @@ export function initGame() {
             road.scale.set(1.5, 1, 1.5);
             scene.add(road);
         }
-
+    
         for (let i = 0; i < 10; i++) {
             const lakeGeometry = new THREE.CircleGeometry(30, 32);
             const lakeMaterial = new THREE.MeshLambertMaterial({ color: 0x00BFFF, side: THREE.DoubleSide });
@@ -153,7 +215,7 @@ export function initGame() {
             lake.position.set(Math.random() * mapSize - mapSize / 2, 0.1, Math.random() * mapSize - mapSize / 2);
             scene.add(lake);
         }
-
+    
         const loader = new THREE.FontLoader();
         loader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', function(font) {
             const textGeometry = new THREE.TextGeometry("DIVULGUE AQUI", {
@@ -166,54 +228,286 @@ export function initGame() {
             textMesh.rotation.x = -Math.PI / 2;
             textMesh.position.set(-400, 0.2, 0);
             scene.add(textMesh);
+    
+            // Adicionar billboards retangulares de madeira nos 4 cantos superiores das arquibancadas
+            const billboardTextGeometry1 = new THREE.TextGeometry("Divulgue", {
+                font: font,
+                size: 20, // Tamanho ajustado para duas linhas
+                height: 1,
+            });
+            const billboardTextGeometry2 = new THREE.TextGeometry("Aqui", {
+                font: font,
+                size: 20,
+                height: 1,
+            });
+            const billboardTextMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 }); // Texto preto
+            const billboardBaseGeometry = new THREE.PlaneGeometry(150, 80, 1, 1); // Maior e mais grosso (150x80)
+            const billboardBaseMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513, side: THREE.DoubleSide }); // Madeira (marrom escuro)
+            const poleGeometry = new THREE.CylinderGeometry(2, 2, 50, 8); // Poste mais alto
+            const poleMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 }); // Poste de madeira
+    
+            // Cantos superiores das arquibancadas (noroeste, nordeste, sudeste, sudoeste)
+            const corners = [
+                { x: -mapSize / 2 - 100, z: mapSize / 2 + 100 }, // Noroeste
+                { x: mapSize / 2 + 100, z: mapSize / 2 + 100 }, // Nordeste
+                { x: mapSize / 2 + 100, z: -mapSize / 2 - 100 }, // Sudeste
+                { x: -mapSize / 2 - 100, z: -mapSize / 2 - 100 } // Sudoeste
+            ];
+    
+            corners.forEach((corner, index) => {
+                // Base do billboard
+                const billboardBase = new THREE.Mesh(billboardBaseGeometry, billboardBaseMaterial);
+                billboardBase.position.set(corner.x, 60, corner.z); // Altura ajustada para ficar acima
+                billboardBase.lookAt(new THREE.Vector3(0, 60, 0)); // Virado para o centro do campo
+                scene.add(billboardBase);
+    
+                // Texto "Divulgue" (linha superior)
+                const billboardText1 = new THREE.Mesh(billboardTextGeometry1, billboardTextMaterial);
+                billboardText1.position.set(corner.x, 65, corner.z); // Centralizado verticalmente
+                billboardText1.lookAt(new THREE.Vector3(0, 65, 0));
+                scene.add(billboardText1);
+    
+                // Texto "Aqui" (linha inferior)
+                const billboardText2 = new THREE.Mesh(billboardTextGeometry2, billboardTextMaterial);
+                billboardText2.position.set(corner.x, 55, corner.z); // Ajustado para ficar abaixo de "Divulgue"
+                billboardText2.lookAt(new THREE.Vector3(0, 55, 0));
+                scene.add(billboardText2);
+    
+                // Postes de suporte
+                const pole1 = new THREE.Mesh(poleGeometry, poleMaterial);
+                pole1.position.set(corner.x - 60, 30, corner.z); // Poste à esquerda
+                scene.add(pole1);
+    
+                const pole2 = new THREE.Mesh(poleGeometry, poleMaterial);
+                pole2.position.set(corner.x + 60, 30, corner.z); // Poste à direita
+                scene.add(pole2);
+            });
         });
+    
+        // Adicionar arquibancadas nas quatro bordas formando um quadrado
+        const standDepth = 50;
+        const standHeight = 5;
+        const standWidth = mapSize;
+        const numTiers = 6;
+        const standGroup = new THREE.Group();
+    
+        // Arquibancadas Norte e Sul
+        for (let i = 0; i < numTiers; i++) {
+            const standGeometryNorthSouth = new THREE.BoxGeometry(standWidth, standHeight, standDepth);
+            const standMaterial = new THREE.MeshLambertMaterial({ color: 0xD3D3D3 });
+            const standNorth = new THREE.Mesh(standGeometryNorthSouth, standMaterial);
+            standNorth.position.set(0, standHeight * (i + 0.5), mapSize / 2 + standDepth * i + standDepth / 2);
+            standGroup.add(standNorth);
+    
+            const standSouth = standNorth.clone();
+            standSouth.position.set(0, standHeight * (i + 0.5), -mapSize / 2 - standDepth * i - standDepth / 2);
+            standGroup.add(standSouth);
+        }
+    
+        // Arquibancadas Leste e Oeste
+        for (let i = 0; i < numTiers; i++) {
+            const standGeometryEastWest = new THREE.BoxGeometry(standDepth, standHeight, standWidth);
+            const standMaterial = new THREE.MeshLambertMaterial({ color: 0xD3D3D3 });
+            const standEast = new THREE.Mesh(standGeometryEastWest, standMaterial);
+            standEast.position.set(mapSize / 2 + standDepth * i + standDepth / 2, standHeight * (i + 0.5), 0);
+            standGroup.add(standEast);
+    
+            const standWest = standEast.clone();
+            standWest.position.set(-mapSize / 2 - standDepth * i - standDepth / 2, standHeight * (i + 0.5), 0);
+            standGroup.add(standWest);
+        }
+        scene.add(standGroup);
+    
+        // Adicionar NPCs (torcedores) nas quatro bordas
+        const npcCount = 8000;
+        const npcGeometry = new THREE.SphereGeometry(7.5, 8, 8);
+        const npcMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff });
+        window.npcInstance = new THREE.InstancedMesh(npcGeometry, npcMaterial, npcCount);
+        const dummy = new THREE.Object3D();
+        window.positions = [];
+        const offsets = [];
+        const colors = [];
+    
+        // Definir cores específicas
+        const predefinedColors = [
+            [1, 0, 0], // Vermelho
+            [0, 1, 0], // Verde
+            [0, 0, 1], // Azul
+            [1, 1, 0], // Amarelo
+            [0, 0, 0], // Preto
+            [1, 1, 1], // Branco
+        ];
+    
+        // Distribuir NPCs igualmente entre as quatro bordas
+        const npcsPerSide = npcCount / 4; // 2000 NPCs por lado
+        const rowsPerSide = numTiers; // 6 fileiras por lado
+        const npcsPerRow = npcsPerSide / rowsPerSide; // 333.33 NPCs por fileira
+        const colsPerRow = 66;
+        const spacingX = standWidth / colsPerRow;
+        const spacingZ = standWidth / colsPerRow;
+    
+        // NPCs no Norte
+        let npcIndex = 0;
+        for (let i = 0; i < npcsPerSide; i++) {
+            const row = Math.floor(i / npcsPerRow);
+            const col = i % npcsPerRow;
+            const x = (col % colsPerRow) * spacingX - standWidth / 2 + spacingX / 2;
+            const z = mapSize / 2 + standDepth * row + standDepth / 2 + 2;
+            const y = standHeight * (row + 1) + 3;
+    
+            dummy.position.set(x, y, z);
+            dummy.updateMatrix();
+            window.npcInstance.setMatrixAt(npcIndex, dummy.matrix);
+    
+            window.positions.push(x, y, z);
+            offsets.push(Math.random() * Math.PI);
+    
+            const usePredefined = Math.random() > 0.5;
+            if (usePredefined) {
+                const colorIndex = Math.floor(Math.random() * predefinedColors.length);
+                colors.push(...predefinedColors[colorIndex], 1);
+            } else {
+                colors.push(Math.random(), Math.random(), Math.random(), 1);
+            }
+    
+            npcIndex++;
+        }
+    
+        // NPCs no Sul
+        for (let i = 0; i < npcsPerSide; i++) {
+            const row = Math.floor(i / npcsPerRow);
+            const col = i % npcsPerRow;
+            const x = (col % colsPerRow) * spacingX - standWidth / 2 + spacingX / 2;
+            const z = -mapSize / 2 - standDepth * row - standDepth / 2 - 2;
+            const y = standHeight * (row + 1) + 3;
+    
+            dummy.position.set(x, y, z);
+            dummy.updateMatrix();
+            window.npcInstance.setMatrixAt(npcIndex, dummy.matrix);
+    
+            window.positions.push(x, y, z);
+            offsets.push(Math.random() * Math.PI);
+    
+            const usePredefined = Math.random() > 0.5;
+            if (usePredefined) {
+                const colorIndex = Math.floor(Math.random() * predefinedColors.length);
+                colors.push(...predefinedColors[colorIndex], 1);
+            } else {
+                colors.push(Math.random(), Math.random(), Math.random(), 1);
+            }
+    
+            npcIndex++;
+        }
+    
+        // NPCs no Leste
+        for (let i = 0; i < npcsPerSide; i++) {
+            const row = Math.floor(i / npcsPerRow);
+            const col = i % npcsPerRow;
+            const x = mapSize / 2 + standDepth * row + standDepth / 2 + 2;
+            const z = (col % colsPerRow) * spacingZ - standWidth / 2 + spacingZ / 2;
+            const y = standHeight * (row + 1) + 3;
+    
+            dummy.position.set(x, y, z);
+            dummy.updateMatrix();
+            window.npcInstance.setMatrixAt(npcIndex, dummy.matrix);
+    
+            window.positions.push(x, y, z);
+            offsets.push(Math.random() * Math.PI);
+    
+            const usePredefined = Math.random() > 0.5;
+            if (usePredefined) {
+                const colorIndex = Math.floor(Math.random() * predefinedColors.length);
+                colors.push(...predefinedColors[colorIndex], 1);
+            } else {
+                colors.push(Math.random(), Math.random(), Math.random(), 1);
+            }
+    
+            npcIndex++;
+        }
+    
+        // NPCs no Oeste
+        for (let i = 0; i < npcsPerSide; i++) {
+            const row = Math.floor(i / npcsPerRow);
+            const col = i % npcsPerRow;
+            const x = -mapSize / 2 - standDepth * row - standDepth / 2 - 2;
+            const z = (col % colsPerRow) * spacingZ - standWidth / 2 + spacingZ / 2;
+            const y = standHeight * (row + 1) + 3;
+    
+            dummy.position.set(x, y, z);
+            dummy.updateMatrix();
+            window.npcInstance.setMatrixAt(npcIndex, dummy.matrix);
+    
+            window.positions.push(x, y, z);
+            offsets.push(Math.random() * Math.PI);
+    
+            const usePredefined = Math.random() > 0.5;
+            if (usePredefined) {
+                const colorIndex = Math.floor(Math.random() * predefinedColors.length);
+                colors.push(...predefinedColors[colorIndex], 1);
+            } else {
+                colors.push(Math.random(), Math.random(), Math.random(), 1);
+            }
+    
+            npcIndex++;
+        }
+    
+        window.npcInstance.geometry.setAttribute('color', new THREE.InstancedBufferAttribute(new Float32Array(colors), 4));
+        window.npcInstance.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(colors), 4);
+        window.npcInstance.instanceMatrix.needsUpdate = true;
+        scene.add(window.npcInstance);
+    
+        // Adicionar animação aos NPCs no animate
+        window.npcOffsets = offsets;
     }
 
     window.createBalloon = function(color, name) {
         console.log('Criando balão com cor:', color, 'e nome:', name);
         color = color || '#FF4500';
         const group = new THREE.Group();
-        const basketGeometry = new THREE.BoxGeometry(15, 12, 15);
-        const basketMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
-        const basket = new THREE.Mesh(basketGeometry, basketMaterial);
-        basket.position.y = -15;
-        group.add(basket);
 
-        const balloonGeometry = new THREE.SphereGeometry(30, 32, 32);
-        let balloonMaterial;
-        if (color === 'rainbow') {
-            balloonMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff, vertexColors: true });
-        } else {
-            balloonMaterial = new THREE.MeshLambertMaterial({ color });
-        }
-        const balloonMesh = new THREE.Mesh(balloonGeometry, balloonMaterial);
-        balloonMesh.scale.y = 1.2;
-        balloonMesh.position.y = 30;
-        if (color === 'rainbow') {
-            const colors = new Float32Array(balloonGeometry.attributes.position.count * 3);
-            for (let i = 0; i < balloonGeometry.attributes.position.count; i++) {
-                colors[i * 3] = Math.random();
-                colors[i * 3 + 1] = Math.random();
-                colors[i * 3 + 2] = Math.random();
+        const loader = new THREE.GLTFLoader();
+        loader.load(
+            '/js/balloon_new.glb',
+            (gltf) => {
+                const model = gltf.scene;
+                model.scale.set(4, 4, 4);
+                model.position.y = 0;
+
+                model.traverse((child) => {
+                    if (child.isMesh) {
+                        if (child.name === 'Balloon') {
+                            let balloonMaterial;
+                            if (color === 'rainbow') {
+                                balloonMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff, vertexColors: true });
+                                const geometry = child.geometry;
+                                const colors = new Float32Array(geometry.attributes.position.count * 3);
+                                for (let i = 0; i < geometry.attributes.position.count; i++) {
+                                    colors[i * 3] = Math.random();
+                                    colors[i * 3 + 1] = Math.random();
+                                    colors[i * 3 + 2] = Math.random();
+                                }
+                                geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+                            } else {
+                                balloonMaterial = new THREE.MeshLambertMaterial({ color: new THREE.Color(color) });
+                            }
+                            child.material = balloonMaterial;
+                            console.log('Material aplicado ao balão:', child.material);
+                        } else if (child.name === 'Basket') {
+                            child.material = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
+                        }
+                    }
+                });
+
+                group.add(model);
+            },
+            undefined,
+            (error) => {
+                console.error('Erro ao carregar o modelo GLB:', error);
             }
-            balloonGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-        }
-        group.add(balloonMesh);
+        );
 
-        const ropeMaterial = new THREE.LineBasicMaterial({ color: 0x000000 });
-        for (let i = 0; i < 4; i++) {
-            const x = (i % 2 === 0) ? -7.5 : 7.5;
-            const z = (i < 2) ? -7.5 : 7.5;
-            const ropeGeometry = new THREE.BufferGeometry().setFromPoints([
-                new THREE.Vector3(x, -10, z),
-                new THREE.Vector3(x, 30, z)
-            ]);
-            const rope = new THREE.Line(ropeGeometry, ropeMaterial);
-            group.add(rope);
-        }
-
-        const loader = new THREE.FontLoader();
-        loader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', function(font) {
+        const loaderFont = new THREE.FontLoader();
+        loaderFont.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', function(font) {
             const textGeometry = new THREE.TextGeometry(name || 'Jogador', {
                 font: font,
                 size: 7,
@@ -221,12 +515,12 @@ export function initGame() {
             });
             const textMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
             const textMesh = new THREE.Mesh(textGeometry, textMaterial);
-            textMesh.position.set(-15, 80, 0);
+            textMesh.position.set(-15, 100, 0);
             group.add(textMesh);
         });
 
         group.position.set(0, altitude, 0);
-        console.log('Balão criado:', group);
+        console.log('Balão criado com modelo GLB:', group);
         return group;
     };
 
@@ -292,7 +586,6 @@ export function initGame() {
         };
         const markerId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     
-        // Criar novo marcador e cauda
         const markerGeometry = new THREE.SphereGeometry(4.5, 16, 16);
         const markerMaterial = new THREE.MeshLambertMaterial({ color: 0x0000FF });
         const newMarker = new THREE.Mesh(markerGeometry, markerMaterial);
@@ -310,12 +603,10 @@ export function initGame() {
         newTail.userData = { markerId: markerId, playerId: window.socket.id };
         scene.add(newTail);
     
-        // Adicionar ao array de marcadores apenas se ainda não existir
         if (!window.markers.some(m => m.markerId === markerId)) {
             window.markers.push({ marker: newMarker, tail: newTail, markerId: markerId, playerId: window.socket.id });
         }
     
-        // Emitir evento para o backend apenas uma vez
         window.socket.emit('dropMarker', { 
             x: markerStartPos.x, 
             y: markerStartPos.y, 
@@ -332,8 +623,7 @@ export function initGame() {
             const marker = m.marker;
             const tail = m.tail;
             if (marker.position.y > 0) {
-                // Reduzir a velocidade de queda para um movimento mais suave
-                marker.position.y = Math.max(0, marker.position.y - 2.0); // Velocidade reduzida de 5.0 para 2.0
+                marker.position.y = Math.max(0, marker.position.y - 2.0);
                 tail.position.y = marker.position.y;
                 if (marker.position.y === 0) {
                     console.log(`Marcador atingiu o chão: ${m.markerId}, Posição: x=${marker.position.x}, y=${marker.position.y}, z=${marker.position.z}`);
@@ -419,7 +709,7 @@ export function initGame() {
         return "-";
     }
 
-    window.restartGame = function() {
+    window.restartGame = async function() {
         gameOver = false;
         hasLiftedOff = false;
         altitude = 100;
@@ -428,7 +718,11 @@ export function initGame() {
         points = 0;
         document.getElementById('loseScreen').style.display = 'none';
         document.getElementById('gameScreen').style.display = 'block';
-        if (window.balloon) scene.remove(window.balloon);
+        if (window.balloon && scene.children.includes(window.balloon)) {
+            scene.remove(window.balloon);
+            console.log('Balão anterior removido da cena:', window.balloon);
+        }
+        window.balloonColor = window.balloonColor || '#FF4500';
         window.balloon = window.createBalloon(window.balloonColor, document.getElementById('playerName').value);
         window.balloon.position.set(0, altitude, 0);
         scene.add(window.balloon);
@@ -437,18 +731,17 @@ export function initGame() {
         window.socket.emit('updatePosition', { x: window.balloon.position.x, y: window.balloon.position.y, z: window.balloon.position.z, mode: window.mode || 'world', roomName: window.roomName || null });
     };
 
-    // Suporte ao gamepad
     function handleGamepad() {
         const gamepads = navigator.getGamepads();
         const gamepad = gamepads[0];
         if (gamepad) {
             const buttons = gamepad.buttons;
-            if (buttons[0].pressed) keys.S = true; else if (!buttons[0].pressed && keys.S) keys.S = false; // X
+            if (buttons[0].pressed) keys.S = true; else if (!buttons[0].pressed && keys.S) keys.S = false;
             if (buttons[1].pressed && !window.markerDropped && window.markersLeft > 0) {
                 if (!keys.SHIFT_RIGHT) { dropMarker(); keys.SHIFT_RIGHT = true; }
-            } else if (!buttons[1].pressed) keys.SHIFT_RIGHT = false; // Círculo
-            if (buttons[2].pressed) keys.U = true; else if (!buttons[2].pressed && keys.U) keys.U = false; // Quadrado
-            if (buttons[3].pressed) keys.W = true; else if (!buttons[3].pressed && keys.W) keys.W = false; // Triângulo
+            } else if (!buttons[1].pressed) keys.SHIFT_RIGHT = false;
+            if (buttons[2].pressed) keys.U = true; else if (!buttons[2].pressed && keys.U) keys.U = false;
+            if (buttons[3].pressed) keys.W = true; else if (!buttons[3].pressed && keys.W) keys.W = false;
         }
     }
 
@@ -464,7 +757,7 @@ export function initGame() {
             document.getElementById('fpsCount').textContent = fps;
         }
 
-        handleGamepad(); // Verifica o estado do controle a cada frame
+        handleGamepad();
 
         if (window.balloon && !balloon) {
             balloon = window.balloon;
@@ -495,7 +788,6 @@ export function initGame() {
         balloon.position.x += currentLayer.direction.x * currentLayer.speed;
         balloon.position.z += currentLayer.direction.z * currentLayer.speed;
 
-
         balloon.rotation.y += 0.001;
 
         window.socket.emit('updatePosition', { x: balloon.position.x, y: balloon.position.y, z: balloon.position.z, mode: window.mode || 'world', roomName: window.roomName || null });
@@ -511,8 +803,32 @@ export function initGame() {
 
         updateLayerIndicator(currentLayerIndex);
 
-        // Atualizar marcadores
         updateMarkers();
+
+        // Animação dos NPCs (salto)
+        if (window.npcOffsets && window.positions && window.npcInstance) {
+            const time = performance.now() * 0.001;
+            const dummy = new THREE.Object3D();
+            for (let i = 0; i < 6000; i++) {
+                const offset = window.npcOffsets[i];
+                const yOffset = Math.sin(time + offset) * 2; // Salto de 2 unidades
+                dummy.position.set(window.positions[i * 3], window.positions[i * 3 + 1] + yOffset, window.positions[i * 3 + 2]);
+                dummy.updateMatrix();
+                window.npcInstance.setMatrixAt(i, dummy.matrix);
+            }
+            window.npcInstance.instanceMatrix.needsUpdate = true;
+        }
+
+        // Animação das bandeiras
+        if (window.flags) {
+            const time = performance.now() * 0.001;
+            window.flags.forEach(flag => {
+                if (flag.userData?.swing) {
+                    flag.userData.angle = Math.sin(time) * 0.2; // Balanço de ±0.2 radianos
+                    flag.rotation.z = flag.userData.angle;
+                }
+            });
+        }
 
         camera.position.x = balloon.position.x;
         camera.position.z = balloon.position.z + 200;
@@ -553,7 +869,6 @@ export function initGame() {
         renderer.render(scene, camera);
     }
 
-    // Função para atualizar pontos na UI
     window.updatePoints = function(newPoints) {
         points = newPoints;
         document.getElementById('points').textContent = points;
@@ -567,6 +882,10 @@ export function initGame() {
     window.gameEnded = gameEnded;
     window.setBalloon = (b) => {
         console.log('Definindo balão:', b);
+        if (window.balloon && scene.children.includes(window.balloon)) {
+            scene.remove(window.balloon);
+            console.log('Balão anterior removido da cena:', window.balloon);
+        }
         balloon = b;
         window.balloon = b;
         if (b && !scene.children.includes(b)) {
