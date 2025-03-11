@@ -18,16 +18,11 @@ export function initGame() {
     window.markers = [];
     let lastTargetMoveTime = Date.now();
     let gameEnded = false;
+    let lastLogTime = Date.now(); // Para controlar os logs a cada 10 segundos
+    let prevBalloonX = 0; // Para calcular o deslocamento
+    let prevBalloonZ = 0; // Para calcular o deslocamento
 
-    const windLayers = [
-        { minAlt: 0, maxAlt: 100, direction: { x: 0, z: 0 }, speed: 0, name: "Nenhum" },
-        { minAlt: 100, maxAlt: 200, direction: { x: 1, z: 0 }, speed: 0.3, name: "Leste" },
-        { minAlt: 200, maxAlt: 300, direction: { x: 0, z: 1 }, speed: 0.3, name: "Sul" },
-        { minAlt: 300, maxAlt: 400, direction: { x: -1, z: 0 }, speed: 0.4, name: "Oeste" },
-        { minAlt: 400, maxAlt: 500, direction: { x: 0, z: -1 }, speed: 0.5, name: "Norte" }
-    ];
-
-    const keys = { W: false, S: false, A: false, D: false, U: false, SHIFT_RIGHT: false };
+    const keys = { W: false, S: false, U: false, E: false }; // Alterado para E em vez de SHIFT_RIGHT
 
     const bestScoreElement = document.getElementById('bestScore');
     if (bestScoreElement) bestScoreElement.textContent = bestScore;
@@ -141,20 +136,33 @@ export function initGame() {
 
         if (isMobile) {
             const upButton = document.getElementById('upButton');
-            const turboButton = document.getElementById('turboButton');
             const downButton = document.getElementById('downButton');
+            const turboButton = document.getElementById('turboButton');
             const dropButton = document.getElementById('dropButton');
 
-            upButton.addEventListener('touchstart', (e) => { e.preventDefault(); keys.W = true; });
-            upButton.addEventListener('touchend', () => keys.W = false);
-            turboButton.addEventListener('touchstart', (e) => { e.preventDefault(); keys.U = true; });
-            turboButton.addEventListener('touchend', () => keys.U = false);
-            downButton.addEventListener('touchstart', (e) => { e.preventDefault(); keys.S = true; });
-            downButton.addEventListener('touchend', () => keys.S = false);
-            dropButton.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                if (!window.markerDropped && window.markersLeft > 0) dropMarker();
-            });
+            if (upButton) {
+                upButton.addEventListener('touchstart', (e) => { e.preventDefault(); keys.W = true; });
+                upButton.addEventListener('touchend', () => keys.W = false);
+            }
+
+            if (downButton) {
+                downButton.addEventListener('touchstart', (e) => { e.preventDefault(); keys.S = true; });
+                downButton.addEventListener('touchend', () => keys.S = false);
+            }
+
+            if (turboButton) {
+                turboButton.addEventListener('touchstart', (e) => { e.preventDefault(); keys.U = true; });
+                turboButton.addEventListener('touchend', () => keys.U = false);
+            }
+
+            if (dropButton) {
+                dropButton.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    if (!window.markerDropped && window.markersLeft > 0) {
+                        dropMarker();
+                    }
+                });
+            }
 
             [upButton, turboButton, downButton, dropButton].forEach(button => {
                 button.addEventListener('dblclick', (e) => e.preventDefault());
@@ -460,6 +468,73 @@ export function initGame() {
         window.npcOffsets = offsets;
     }
 
+    // Criar indicador de vento
+    function createWindIndicator() {
+        const windIndicatorGroup = new THREE.Group();
+        
+        // Base do indicador
+        const baseGeometry = new THREE.CylinderGeometry(5, 5, 2, 16);
+        const baseMaterial = new THREE.MeshLambertMaterial({ color: 0x888888 });
+        const base = new THREE.Mesh(baseGeometry, baseMaterial);
+        windIndicatorGroup.add(base);
+        
+        // Seta do indicador
+        const arrowGeometry = new THREE.ConeGeometry(3, 15, 16);
+        const arrowMaterial = new THREE.MeshLambertMaterial({ color: 0xFF0000 });
+        const arrow = new THREE.Mesh(arrowGeometry, arrowMaterial);
+        arrow.position.y = 10;
+        arrow.rotation.x = Math.PI / 2; // Apontar para frente inicialmente
+        windIndicatorGroup.add(arrow);
+        
+        // Adicionar ao balão
+        windIndicatorGroup.position.y = 20; // Posicionar acima do balão
+        
+        return { group: windIndicatorGroup, arrow: arrow };
+    }
+    
+    // Atualizar a direção do indicador de vento
+    function updateWindIndicator(windDirection, windSpeed) {
+        if (!window.windIndicator || !window.windIndicator.arrow) return;
+        
+        // Rotacionar a seta de acordo com a direção do vento
+        switch (windDirection) {
+            case 'Norte':
+                window.windIndicator.arrow.rotation.x = Math.PI / 2;
+                window.windIndicator.arrow.rotation.z = 0;
+                break;
+            case 'Sul':
+                window.windIndicator.arrow.rotation.x = -Math.PI / 2;
+                window.windIndicator.arrow.rotation.z = 0;
+                break;
+            case 'Leste':
+                window.windIndicator.arrow.rotation.x = 0;
+                window.windIndicator.arrow.rotation.z = -Math.PI / 2;
+                break;
+            case 'Oeste':
+                window.windIndicator.arrow.rotation.x = 0;
+                window.windIndicator.arrow.rotation.z = Math.PI / 2;
+                break;
+            default:
+                // Esconder a seta se não houver vento
+                window.windIndicator.arrow.visible = windDirection !== 'Nenhum';
+                break;
+        }
+        
+        // Ajustar a cor da seta com base na velocidade do vento
+        if (windSpeed !== undefined) {
+            window.windIndicator.arrow.material.color.setHex(getWindColorBySpeed(windSpeed));
+        }
+    }
+    
+    // Obter cor com base na velocidade do vento
+    function getWindColorBySpeed(speed) {
+        if (speed >= 4.0) return 0xFF0000; // Vermelho para vento forte
+        if (speed >= 3.0) return 0xFF6600; // Laranja para vento médio-forte
+        if (speed >= 2.0) return 0xFFCC00; // Amarelo para vento médio
+        if (speed >= 1.0) return 0x00CC00; // Verde para vento fraco
+        return 0x0000FF; // Azul para vento muito fraco
+    }
+
     window.createBalloon = function(color, name) {
         console.log('Criando balão com cor:', color, 'e nome:', name);
         color = color || '#FF4500';
@@ -521,6 +596,11 @@ export function initGame() {
 
         group.position.set(0, altitude, 0);
         console.log('Balão criado com modelo GLB:', group);
+
+        // Adicionar indicador de vento ao balão
+        window.windIndicator = createWindIndicator();
+        group.add(window.windIndicator.group);
+
         return group;
     };
 
@@ -546,31 +626,18 @@ export function initGame() {
     };
 
     function handleKeyDown(event) {
-        if (!gameStarted || gameOver) return;
-        console.log('Tecla pressionada:', event.code, 'markerDropped:', window.markerDropped, 'markersLeft:', window.markersLeft);
-        switch(event.code) {
-            case 'KeyW': keys.W = true; break;
-            case 'KeyS': keys.S = true; break;
-            case 'KeyA': keys.A = true; break;
-            case 'KeyD': keys.D = true; break;
-            case 'KeyU': keys.U = true; break;
-            case 'ShiftRight': 
-                if (!window.markerDropped && window.markersLeft > 0) {
-                    console.log('ShiftRight detectado, soltando marcador');
-                    dropMarker();
-                }
-                break;
+        if (event.key === 'w' || event.key === 'W') keys.W = true;
+        if (event.key === 's' || event.key === 'S') keys.S = true;
+        if (event.key === 'u' || event.key === 'U') keys.U = true;
+        if (event.key === 'e' || event.key === 'E' && !window.markerDropped && window.markersLeft > 0) {
+            dropMarker();
         }
     }
 
     function handleKeyUp(event) {
-        switch(event.code) {
-            case 'KeyW': keys.W = false; break;
-            case 'KeyS': keys.S = false; break;
-            case 'KeyA': keys.A = false; break;
-            case 'KeyD': keys.D = false; break;
-            case 'KeyU': keys.U = false; break;
-        }
+        if (event.key === 'w' || event.key === 'W') keys.W = false;
+        if (event.key === 's' || event.key === 'S') keys.S = false;
+        if (event.key === 'u' || event.key === 'U') keys.U = false;
     }
 
     function dropMarker() {
@@ -671,27 +738,6 @@ export function initGame() {
         setTimeout(() => message.remove(), 3000);
     }
 
-    function getCurrentWindLayer() {
-        for (let i = 0; i < windLayers.length; i++) {
-            if (altitude >= windLayers[i].minAlt && altitude < windLayers[i].maxAlt) {
-                return i;
-            }
-        }
-        return 0;
-    }
-
-    function getWindDirectionText(layerIndex) {
-        return windLayers[layerIndex].name;
-    }
-
-    function updateLayerIndicator(currentLayer) {
-        for (let i = 1; i <= 5; i++) {
-            const element = document.getElementById(`layer${i}`);
-            if (i === currentLayer + 1) element.classList.add('active');
-            else element.classList.remove('active');
-        }
-    }
-
     function onWindowResize() {
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
@@ -733,15 +779,30 @@ export function initGame() {
 
     function handleGamepad() {
         const gamepads = navigator.getGamepads();
-        const gamepad = gamepads[0];
-        if (gamepad) {
-            const buttons = gamepad.buttons;
-            if (buttons[0].pressed) keys.S = true; else if (!buttons[0].pressed && keys.S) keys.S = false;
-            if (buttons[1].pressed && !window.markerDropped && window.markersLeft > 0) {
-                if (!keys.SHIFT_RIGHT) { dropMarker(); keys.SHIFT_RIGHT = true; }
-            } else if (!buttons[1].pressed) keys.SHIFT_RIGHT = false;
-            if (buttons[2].pressed) keys.U = true; else if (!buttons[2].pressed && keys.U) keys.U = false;
-            if (buttons[3].pressed) keys.W = true; else if (!buttons[3].pressed && keys.W) keys.W = false;
+        if (gamepads && gamepads[0]) {
+            const gamepad = gamepads[0];
+            const leftStickY = gamepad.axes[1];
+            
+            if (leftStickY < -0.2) {
+                keys.W = true;
+            } else if (leftStickY > 0.2) {
+                keys.S = true;
+            } else {
+                keys.W = false;
+                keys.S = false;
+            }
+            
+            // Botão para turbo (U)
+            if (gamepad.buttons[1].pressed) {
+                keys.U = true;
+            } else {
+                keys.U = false;
+            }
+            
+            // Botão para soltar marcador (E)
+            if (gamepad.buttons[0].pressed && !window.markerDropped && window.markersLeft > 0) {
+                dropMarker();
+            }
         }
     }
 
@@ -773,6 +834,11 @@ export function initGame() {
             return;
         }
 
+        // Armazenar a posição anterior para calcular o deslocamento
+        prevBalloonX = balloon.position.x;
+        prevBalloonZ = balloon.position.z;
+
+        // Movimento vertical controlado pelo frontend
         if (keys.W) { altitude += 1; hasLiftedOff = true; }
         if (keys.U) { altitude += 5; hasLiftedOff = true; }
         if (keys.S) altitude = Math.max(20, altitude - 1);
@@ -782,26 +848,67 @@ export function initGame() {
         altitude = Math.min(altitude, 500);
         balloon.position.y = altitude;
 
-        const currentLayerIndex = getCurrentWindLayer();
-        const currentLayer = windLayers[currentLayerIndex];
+        // Não aplicamos mais o movimento horizontal aqui, isso é feito no backend
+        // Apenas atualizamos a posição do balão com base nas informações do backend
+        const player = window.socket.id ? (window.mode === 'world' ? window.worldState?.players[window.socket.id] : window.roomState?.players[window.socket.id]) : null;
+        if (player) {
+            balloon.position.x = player.x;
+            balloon.position.z = player.z;
+        }
 
-        balloon.position.x += currentLayer.direction.x * currentLayer.speed;
-        balloon.position.z += currentLayer.direction.z * currentLayer.speed;
+        // Calcular o deslocamento
+        const deltaX = balloon.position.x - prevBalloonX;
+        const deltaZ = balloon.position.z - prevBalloonZ;
 
         balloon.rotation.y += 0.001;
 
-        window.socket.emit('updatePosition', { x: balloon.position.x, y: balloon.position.y, z: balloon.position.z, mode: window.mode || 'world', roomName: window.roomName || null });
+        // Enviar apenas a altitude para o backend
+        window.socket.emit('updatePosition', { 
+            y: altitude, 
+            mode: window.mode || 'world', 
+            roomName: window.roomName || null,
+            keys: {
+                W: keys.W,
+                S: keys.S,
+                U: keys.U
+            }
+        });
+
+        // Logs a cada 10 segundos para verificar o movimento horizontal
+        if (Date.now() - lastLogTime > 10000) {
+            console.log("\n[FRONTEND LOG] ===== POSIÇÃO DO BALÃO E INFORMAÇÕES DE VENTO =====");
+            console.log(`[FRONTEND LOG] Posição do balão: x=${balloon.position.x.toFixed(2)}, y=${balloon.position.y.toFixed(2)}, z=${balloon.position.z.toFixed(2)}`);
+            console.log(`[FRONTEND LOG] Vento atual: ${player?.windDirection || 'Desconhecido'} (${player?.windSpeed || 0} m/s)`);
+            console.log(`[FRONTEND LOG] Deslocamento: dx=${deltaX.toFixed(2)}, dz=${deltaZ.toFixed(2)}`);
+            console.log("[FRONTEND LOG] ========================================================\n");
+            lastLogTime = Date.now();
+        }
 
         document.getElementById('altitude').textContent = `${Math.floor(altitude)}m`;
         const dx = balloon.position.x - (window.targets[0]?.x || 0);
         const dz = balloon.position.z - (window.targets[0]?.z || 0);
         const distance = Math.sqrt(dx * dx + dz * dz);
         document.getElementById('distanceToTarget').textContent = `${Math.floor(distance)}m`;
-        document.getElementById('windDirection').textContent = getWindDirectionText(currentLayerIndex);
-        document.getElementById('windSpeed').textContent = currentLayer.speed.toFixed(1);
-        document.getElementById('windIndicator').textContent = `Vento: ${currentLayer.name.charAt(0)}`;
-
-        updateLayerIndicator(currentLayerIndex);
+        
+        // Usar as informações de vento do backend
+        if (player) {
+            document.getElementById('windDirection').textContent = player.windDirection || "Nenhum";
+            document.getElementById('windSpeed').textContent = (player.windSpeed || 0).toFixed(1);
+            document.getElementById('windIndicator').textContent = `Vento: ${player.windDirection ? player.windDirection.charAt(0) : "-"}`;
+            
+            // Atualizar o indicador de camada
+            const currentLayer = player.currentWindLayer !== undefined ? player.currentWindLayer : 0;
+            for (let i = 1; i <= 5; i++) {
+                const element = document.getElementById(`layer${i}`);
+                if (element) {
+                    if (i === currentLayer + 1) element.classList.add('active');
+                    else element.classList.remove('active');
+                }
+            }
+            
+            // Atualizar o indicador visual de vento
+            updateWindIndicator(player.windDirection, player.windSpeed);
+        }
 
         updateMarkers();
 
@@ -898,4 +1005,37 @@ export function initGame() {
     window.setMarkers = (m) => window.markers = m;
     window.showNoMarkersMessage = showNoMarkersMessage;
     window.scene = scene;
+
+    // Função para inicializar o estado do jogo
+    window.initGameState = function(state) {
+        if (!state) return;
+        
+        // Verificar se o jogador atual existe no estado
+        if (window.socket && state.players && state.players[window.socket.id]) {
+            const player = state.players[window.socket.id];
+            
+            // Atualizar informações de vento na UI
+            if (player.windDirection) {
+                document.getElementById('windDirection').textContent = player.windDirection;
+            }
+            if (player.windSpeed !== undefined) {
+                document.getElementById('windSpeed').textContent = player.windSpeed.toFixed(1);
+            }
+            if (player.windDirection) {
+                document.getElementById('windIndicator').textContent = `Vento: ${player.windDirection.charAt(0)}`;
+            }
+            
+            // Atualizar o indicador de camada
+            if (player.currentWindLayer !== undefined) {
+                const currentLayer = player.currentWindLayer;
+                for (let i = 1; i <= 5; i++) {
+                    const element = document.getElementById(`layer${i}`);
+                    if (element) {
+                        if (i === currentLayer + 1) element.classList.add('active');
+                        else element.classList.remove('active');
+                    }
+                }
+            }
+        }
+    };
 }

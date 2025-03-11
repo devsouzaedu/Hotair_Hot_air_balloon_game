@@ -44,6 +44,10 @@ export function initSocket() {
     window.otherPlayers = window.otherPlayers || {};
     window.balloonColor = window.balloonColor || '#FF4500';
     window.markersLeft = 5;
+    
+    // Armazenar o estado do jogo recebido do backend
+    window.worldState = null;
+    window.roomState = null;
 
     // Evento de conexão
     socket.on('connect', () => {
@@ -114,6 +118,9 @@ export function initSocket() {
     // Evento de início do jogo
     socket.on('startGame', ({ state }) => {
         console.log('startGame recebido:', state);
+        // Armazenar o estado da sala
+        window.roomState = state;
+        
         document.getElementById('lobbyScreen').style.display = 'none';
         document.getElementById('gameScreen').style.display = 'block';
         document.getElementById('countdown').textContent = '';
@@ -150,11 +157,19 @@ export function initSocket() {
             }
         }
         window.gameStarted();
+        
+        // Inicializar o estado do jogo
+        if (typeof window.initGameState === 'function') {
+            window.initGameState(state);
+        }
     });
 
     // Evento de estado do jogo
     socket.on('gameState', ({ mode: gameMode, state }) => {
         console.log('gameState recebido:', state);
+        // Armazenar o estado do mundo
+        window.worldState = state;
+        
         if (gameMode === 'world') {
             console.log('Modo world detectado, exibindo banner');
             document.getElementById('colorScreen').style.display = 'none';
@@ -194,11 +209,28 @@ export function initSocket() {
                 }
             }
             window.gameStarted();
+            
+            // Inicializar o estado do jogo
+            if (typeof window.initGameState === 'function') {
+                window.initGameState(state);
+            }
         }
     });
 
     // Evento de atualização do jogo
     socket.on('gameUpdate', ({ state, timeLeft }) => {
+        // Armazenar o estado do jogo
+        if (window.mode === 'world') {
+            window.worldState = state;
+        } else {
+            window.roomState = state;
+        }
+        
+        // Inicializar o estado do jogo
+        if (typeof window.initGameState === 'function') {
+            window.initGameState(state);
+        }
+        
         const currentState = window.mode === 'world' ? state : state;
         if (state.targets && Array.isArray(state.targets) && 
             (!window.targets.length || state.targets[0].x !== window.targets[0]?.x || state.targets[0].z !== window.targets[0]?.z)) {
@@ -410,6 +442,14 @@ export function initSocket() {
     // Evento de reset do jogo
     socket.on('gameReset', ({ state }) => {
         console.log('gameReset recebido:', state);
+        
+        // Atualizar o estado armazenado
+        if (window.mode === 'world') {
+            window.worldState = state;
+        } else {
+            window.roomState = state;
+        }
+        
         document.getElementById('leaderboardScreen').style.display = 'none';
         document.getElementById('loseScreen').style.display = 'none';
         document.getElementById('gameScreen').style.display = 'block';
@@ -449,9 +489,13 @@ export function initSocket() {
         }
 
         window.markersLeft = 5;
-        document.getElementById('points').textContent = '0';
         document.getElementById('markersLeft').textContent = window.markersLeft;
-        window.gameStarted();
+        document.getElementById('points').textContent = '0';
+        
+        // Inicializar o estado do jogo
+        if (typeof window.initGameState === 'function') {
+            window.initGameState(state);
+        }
     });
 
     // Função para resetar o estado do jogo
