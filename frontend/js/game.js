@@ -645,64 +645,15 @@ export function initGame() {
                                     balloonMaterial = new THREE.MeshLambertMaterial({ color: color });
                                 }
                             } else if (color === 'rainbow') {
-                                // Tentar vários caminhos possíveis para a textura
-                                const possiblePaths = [
-                                    `${BASE_PATH}/rainbow_flag_texture.jpg`,
-                                    `/rainbow_flag_texture.jpg`,
-                                    `./rainbow_flag_texture.jpg`,
-                                    `../rainbow_flag_texture.jpg`,
-                                    `/js/rainbow_flag_texture.jpg`,
-                                    `${BASE_PATH}/js/rainbow_flag_texture.jpg`
-                                ];
-                                
-                                console.log(`Tentando carregar textura rainbow. Caminhos possíveis:`, possiblePaths);
-                                const textureLoader = new THREE.TextureLoader();
-                                textureLoader.setCrossOrigin('anonymous');
-                                
-                                // Função para tentar o próximo caminho
-                                function tryNextPath(index) {
-                                    if (index >= possiblePaths.length) {
-                                        console.error('Todos os caminhos para a textura rainbow falharam. Usando fallback.');
-                                        // Fallback para cor simples
-                                        balloonMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff });
-                                        return;
-                                    }
-                                    
-                                    const path = possiblePaths[index];
-                                    console.log(`Tentando carregar textura rainbow do caminho: ${path}`);
-                                    
-                                    textureLoader.load(
-                                        path,
-                                        // Sucesso
-                                        function(loadedTexture) {
-                                            console.log(`Textura rainbow carregada com sucesso do caminho: ${path}`);
-                                            balloonMaterial = new THREE.MeshLambertMaterial({ map: loadedTexture });
-                                            
-                                            // Se o balão já foi criado, atualizar o material
-                                            if (balloon) {
-                                                balloon.material = balloonMaterial;
-                                            }
-                                        },
-                                        // Progresso
-                                        function(xhr) {
-                                            if (xhr.total) {
-                                                console.log(`Progresso de carregamento da textura rainbow (${path}): ${(xhr.loaded / xhr.total * 100).toFixed(2)}%`);
-                                            }
-                                        },
-                                        // Erro
-                                        function(error) {
-                                            console.error(`Erro ao carregar textura rainbow do caminho ${path}:`, error);
-                                            // Tentar o próximo caminho
-                                            tryNextPath(index + 1);
-                                        }
-                                    );
+                                balloonMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff, vertexColors: true });
+                                const geometry = child.geometry;
+                                const colors = new Float32Array(geometry.attributes.position.count * 3);
+                                for (let i = 0; i < geometry.attributes.position.count; i++) {
+                                    colors[i * 3] = Math.random();
+                                    colors[i * 3 + 1] = Math.random();
+                                    colors[i * 3 + 2] = Math.random();
                                 }
-                                
-                                // Iniciar tentativas com o primeiro caminho
-                                tryNextPath(0);
-                                
-                                // Criar um material temporário enquanto a textura carrega
-                                balloonMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff });
+                                geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
                             } else {
                                 balloonMaterial = new THREE.MeshLambertMaterial({ color: color });
                             }
@@ -716,7 +667,9 @@ export function initGame() {
                 // Adiciona o nome do jogador
                 if (name) {
                     // Criar o billboard com o nome do jogador
-                    createPlayerNameBillboard(name, group);
+                    setTimeout(() => {
+                        createPlayerNameBillboard(name, group);
+                    }, 100); // Pequeno atraso para garantir que o grupo esteja pronto
                 }
                 
                 // Adicionar indicador de vento ao balão
@@ -784,64 +737,15 @@ export function initGame() {
                     }
                 } else {
                     if (color === 'rainbow') {
-                        // Tentar vários caminhos possíveis para a textura
-                        const possiblePaths = [
-                            `${BASE_PATH}/rainbow_flag_texture.jpg`,
-                            `/rainbow_flag_texture.jpg`,
-                            `./rainbow_flag_texture.jpg`,
-                            `../rainbow_flag_texture.jpg`,
-                            `/js/rainbow_flag_texture.jpg`,
-                            `${BASE_PATH}/js/rainbow_flag_texture.jpg`
-                        ];
-                        
-                        console.log(`Tentando carregar textura rainbow. Caminhos possíveis:`, possiblePaths);
-                        const textureLoader = new THREE.TextureLoader();
-                        textureLoader.setCrossOrigin('anonymous');
-                        
-                        // Função para tentar o próximo caminho
-                        function tryNextPath(index) {
-                            if (index >= possiblePaths.length) {
-                                console.error('Todos os caminhos para a textura rainbow falharam. Usando fallback.');
-                                // Fallback para cor simples
-                                balloonMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff });
-                                return;
-                            }
-                            
-                            const path = possiblePaths[index];
-                            console.log(`Tentando carregar textura rainbow do caminho: ${path}`);
-                            
-                            textureLoader.load(
-                                path,
-                                // Sucesso
-                                function(loadedTexture) {
-                                    console.log(`Textura rainbow carregada com sucesso do caminho: ${path}`);
-                                    balloonMaterial = new THREE.MeshLambertMaterial({ map: loadedTexture });
-                                    
-                                    // Se o balão já foi criado, atualizar o material
-                                    if (balloon) {
-                                        balloon.material = balloonMaterial;
-                                    }
-                                },
-                                // Progresso
-                                function(xhr) {
-                                    if (xhr.total) {
-                                        console.log(`Progresso de carregamento da textura rainbow (${path}): ${(xhr.loaded / xhr.total * 100).toFixed(2)}%`);
-                                    }
-                                },
-                                // Erro
-                                function(error) {
-                                    console.error(`Erro ao carregar textura rainbow do caminho ${path}:`, error);
-                                    // Tentar o próximo caminho
-                                    tryNextPath(index + 1);
-                                }
-                            );
+                        balloonMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff, vertexColors: true });
+                        const geometry = child.geometry;
+                        const colors = new Float32Array(geometry.attributes.position.count * 3);
+                        for (let i = 0; i < geometry.attributes.position.count; i++) {
+                            colors[i * 3] = Math.random();
+                            colors[i * 3 + 1] = Math.random();
+                            colors[i * 3 + 2] = Math.random();
                         }
-                        
-                        // Iniciar tentativas com o primeiro caminho
-                        tryNextPath(0);
-                        
-                        // Criar um material temporário enquanto a textura carrega
-                        balloonMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff });
+                        geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
                     } else {
                         balloonMaterial = new THREE.MeshLambertMaterial({ color: color });
                     }
@@ -881,7 +785,9 @@ export function initGame() {
                 // Adiciona o nome do jogador
                 if (name) {
                     // Criar o billboard com o nome do jogador
-                    createPlayerNameBillboard(name, group);
+                    setTimeout(() => {
+                        createPlayerNameBillboard(name, group);
+                    }, 100); // Pequeno atraso para garantir que o grupo esteja pronto
                 }
                 
                 // Adicionar indicador de vento ao balão
@@ -1235,7 +1141,7 @@ export function initGame() {
                     // Adicionar um pequeno movimento para cima e para baixo
                     const time = performance.now() * 0.001;
                     const floatOffset = Math.sin(time) * 1; // Movimento suave de 1 unidade
-                    child.position.y = 40 + floatOffset;
+                    child.position.y = 80 + floatOffset;
                 }
             });
         }
@@ -1258,7 +1164,7 @@ export function initGame() {
                         // Adicionar um pequeno movimento para cima e para baixo
                         const time = performance.now() * 0.001;
                         const floatOffset = Math.sin(time + parseInt(id, 36) % 10) * 1; // Movimento suave de 1 unidade com offset baseado no ID
-                        child.position.y = 40 + floatOffset;
+                        child.position.y = 80 + floatOffset;
                     }
                 });
             }
@@ -1332,66 +1238,77 @@ export function initGame() {
     }
 
     // Função para criar um billboard com o nome do jogador
-    function createPlayerNameBillboard(name, parent, position = { x: 0, y: 40, z: 0 }) {
+    function createPlayerNameBillboard(name, parent, position = { x: 0, y: 80, z: 0 }) {
         // Verificar se o parent existe
         if (!parent) {
             console.error('Erro: parent não definido ao criar billboard para', name);
             return null;
         }
         
-        // Remover qualquer nome existente
-        parent.traverse((child) => {
-            if (child.userData && child.userData.isPlayerName) {
-                parent.remove(child);
-            }
-        });
-        
-        // Criar o texto do nome com canvas para melhor visibilidade
-        const canvas = document.createElement('canvas');
-        canvas.width = 512;
-        canvas.height = 128;
-        const context = canvas.getContext('2d');
-        
-        // Fundo transparente
-        context.clearRect(0, 0, canvas.width, canvas.height);
-        
-        // Desenhar o texto em preto
-        context.font = 'bold 64px Helvetica, Arial, sans-serif';
-        context.fillStyle = '#000000';
-        context.textAlign = 'center';
-        context.textBaseline = 'middle';
-        context.fillText(name, canvas.width / 2, canvas.height / 2);
-        
-        // Criar a textura e o material
-        const texture = new THREE.CanvasTexture(canvas);
-        const material = new THREE.MeshBasicMaterial({ 
-            map: texture, 
-            transparent: true,
-            depthTest: false,  // Garantir que o nome seja sempre visível
-            side: THREE.DoubleSide // Visível de ambos os lados
-        });
-        
-        // Criar a geometria e a malha
-        const geometry = new THREE.PlaneGeometry(40, 10);
-        const nameMesh = new THREE.Mesh(geometry, material);
-        nameMesh.position.set(position.x, position.y, position.z);
-        nameMesh.userData = { 
-            isPlayerName: true, 
-            isFixed: true,
-            name: name
-        };
-        
-        // Adicionar ao pai
-        parent.add(nameMesh);
-        
-        // Fazer o nome olhar para a câmera
-        if (window.camera) {
-            nameMesh.lookAt(window.camera.position);
+        // Verificar se o nome existe
+        if (!name) {
+            console.warn('Nome não fornecido ao criar billboard');
+            name = 'Jogador';
         }
         
-        console.log(`Billboard com nome "${name}" criado e adicionado na posição y=${position.y}`);
-        
-        return nameMesh;
+        try {
+            // Remover qualquer nome existente
+            parent.traverse((child) => {
+                if (child.userData && child.userData.isPlayerName) {
+                    parent.remove(child);
+                }
+            });
+            
+            // Criar o texto do nome com canvas para melhor visibilidade
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 128;
+            const context = canvas.getContext('2d');
+            
+            // Fundo transparente
+            context.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Desenhar o texto em preto
+            context.font = 'bold 64px Helvetica, Arial, sans-serif';
+            context.fillStyle = '#000000';
+            context.textAlign = 'center';
+            context.textBaseline = 'middle';
+            context.fillText(name, canvas.width / 2, canvas.height / 2);
+            
+            // Criar a textura e o material
+            const texture = new THREE.CanvasTexture(canvas);
+            const material = new THREE.MeshBasicMaterial({ 
+                map: texture, 
+                transparent: true,
+                depthTest: false,  // Garantir que o nome seja sempre visível
+                side: THREE.DoubleSide // Visível de ambos os lados
+            });
+            
+            // Criar a geometria e a malha
+            const geometry = new THREE.PlaneGeometry(40, 10);
+            const nameMesh = new THREE.Mesh(geometry, material);
+            nameMesh.position.set(position.x, position.y, position.z);
+            nameMesh.userData = { 
+                isPlayerName: true, 
+                isFixed: true,
+                name: name
+            };
+            
+            // Adicionar ao pai
+            parent.add(nameMesh);
+            
+            // Fazer o nome olhar para a câmera
+            if (window.camera) {
+                nameMesh.lookAt(window.camera.position);
+            }
+            
+            console.log(`Billboard com nome "${name}" criado e adicionado na posição y=${position.y}`);
+            
+            return nameMesh;
+        } catch (error) {
+            console.error('Erro ao criar billboard para', name, error);
+            return null;
+        }
     }
     
     // Expor a função globalmente
@@ -1412,7 +1329,7 @@ export function initGame() {
             
             if (!hasNameBillboard) {
                 const playerName = localStorage.getItem('playerName') || 'Jogador';
-                createPlayerNameBillboard(playerName, balloon, { x: 0, y: 40, z: 0 });
+                createPlayerNameBillboard(playerName, balloon, { x: 0, y: 80, z: 0 });
             }
         }
         
@@ -1431,7 +1348,7 @@ export function initGame() {
                 if (!hasNameBillboard) {
                     const player = window.worldState?.players[id] || window.roomState?.players[id];
                     if (player && player.name) {
-                        createPlayerNameBillboard(player.name, window.otherPlayers[id], { x: 0, y: 40, z: 0 });
+                        createPlayerNameBillboard(player.name, window.otherPlayers[id], { x: 0, y: 80, z: 0 });
                     }
                 }
             }
