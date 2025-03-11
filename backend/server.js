@@ -287,9 +287,9 @@ function addBots() {
     // Novos bots com nomes de pilotos internacionais
     const botPilots = [
         { id: 'nick-jonner', name: 'Nick Jonner', country: 'USA', color: '#0000FF', skill: 0.75, patience: 7, dropAccuracy: 0.7 },
-        { id: 'flavio-bracos', name: 'Flávio Braços', country: 'BRA', color: '#00FF00', skill: 0.8, patience: 5, dropAccuracy: 0.75 },
-        { id: 'uve-nielster', name: 'Uve Nielster', country: 'GER', color: '#FFCC00', skill: 0.85, patience: 4, dropAccuracy: 0.8 },
-        { id: 'yasuo-fujita', name: 'Yasuo Fujita', country: 'JPN', color: '#FF0000', skill: 0.95, patience: 3, dropAccuracy: 0.9 }
+        { id: 'flavio-bracos', name: 'Flavio Bracos', country: 'BRA', color: '#00FF00', skill: 0.8, patience: 7, dropAccuracy: 0.75 },
+        { id: 'uve-nielster', name: 'Uve Nielster', country: 'GER', color: '#FFCC00', skill: 0.85, patience: 7, dropAccuracy: 0.8 },
+        { id: 'yasuo-fujita', name: 'Yasuo Fujita', country: 'JPN', color: '#FF0000', skill: 0.9, patience: 7, dropAccuracy: 0.9 }
     ];
     
     // Obter a posição do alvo atual para spawnar próximo

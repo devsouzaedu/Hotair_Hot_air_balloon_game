@@ -11,8 +11,13 @@ export function initSocket() {
         console.error('Nenhum token JWT encontrado no localStorage');
     }
 
+    // Define a URL do backend baseada no ambiente
+    const backendUrl = window.location.hostname === 'localhost' 
+        ? 'http://localhost:3000' 
+        : 'https://hotair-backend.onrender.com';
+
     // Inicializa o socket com o token
-    window.socket = io('http://localhost:3000', {
+    window.socket = io(backendUrl, {
         auth: {
             token: token // Envia o token no handshake
         }
@@ -52,11 +57,6 @@ export function initSocket() {
     // Evento de conexão
     socket.on('connect', () => {
         console.log('Conectado ao backend via Socket.IO');
-    });
-
-    // Evento de erro de conexão
-    socket.on('connect_error', (err) => {
-        console.error('Erro de conexão com o backend:', err.message);
     });
 
     // Evento de sala criada

@@ -175,18 +175,16 @@ export function initGame() {
 
     function createGround() {
         const mapSize = 2600;
-        const groundGeometry = new THREE.PlaneGeometry(mapSize, mapSize, 50, 50);
-        const groundMaterial = new THREE.MeshLambertMaterial({ color: 0x7CFC00 });
+        const groundGeometry = new THREE.PlaneGeometry(mapSize, mapSize, 1, 1);
+        const groundMaterial = new THREE.MeshLambertMaterial({ 
+            color: 0x7CFC00,
+            wireframe: false, // Garante que não haja linhas na geometria do chão
+            flatShading: false // Desativa o sombreamento plano que pode criar linhas visíveis
+        });
         const ground = new THREE.Mesh(groundGeometry, groundMaterial);
         ground.rotation.x = -Math.PI / 2;
         ground.position.y = 0;
         scene.add(ground);
-    
-        const gridHelper = new THREE.GridHelper(mapSize, 26, 0x000000, 0x000000);
-        gridHelper.position.y = 0.1;
-        gridHelper.material.opacity = 0.2;
-        gridHelper.material.transparent = true;
-        scene.add(gridHelper);
     
         for (let i = 0; i < 30; i++) {
             const houseGeometry = new THREE.BoxGeometry(15, 15, 15);
@@ -202,17 +200,6 @@ export function initGame() {
             const cow = new THREE.Mesh(cowGeometry, cowMaterial);
             cow.position.set(Math.random() * mapSize - mapSize / 2, 2.25, Math.random() * mapSize - mapSize / 2);
             scene.add(cow);
-        }
-    
-        const roadMaterial = new THREE.LineBasicMaterial({ color: 0x808080 });
-        for (let i = 0; i < 15; i++) {
-            const roadGeometry = new THREE.BufferGeometry().setFromPoints([
-                new THREE.Vector3(Math.random() * mapSize - mapSize / 2, 0.2, Math.random() * mapSize - mapSize / 2),
-                new THREE.Vector3(Math.random() * mapSize - mapSize / 2, 0.2, Math.random() * mapSize - mapSize / 2)
-            ]);
-            const road = new THREE.Line(roadGeometry, roadMaterial);
-            road.scale.set(1.5, 1, 1.5);
-            scene.add(road);
         }
     
         for (let i = 0; i < 10; i++) {
