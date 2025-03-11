@@ -182,6 +182,11 @@ export function initSocket() {
                 console.log('Adicionando balão à cena:', window.balloon);
                 window.balloon.position.set(0, 100, 0);
                 window.scene.add(window.balloon);
+                
+                // Garantir que o nome do jogador seja adicionado
+                if (typeof window.createPlayerNameBillboard === 'function') {
+                    window.createPlayerNameBillboard(playerName, window.balloon);
+                }
             } else {
                 console.error('Falha ao criar balão do jogador');
             }
@@ -234,6 +239,11 @@ export function initSocket() {
                     console.log('Adicionando balão à cena via gameState:', window.balloon);
                     window.balloon.position.set(0, 100, 0);
                     window.scene.add(window.balloon);
+                    
+                    // Garantir que o nome do jogador seja adicionado
+                    if (typeof window.createPlayerNameBillboard === 'function') {
+                        window.createPlayerNameBillboard(playerName, window.balloon);
+                    }
                 } else {
                     console.error('Falha ao criar balão do jogador em gameState');
                 }

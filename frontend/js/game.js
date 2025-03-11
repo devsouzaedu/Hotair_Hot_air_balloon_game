@@ -529,6 +529,34 @@ export function initGame() {
         color = color || '#FF4500';
         const group = new THREE.Group();
 
+        // Adicionar um objeto temporário para o nome enquanto o modelo carrega
+        if (name) {
+            const tempNameGeometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
+            const tempNameMaterial = new THREE.MeshBasicMaterial({ color: 0xFFFFFF, visible: false });
+            const tempNameMesh = new THREE.Mesh(tempNameGeometry, tempNameMaterial);
+            tempNameMesh.position.set(0, 50, 0);
+            tempNameMesh.userData = { isPlayerName: true, tempName: true };
+            group.add(tempNameMesh);
+            
+            // Criar o texto do nome diretamente com TextGeometry como backup
+            const loaderFont = new THREE.FontLoader();
+            loaderFont.load('https://threejs.org/examples/fonts/helvetiker_bold.typeface.json', function(font) {
+                const textGeometry = new THREE.TextGeometry(name, {
+                    font: font,
+                    size: 5,
+                    height: 0.5,
+                });
+                textGeometry.computeBoundingBox();
+                const centerOffset = -0.5 * (textGeometry.boundingBox.max.x - textGeometry.boundingBox.min.x);
+                const textMaterial = new THREE.MeshBasicMaterial({ color: 0xFFFFFF });
+                const textMesh = new THREE.Mesh(textGeometry, textMaterial);
+                textMesh.position.set(centerOffset, 50, 0);
+                textMesh.userData = { isPlayerName: true, isTextGeometry: true };
+                group.add(textMesh);
+                console.log(`Nome "${name}" adicionado como TextGeometry ao balão`);
+            });
+        }
+
         const loader = new THREE.GLTFLoader();
         loader.load(
             `${BASE_PATH}/js/balloon_new.glb`,
@@ -564,28 +592,8 @@ export function initGame() {
 
                 // Adiciona o nome do jogador
                 if (name) {
-                    const canvas = document.createElement('canvas');
-                    canvas.width = 256;
-                    canvas.height = 64;
-                    const context = canvas.getContext('2d');
-                    context.fillStyle = '#FFFFFF';
-                    context.fillRect(0, 0, canvas.width, canvas.height);
-                    context.font = 'bold 32px Helvetica, Arial, sans-serif';
-                    context.fillStyle = '#000000';
-                    context.textAlign = 'center';
-                    context.textBaseline = 'middle';
-                    context.fillText(name, canvas.width / 2, canvas.height / 2);
-
-                    const texture = new THREE.CanvasTexture(canvas);
-                    const material = new THREE.MeshBasicMaterial({ map: texture, transparent: true });
-                    const geometry = new THREE.PlaneGeometry(20, 5);
-                    const nameMesh = new THREE.Mesh(geometry, material);
-                    nameMesh.position.set(0, 30, 0); // Posicionado mais alto acima do balão
-                    
-                    // Garantir que o nome sempre olhe para a câmera
-                    nameMesh.userData = { isPlayerName: true };
-                    
-                    group.add(nameMesh);
+                    // Criar o billboard com o nome do jogador
+                    createPlayerNameBillboard(name, group);
                 }
                 
                 // Adicionar indicador de vento ao balão
@@ -641,28 +649,8 @@ export function initGame() {
                 
                 // Adiciona o nome do jogador
                 if (name) {
-                    const canvas = document.createElement('canvas');
-                    canvas.width = 256;
-                    canvas.height = 64;
-                    const context = canvas.getContext('2d');
-                    context.fillStyle = '#FFFFFF';
-                    context.fillRect(0, 0, canvas.width, canvas.height);
-                    context.font = 'bold 32px Helvetica, Arial, sans-serif';
-                    context.fillStyle = '#000000';
-                    context.textAlign = 'center';
-                    context.textBaseline = 'middle';
-                    context.fillText(name, canvas.width / 2, canvas.height / 2);
-
-                    const texture = new THREE.CanvasTexture(canvas);
-                    const material = new THREE.MeshBasicMaterial({ map: texture, transparent: true });
-                    const geometry = new THREE.PlaneGeometry(20, 5);
-                    const nameMesh = new THREE.Mesh(geometry, material);
-                    nameMesh.position.set(0, 30, 0); // Posicionado mais alto acima do balão
-                    
-                    // Garantir que o nome sempre olhe para a câmera
-                    nameMesh.userData = { isPlayerName: true };
-                    
-                    group.add(nameMesh);
+                    // Criar o billboard com o nome do jogador
+                    createPlayerNameBillboard(name, group);
                 }
                 
                 // Adicionar indicador de vento ao balão
@@ -841,9 +829,14 @@ export function initGame() {
             console.log('Balão anterior removido da cena:', window.balloon);
         }
         window.balloonColor = window.balloonColor || '#FF4500';
-        window.balloon = window.createBalloon(window.balloonColor, document.getElementById('playerName').value);
+        const playerName = localStorage.getItem('playerName') || document.getElementById('playerName').value || 'Jogador';
+        window.balloon = window.createBalloon(window.balloonColor, playerName);
         window.balloon.position.set(0, altitude, 0);
         scene.add(window.balloon);
+        
+        // Garantir que o nome do jogador seja adicionado
+        createPlayerNameBillboard(playerName, window.balloon);
+        
         document.getElementById('markersLeft').textContent = window.markersLeft;
         document.getElementById('points').textContent = points;
         window.socket.emit('updatePosition', { x: window.balloon.position.x, y: window.balloon.position.y, z: window.balloon.position.z, mode: window.mode || 'world', roomName: window.roomName || null });
@@ -933,6 +926,16 @@ export function initGame() {
         const deltaZ = balloon.position.z - prevBalloonZ;
 
         balloon.rotation.y += 0.001;
+        
+        // Garantir que os nomes dos jogadores não girem com o balão
+        balloon.traverse((child) => {
+            if (child.userData && child.userData.isPlayerName) {
+                // Resetar a rotação do nome para que não gire com o balão
+                child.rotation.y = -balloon.rotation.y;
+                // Fazer o nome olhar para a câmera
+                child.lookAt(camera.position);
+            }
+        });
 
         // Enviar apenas a altitude para o backend
         window.socket.emit('updatePosition', { 
@@ -989,7 +992,19 @@ export function initGame() {
         if (balloon) {
             balloon.traverse((child) => {
                 if (child.userData && child.userData.isPlayerName) {
+                    // Garantir que o nome sempre olhe para a câmera
                     child.lookAt(camera.position);
+                    
+                    // Garantir que o nome esteja sempre visível (não rotacione com o balão)
+                    child.rotation.y = Math.atan2(
+                        camera.position.x - balloon.position.x,
+                        camera.position.z - balloon.position.z
+                    );
+                    
+                    // Adicionar um pequeno movimento para cima e para baixo
+                    const time = performance.now() * 0.001;
+                    const floatOffset = Math.sin(time) * 2; // Movimento suave de 2 unidades
+                    child.position.y = 50 + floatOffset;
                 }
             });
         }
@@ -999,7 +1014,20 @@ export function initGame() {
             if (window.otherPlayers[id]) {
                 window.otherPlayers[id].traverse((child) => {
                     if (child.userData && child.userData.isPlayerName) {
+                        // Garantir que o nome sempre olhe para a câmera
                         child.lookAt(camera.position);
+                        
+                        // Garantir que o nome esteja sempre visível (não rotacione com o balão)
+                        const otherBalloon = window.otherPlayers[id];
+                        child.rotation.y = Math.atan2(
+                            camera.position.x - otherBalloon.position.x,
+                            camera.position.z - otherBalloon.position.z
+                        );
+                        
+                        // Adicionar um pequeno movimento para cima e para baixo
+                        const time = performance.now() * 0.001;
+                        const floatOffset = Math.sin(time + parseInt(id, 36) % 10) * 2; // Movimento suave de 2 unidades com offset baseado no ID
+                        child.position.y = 50 + floatOffset;
                     }
                 });
             }
@@ -1029,6 +1057,9 @@ export function initGame() {
                 }
             });
         }
+
+        // Atualizar os billboards dos nomes para que sempre olhem para a câmera
+        updateNameBillboards();
 
         camera.position.x = balloon.position.x;
         camera.position.z = balloon.position.z + 200;
@@ -1067,6 +1098,106 @@ export function initGame() {
         document.getElementById('gpsDirection').textContent = `Direção: ${direction}`;
 
         renderer.render(scene, camera);
+    }
+
+    // Função para criar um billboard com o nome do jogador
+    function createPlayerNameBillboard(name, parent, position = { x: 0, y: 50, z: 0 }) {
+        // Remover qualquer nome existente
+        parent.traverse((child) => {
+            if (child.userData && child.userData.isPlayerName) {
+                parent.remove(child);
+            }
+        });
+        
+        // Criar o texto do nome com canvas para melhor visibilidade
+        const canvas = document.createElement('canvas');
+        canvas.width = 512;
+        canvas.height = 128;
+        const context = canvas.getContext('2d');
+        
+        // Desenhar um fundo com borda para melhor visibilidade
+        context.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.strokeStyle = '#FFFFFF';
+        context.lineWidth = 4;
+        context.strokeRect(2, 2, canvas.width - 4, canvas.height - 4);
+        
+        // Desenhar o texto
+        context.font = 'bold 64px Helvetica, Arial, sans-serif';
+        context.fillStyle = '#FFFFFF';
+        context.textAlign = 'center';
+        context.textBaseline = 'middle';
+        context.fillText(name, canvas.width / 2, canvas.height / 2);
+        
+        // Criar a textura e o material
+        const texture = new THREE.CanvasTexture(canvas);
+        const material = new THREE.MeshBasicMaterial({ 
+            map: texture, 
+            transparent: true,
+            depthTest: false,  // Garantir que o nome seja sempre visível
+            side: THREE.DoubleSide // Visível de ambos os lados
+        });
+        
+        // Criar a geometria e a malha
+        const geometry = new THREE.PlaneGeometry(40, 10);
+        const nameMesh = new THREE.Mesh(geometry, material);
+        nameMesh.position.set(position.x, position.y, position.z);
+        nameMesh.userData = { 
+            isPlayerName: true, 
+            isFixed: true,
+            name: name
+        };
+        
+        // Adicionar ao pai
+        parent.add(nameMesh);
+        
+        console.log(`Billboard com nome "${name}" criado e adicionado na posição y=${position.y}`);
+        
+        return nameMesh;
+    }
+    
+    // Expor a função globalmente
+    window.createPlayerNameBillboard = createPlayerNameBillboard;
+    
+    // Função para atualizar os billboards dos nomes
+    function updateNameBillboards() {
+        // Atualizar o billboard do jogador principal
+        if (balloon) {
+            let hasNameBillboard = false;
+            balloon.traverse((child) => {
+                if (child.userData && child.userData.isPlayerName && child.userData.isFixed) {
+                    hasNameBillboard = true;
+                    // Fazer o billboard olhar para a câmera
+                    child.lookAt(camera.position);
+                }
+            });
+            
+            if (!hasNameBillboard) {
+                const playerName = localStorage.getItem('playerName') || 'Jogador';
+                createPlayerNameBillboard(playerName, balloon);
+            }
+        }
+        
+        // Atualizar os billboards dos outros jogadores
+        for (const id in window.otherPlayers) {
+            if (window.otherPlayers[id]) {
+                let hasNameBillboard = false;
+                window.otherPlayers[id].traverse((child) => {
+                    if (child.userData && child.userData.isPlayerName && child.userData.isFixed) {
+                        hasNameBillboard = true;
+                        // Fazer o billboard olhar para a câmera
+                        child.lookAt(camera.position);
+                    }
+                });
+                
+                if (!hasNameBillboard) {
+                    const player = window.worldState?.players[id] || window.roomState?.players[id];
+                    if (player && player.name) {
+                        createPlayerNameBillboard(player.name, window.otherPlayers[id]);
+                    }
+                }
+            }
+        }
     }
 
     window.updatePoints = function(newPoints) {
