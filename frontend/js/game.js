@@ -531,6 +531,18 @@ export function initGame() {
         console.log('Criando balão com cor:', color, 'e nome:', name);
         color = color || '#FF4500';
         const group = new THREE.Group();
+        
+        // Verificar se é um bot pelo nome (contém o país entre parênteses)
+        let isBot = false;
+        let botCountry = '';
+        if (name && name.includes('(')) {
+            const countryMatch = name.match(/\(([A-Z]{3})\)/);
+            if (countryMatch && countryMatch[1]) {
+                isBot = true;
+                botCountry = countryMatch[1];
+                console.log(`Bot detectado: ${name} do país ${botCountry}`);
+            }
+        }
 
         const loader = new THREE.GLTFLoader();
         loader.load(
@@ -545,7 +557,49 @@ export function initGame() {
                     if (child.isMesh) {
                         if (child.name === 'Balloon') {
                             let balloonMaterial;
-                            if (color === 'rainbow') {
+                            
+                            // Se for um bot, aplicar a textura da bandeira correspondente
+                            if (isBot) {
+                                let texturePath = '';
+                                switch (botCountry) {
+                                    case 'USA':
+                                        texturePath = `${BASE_PATH}/eua_flag_texture_balloon.jpg`;
+                                        break;
+                                    case 'BRA':
+                                        texturePath = `${BASE_PATH}/brazil_flag_texture.jpg`;
+                                        break;
+                                    case 'GER':
+                                        texturePath = `${BASE_PATH}/ger_flag_texture_balloon.jpg`;
+                                        break;
+                                    case 'JPN':
+                                        texturePath = `${BASE_PATH}/jpn_flag_texture_balloon.jpg`;
+                                        break;
+                                    default:
+                                        // Usar cor padrão se não houver textura para o país
+                                        break;
+                                }
+                                
+                                if (texturePath) {
+                                    console.log(`Aplicando textura de bandeira para ${botCountry}: ${texturePath}`);
+                                    const textureLoader = new THREE.TextureLoader();
+                                    const texture = textureLoader.load(texturePath, 
+                                        // Callback de sucesso
+                                        function(loadedTexture) {
+                                            console.log(`Textura carregada com sucesso: ${texturePath}`);
+                                        },
+                                        // Callback de progresso
+                                        undefined,
+                                        // Callback de erro
+                                        function(error) {
+                                            console.error(`Erro ao carregar textura ${texturePath}:`, error);
+                                        }
+                                    );
+                                    balloonMaterial = new THREE.MeshLambertMaterial({ map: texture });
+                                } else {
+                                    // Fallback para cor padrão
+                                    balloonMaterial = new THREE.MeshLambertMaterial({ color: color });
+                                }
+                            } else if (color === 'rainbow') {
                                 balloonMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff, vertexColors: true });
                                 const geometry = child.geometry;
                                 const colors = new Float32Array(geometry.attributes.position.count * 3);
@@ -590,7 +644,54 @@ export function initGame() {
                 
                 // Cria um balão simples como fallback
                 const balloonGeometry = new THREE.SphereGeometry(5, 32, 32);
-                const balloonMaterial = new THREE.MeshLambertMaterial({ color: color });
+                
+                let balloonMaterial;
+                
+                // Se for um bot, aplicar a textura da bandeira correspondente
+                if (isBot) {
+                    let texturePath = '';
+                    switch (botCountry) {
+                        case 'USA':
+                            texturePath = `${BASE_PATH}/eua_flag_texture_balloon.jpg`;
+                            break;
+                        case 'BRA':
+                            texturePath = `${BASE_PATH}/brazil_flag_texture.jpg`;
+                            break;
+                        case 'GER':
+                            texturePath = `${BASE_PATH}/ger_flag_texture_balloon.jpg`;
+                            break;
+                        case 'JPN':
+                            texturePath = `${BASE_PATH}/jpn_flag_texture_balloon.jpg`;
+                            break;
+                        default:
+                            // Usar cor padrão se não houver textura para o país
+                            break;
+                    }
+                    
+                    if (texturePath) {
+                        console.log(`Aplicando textura de bandeira para ${botCountry}: ${texturePath}`);
+                        const textureLoader = new THREE.TextureLoader();
+                        const texture = textureLoader.load(texturePath, 
+                            // Callback de sucesso
+                            function(loadedTexture) {
+                                console.log(`Textura carregada com sucesso: ${texturePath}`);
+                            },
+                            // Callback de progresso
+                            undefined,
+                            // Callback de erro
+                            function(error) {
+                                console.error(`Erro ao carregar textura ${texturePath}:`, error);
+                            }
+                        );
+                        balloonMaterial = new THREE.MeshLambertMaterial({ map: texture });
+                    } else {
+                        // Fallback para cor padrão
+                        balloonMaterial = new THREE.MeshLambertMaterial({ color: color });
+                    }
+                } else {
+                    balloonMaterial = new THREE.MeshLambertMaterial({ color: color });
+                }
+                
                 const balloon = new THREE.Mesh(balloonGeometry, balloonMaterial);
                 balloon.position.y = 0;
                 group.add(balloon);
