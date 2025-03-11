@@ -90,15 +90,33 @@ export function initGame() {
                             if (child.name === 'Balloon') {
                                 let balloonMaterial;
                                 if (window.balloonColor === 'rainbow') {
-                                    balloonMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff, vertexColors: true });
-                                    const geometry = child.geometry;
-                                    const colors = new Float32Array(geometry.attributes.position.count * 3);
-                                    for (let i = 0; i < geometry.attributes.position.count; i++) {
-                                        colors[i * 3] = Math.random();
-                                        colors[i * 3 + 1] = Math.random();
-                                        colors[i * 3 + 2] = Math.random();
-                                    }
-                                    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+                                    const texturePath = `${BASE_PATH}/rainbow_flag_texture.jpg`;
+                                    console.log(`Aplicando textura rainbow: ${texturePath}`);
+                                    const textureLoader = new THREE.TextureLoader();
+                                    const texture = textureLoader.load(texturePath, 
+                                        // Callback de sucesso
+                                        function(loadedTexture) {
+                                            console.log(`Textura rainbow carregada com sucesso: ${texturePath}`);
+                                        },
+                                        // Callback de progresso
+                                        undefined,
+                                        // Callback de erro
+                                        function(error) {
+                                            console.error(`Erro ao carregar textura rainbow ${texturePath}:`, error);
+                                            // Fallback para o método antigo de cores aleatórias
+                                            balloonMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff, vertexColors: true });
+                                            const geometry = child.geometry;
+                                            const colors = new Float32Array(geometry.attributes.position.count * 3);
+                                            for (let i = 0; i < geometry.attributes.position.count; i++) {
+                                                colors[i * 3] = Math.random();
+                                                colors[i * 3 + 1] = Math.random();
+                                                colors[i * 3 + 2] = Math.random();
+                                            }
+                                            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+                                            child.material = balloonMaterial;
+                                        }
+                                    );
+                                    balloonMaterial = new THREE.MeshLambertMaterial({ map: texture });
                                 } else {
                                     balloonMaterial = new THREE.MeshLambertMaterial({ color: window.balloonColor || '#FF4500' });
                                 }
@@ -600,15 +618,33 @@ export function initGame() {
                                     balloonMaterial = new THREE.MeshLambertMaterial({ color: color });
                                 }
                             } else if (color === 'rainbow') {
-                                balloonMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff, vertexColors: true });
-                                const geometry = child.geometry;
-                                const colors = new Float32Array(geometry.attributes.position.count * 3);
-                                for (let i = 0; i < geometry.attributes.position.count; i++) {
-                                    colors[i * 3] = Math.random();
-                                    colors[i * 3 + 1] = Math.random();
-                                    colors[i * 3 + 2] = Math.random();
-                                }
-                                geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+                                const texturePath = `${BASE_PATH}/rainbow_flag_texture.jpg`;
+                                console.log(`Aplicando textura rainbow: ${texturePath}`);
+                                const textureLoader = new THREE.TextureLoader();
+                                const texture = textureLoader.load(texturePath, 
+                                    // Callback de sucesso
+                                    function(loadedTexture) {
+                                        console.log(`Textura rainbow carregada com sucesso: ${texturePath}`);
+                                    },
+                                    // Callback de progresso
+                                    undefined,
+                                    // Callback de erro
+                                    function(error) {
+                                        console.error(`Erro ao carregar textura rainbow ${texturePath}:`, error);
+                                        // Fallback para o método antigo de cores aleatórias
+                                        balloonMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff, vertexColors: true });
+                                        const geometry = child.geometry;
+                                        const colors = new Float32Array(geometry.attributes.position.count * 3);
+                                        for (let i = 0; i < geometry.attributes.position.count; i++) {
+                                            colors[i * 3] = Math.random();
+                                            colors[i * 3 + 1] = Math.random();
+                                            colors[i * 3 + 2] = Math.random();
+                                        }
+                                        geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+                                        child.material = balloonMaterial;
+                                    }
+                                );
+                                balloonMaterial = new THREE.MeshLambertMaterial({ map: texture });
                             } else {
                                 balloonMaterial = new THREE.MeshLambertMaterial({ color: color });
                             }
@@ -689,7 +725,28 @@ export function initGame() {
                         balloonMaterial = new THREE.MeshLambertMaterial({ color: color });
                     }
                 } else {
-                    balloonMaterial = new THREE.MeshLambertMaterial({ color: color });
+                    if (color === 'rainbow') {
+                        const texturePath = `${BASE_PATH}/rainbow_flag_texture.jpg`;
+                        console.log(`Aplicando textura rainbow no fallback: ${texturePath}`);
+                        const textureLoader = new THREE.TextureLoader();
+                        const texture = textureLoader.load(texturePath, 
+                            // Callback de sucesso
+                            function(loadedTexture) {
+                                console.log(`Textura rainbow carregada com sucesso no fallback: ${texturePath}`);
+                            },
+                            // Callback de progresso
+                            undefined,
+                            // Callback de erro
+                            function(error) {
+                                console.error(`Erro ao carregar textura rainbow no fallback ${texturePath}:`, error);
+                                // Fallback para o método antigo de cores aleatórias
+                                balloonMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff });
+                            }
+                        );
+                        balloonMaterial = new THREE.MeshLambertMaterial({ map: texture });
+                    } else {
+                        balloonMaterial = new THREE.MeshLambertMaterial({ color: color });
+                    }
                 }
                 
                 const balloon = new THREE.Mesh(balloonGeometry, balloonMaterial);
