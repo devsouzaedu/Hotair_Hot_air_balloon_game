@@ -39,6 +39,9 @@ export function initGame() {
         if (controlsInfo) controlsInfo.textContent = 'Use os botões para jogar';
     }
 
+    // Definir o caminho base para recursos estáticos
+    const BASE_PATH = '/Hotair_Hot_air_balloon_game';
+
     initThreeJS();
 
     function detectMobile() {
@@ -71,7 +74,7 @@ export function initGame() {
         if (!window.balloon) {
             const loader = new THREE.GLTFLoader();
             loader.load(
-                '/js/balloon_new.glb',
+                `${BASE_PATH}/js/balloon_new.glb`,
                 (gltf) => {
                     const group = new THREE.Group();
                     const model = gltf.scene;
@@ -178,8 +181,7 @@ export function initGame() {
         const groundGeometry = new THREE.PlaneGeometry(mapSize, mapSize, 1, 1);
         const groundMaterial = new THREE.MeshLambertMaterial({ 
             color: 0x7CFC00,
-            wireframe: false, // Garante que não haja linhas na geometria do chão
-            flatShading: false // Desativa o sombreamento plano que pode criar linhas visíveis
+            wireframe: false // Garante que não haja linhas na geometria do chão
         });
         const ground = new THREE.Mesh(groundGeometry, groundMaterial);
         ground.rotation.x = -Math.PI / 2;
@@ -529,7 +531,7 @@ export function initGame() {
 
         const loader = new THREE.GLTFLoader();
         loader.load(
-            '/js/balloon_new.glb',
+            `${BASE_PATH}/js/balloon_new.glb`,
             (gltf) => {
                 const model = gltf.scene;
                 model.scale.set(4, 4, 4);

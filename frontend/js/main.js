@@ -2,6 +2,9 @@ import { initUI } from './ui.js';
 import { initGame } from './game.js';
 import { initSocket } from './socket.js';
 
+// Definir o caminho base para recursos estáticos
+const BASE_PATH = '/Hotair_Hot_air_balloon_game';
+
 function showScreen(screenId) {
     document.querySelectorAll('.screen').forEach(screen => {
         screen.style.display = 'none';
@@ -79,7 +82,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // Preenche os dados na tela de perfil
             document.getElementById('profileName').textContent = playerData.name || 'Aventureiro';
-            document.getElementById('profilePicture').src = playerData.picture || 'default-avatar.png';
+            document.getElementById('profilePicture').src = playerData.picture || `${BASE_PATH}/default-avatar.png`;
             document.getElementById('profileScore').textContent = playerData.totalScore || 0;
             document.getElementById('profileTargets').textContent = playerData.targetsHit || 0;
             document.getElementById('profileStartDate').textContent = new Date(playerData.startDate).toLocaleDateString('pt-BR');
@@ -121,7 +124,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 // Preenche os dados na tela de perfil
                 document.getElementById('profileName').textContent = playerData.name || 'Aventureiro';
-                document.getElementById('profilePicture').src = playerData.picture || 'default-avatar.png';
+                document.getElementById('profilePicture').src = playerData.picture || `${BASE_PATH}/default-avatar.png`;
                 document.getElementById('profileScore').textContent = playerData.totalScore || 0;
                 document.getElementById('profileTargets').textContent = playerData.targetsHit || 0;
                 document.getElementById('profileStartDate').textContent = new Date(playerData.startDate).toLocaleDateString('pt-BR');
@@ -145,4 +148,4 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
-export { showScreen };
+export { showScreen, BASE_PATH };

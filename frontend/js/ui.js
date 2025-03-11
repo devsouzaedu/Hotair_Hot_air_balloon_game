@@ -1,4 +1,7 @@
 export function initUI() {
+    // Definir o caminho base para recursos estáticos
+    const BASE_PATH = '/Hotair_Hot_air_balloon_game';
+    
     // Mostrar apenas a tela de login inicialmente (controlado por main.js)
     // Esconder todas as outras telas (controlado por main.js)
 
