@@ -570,7 +570,7 @@ export function initGame() {
                     const context = canvas.getContext('2d');
                     context.fillStyle = '#FFFFFF';
                     context.fillRect(0, 0, canvas.width, canvas.height);
-                    context.font = 'bold 32px Arial';
+                    context.font = 'bold 32px Helvetica, Arial, sans-serif';
                     context.fillStyle = '#000000';
                     context.textAlign = 'center';
                     context.textBaseline = 'middle';
@@ -580,8 +580,11 @@ export function initGame() {
                     const material = new THREE.MeshBasicMaterial({ map: texture, transparent: true });
                     const geometry = new THREE.PlaneGeometry(20, 5);
                     const nameMesh = new THREE.Mesh(geometry, material);
-                    nameMesh.position.set(0, 20, 0);
-                    nameMesh.lookAt(0, 100, 0);
+                    nameMesh.position.set(0, 30, 0); // Posicionado mais alto acima do balão
+                    
+                    // Garantir que o nome sempre olhe para a câmera
+                    nameMesh.userData = { isPlayerName: true };
+                    
                     group.add(nameMesh);
                 }
                 
@@ -644,7 +647,7 @@ export function initGame() {
                     const context = canvas.getContext('2d');
                     context.fillStyle = '#FFFFFF';
                     context.fillRect(0, 0, canvas.width, canvas.height);
-                    context.font = 'bold 32px Arial';
+                    context.font = 'bold 32px Helvetica, Arial, sans-serif';
                     context.fillStyle = '#000000';
                     context.textAlign = 'center';
                     context.textBaseline = 'middle';
@@ -654,8 +657,11 @@ export function initGame() {
                     const material = new THREE.MeshBasicMaterial({ map: texture, transparent: true });
                     const geometry = new THREE.PlaneGeometry(20, 5);
                     const nameMesh = new THREE.Mesh(geometry, material);
-                    nameMesh.position.set(0, 20, 0);
-                    nameMesh.lookAt(0, 100, 0);
+                    nameMesh.position.set(0, 30, 0); // Posicionado mais alto acima do balão
+                    
+                    // Garantir que o nome sempre olhe para a câmera
+                    nameMesh.userData = { isPlayerName: true };
+                    
                     group.add(nameMesh);
                 }
                 
@@ -977,6 +983,27 @@ export function initGame() {
         }
 
         updateMarkers();
+
+        // Fazer com que os nomes dos jogadores sempre olhem para a câmera
+        // Atualizar o nome do jogador principal para olhar para a câmera
+        if (balloon) {
+            balloon.traverse((child) => {
+                if (child.userData && child.userData.isPlayerName) {
+                    child.lookAt(camera.position);
+                }
+            });
+        }
+        
+        // Atualizar os nomes dos outros jogadores para olharem para a câmera
+        for (const id in window.otherPlayers) {
+            if (window.otherPlayers[id]) {
+                window.otherPlayers[id].traverse((child) => {
+                    if (child.userData && child.userData.isPlayerName) {
+                        child.lookAt(camera.position);
+                    }
+                });
+            }
+        }
 
         // Animação dos NPCs (salto)
         if (window.npcOffsets && window.positions && window.npcInstance) {
