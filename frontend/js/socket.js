@@ -185,7 +185,7 @@ export function initSocket() {
                 
                 // Garantir que o nome do jogador seja adicionado
                 if (typeof window.createPlayerNameBillboard === 'function') {
-                    window.createPlayerNameBillboard(playerName, window.balloon);
+                    window.createPlayerNameBillboard(playerName, window.balloon, { x: 0, y: 40, z: 0 });
                 }
             } else {
                 console.error('Falha ao criar balão do jogador');
@@ -242,7 +242,7 @@ export function initSocket() {
                     
                     // Garantir que o nome do jogador seja adicionado
                     if (typeof window.createPlayerNameBillboard === 'function') {
-                        window.createPlayerNameBillboard(playerName, window.balloon);
+                        window.createPlayerNameBillboard(playerName, window.balloon, { x: 0, y: 40, z: 0 });
                     }
                 } else {
                     console.error('Falha ao criar balão do jogador em gameState');

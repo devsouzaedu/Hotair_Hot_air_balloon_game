@@ -56,6 +56,10 @@ export function initGame() {
         camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
         camera.position.set(0, 300, 300);
         camera.lookAt(0, 100, 0);
+        
+        // Expor a câmera globalmente
+        window.camera = camera;
+        console.log('Câmera exposta globalmente:', window.camera);
 
         renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -174,7 +178,6 @@ export function initGame() {
 
         animate();
     }
-
 
     function createGround() {
         const mapSize = 2600;
@@ -528,34 +531,6 @@ export function initGame() {
         console.log('Criando balão com cor:', color, 'e nome:', name);
         color = color || '#FF4500';
         const group = new THREE.Group();
-
-        // Adicionar um objeto temporário para o nome enquanto o modelo carrega
-        if (name) {
-            const tempNameGeometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
-            const tempNameMaterial = new THREE.MeshBasicMaterial({ color: 0xFFFFFF, visible: false });
-            const tempNameMesh = new THREE.Mesh(tempNameGeometry, tempNameMaterial);
-            tempNameMesh.position.set(0, 50, 0);
-            tempNameMesh.userData = { isPlayerName: true, tempName: true };
-            group.add(tempNameMesh);
-            
-            // Criar o texto do nome diretamente com TextGeometry como backup
-            const loaderFont = new THREE.FontLoader();
-            loaderFont.load('https://threejs.org/examples/fonts/helvetiker_bold.typeface.json', function(font) {
-                const textGeometry = new THREE.TextGeometry(name, {
-                    font: font,
-                    size: 5,
-                    height: 0.5,
-                });
-                textGeometry.computeBoundingBox();
-                const centerOffset = -0.5 * (textGeometry.boundingBox.max.x - textGeometry.boundingBox.min.x);
-                const textMaterial = new THREE.MeshBasicMaterial({ color: 0xFFFFFF });
-                const textMesh = new THREE.Mesh(textGeometry, textMaterial);
-                textMesh.position.set(centerOffset, 50, 0);
-                textMesh.userData = { isPlayerName: true, isTextGeometry: true };
-                group.add(textMesh);
-                console.log(`Nome "${name}" adicionado como TextGeometry ao balão`);
-            });
-        }
 
         const loader = new THREE.GLTFLoader();
         loader.load(
@@ -1003,8 +978,8 @@ export function initGame() {
                     
                     // Adicionar um pequeno movimento para cima e para baixo
                     const time = performance.now() * 0.001;
-                    const floatOffset = Math.sin(time) * 2; // Movimento suave de 2 unidades
-                    child.position.y = 50 + floatOffset;
+                    const floatOffset = Math.sin(time) * 1; // Movimento suave de 1 unidade
+                    child.position.y = 40 + floatOffset;
                 }
             });
         }
@@ -1026,8 +1001,8 @@ export function initGame() {
                         
                         // Adicionar um pequeno movimento para cima e para baixo
                         const time = performance.now() * 0.001;
-                        const floatOffset = Math.sin(time + parseInt(id, 36) % 10) * 2; // Movimento suave de 2 unidades com offset baseado no ID
-                        child.position.y = 50 + floatOffset;
+                        const floatOffset = Math.sin(time + parseInt(id, 36) % 10) * 1; // Movimento suave de 1 unidade com offset baseado no ID
+                        child.position.y = 40 + floatOffset;
                     }
                 });
             }
@@ -1101,7 +1076,7 @@ export function initGame() {
     }
 
     // Função para criar um billboard com o nome do jogador
-    function createPlayerNameBillboard(name, parent, position = { x: 0, y: 50, z: 0 }) {
+    function createPlayerNameBillboard(name, parent, position = { x: 0, y: 40, z: 0 }) {
         // Remover qualquer nome existente
         parent.traverse((child) => {
             if (child.userData && child.userData.isPlayerName) {
@@ -1115,16 +1090,12 @@ export function initGame() {
         canvas.height = 128;
         const context = canvas.getContext('2d');
         
-        // Desenhar um fundo com borda para melhor visibilidade
-        context.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        context.fillRect(0, 0, canvas.width, canvas.height);
-        context.strokeStyle = '#FFFFFF';
-        context.lineWidth = 4;
-        context.strokeRect(2, 2, canvas.width - 4, canvas.height - 4);
+        // Fundo transparente
+        context.clearRect(0, 0, canvas.width, canvas.height);
         
-        // Desenhar o texto
+        // Desenhar o texto em preto
         context.font = 'bold 64px Helvetica, Arial, sans-serif';
-        context.fillStyle = '#FFFFFF';
+        context.fillStyle = '#000000';
         context.textAlign = 'center';
         context.textBaseline = 'middle';
         context.fillText(name, canvas.width / 2, canvas.height / 2);
@@ -1151,6 +1122,11 @@ export function initGame() {
         // Adicionar ao pai
         parent.add(nameMesh);
         
+        // Fazer o nome olhar para a câmera
+        if (window.camera) {
+            nameMesh.lookAt(window.camera.position);
+        }
+        
         console.log(`Billboard com nome "${name}" criado e adicionado na posição y=${position.y}`);
         
         return nameMesh;
@@ -1174,7 +1150,7 @@ export function initGame() {
             
             if (!hasNameBillboard) {
                 const playerName = localStorage.getItem('playerName') || 'Jogador';
-                createPlayerNameBillboard(playerName, balloon);
+                createPlayerNameBillboard(playerName, balloon, { x: 0, y: 40, z: 0 });
             }
         }
         
@@ -1193,7 +1169,7 @@ export function initGame() {
                 if (!hasNameBillboard) {
                     const player = window.worldState?.players[id] || window.roomState?.players[id];
                     if (player && player.name) {
-                        createPlayerNameBillboard(player.name, window.otherPlayers[id]);
+                        createPlayerNameBillboard(player.name, window.otherPlayers[id], { x: 0, y: 40, z: 0 });
                     }
                 }
             }
