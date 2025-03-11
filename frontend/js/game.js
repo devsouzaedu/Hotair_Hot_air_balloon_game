@@ -533,6 +533,7 @@ export function initGame() {
         loader.load(
             `${BASE_PATH}/js/balloon_new.glb`,
             (gltf) => {
+                console.log('Modelo do balão carregado com sucesso!');
                 const model = gltf.scene;
                 model.scale.set(4, 4, 4);
                 model.position.y = 0;
@@ -552,43 +553,119 @@ export function initGame() {
                                 }
                                 geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
                             } else {
-                                balloonMaterial = new THREE.MeshLambertMaterial({ color: new THREE.Color(color) });
+                                balloonMaterial = new THREE.MeshLambertMaterial({ color: color });
                             }
                             child.material = balloonMaterial;
-                            console.log('Material aplicado ao balão:', child.material);
-                        } else if (child.name === 'Basket') {
-                            child.material = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
                         }
                     }
                 });
 
                 group.add(model);
+
+                // Adiciona o nome do jogador
+                if (name) {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 256;
+                    canvas.height = 64;
+                    const context = canvas.getContext('2d');
+                    context.fillStyle = '#FFFFFF';
+                    context.fillRect(0, 0, canvas.width, canvas.height);
+                    context.font = 'bold 32px Arial';
+                    context.fillStyle = '#000000';
+                    context.textAlign = 'center';
+                    context.textBaseline = 'middle';
+                    context.fillText(name, canvas.width / 2, canvas.height / 2);
+
+                    const texture = new THREE.CanvasTexture(canvas);
+                    const material = new THREE.MeshBasicMaterial({ map: texture, transparent: true });
+                    const geometry = new THREE.PlaneGeometry(20, 5);
+                    const nameMesh = new THREE.Mesh(geometry, material);
+                    nameMesh.position.set(0, 20, 0);
+                    nameMesh.lookAt(0, 100, 0);
+                    group.add(nameMesh);
+                }
+                
+                // Adicionar indicador de vento ao balão
+                if (typeof createWindIndicator === 'function') {
+                    window.windIndicator = createWindIndicator();
+                    group.add(window.windIndicator.group);
+                }
             },
-            undefined,
+            // Callback de progresso
+            (xhr) => {
+                if (xhr.total) {
+                    const percentComplete = (xhr.loaded / xhr.total) * 100;
+                    console.log(`Carregando modelo do balão: ${Math.round(percentComplete)}%`);
+                }
+            },
+            // Callback de erro
             (error) => {
-                console.error('Erro ao carregar o modelo GLB:', error);
+                console.error('Erro ao carregar o modelo do balão:', error);
+                
+                // Cria um balão simples como fallback
+                const balloonGeometry = new THREE.SphereGeometry(5, 32, 32);
+                const balloonMaterial = new THREE.MeshLambertMaterial({ color: color });
+                const balloon = new THREE.Mesh(balloonGeometry, balloonMaterial);
+                balloon.position.y = 0;
+                group.add(balloon);
+                
+                // Adiciona a cesta
+                const basketGeometry = new THREE.BoxGeometry(3, 2, 3);
+                const basketMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
+                const basket = new THREE.Mesh(basketGeometry, basketMaterial);
+                basket.position.y = -7;
+                group.add(basket);
+                
+                // Adiciona cordas
+                const ropeGeometry = new THREE.CylinderGeometry(0.1, 0.1, 5, 8);
+                const ropeMaterial = new THREE.MeshLambertMaterial({ color: 0xFFFFFF });
+                
+                const rope1 = new THREE.Mesh(ropeGeometry, ropeMaterial);
+                rope1.position.set(2, -4.5, 2);
+                group.add(rope1);
+                
+                const rope2 = new THREE.Mesh(ropeGeometry, ropeMaterial);
+                rope2.position.set(-2, -4.5, 2);
+                group.add(rope2);
+                
+                const rope3 = new THREE.Mesh(ropeGeometry, ropeMaterial);
+                rope3.position.set(2, -4.5, -2);
+                group.add(rope3);
+                
+                const rope4 = new THREE.Mesh(ropeGeometry, ropeMaterial);
+                rope4.position.set(-2, -4.5, -2);
+                group.add(rope4);
+                
+                // Adiciona o nome do jogador
+                if (name) {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 256;
+                    canvas.height = 64;
+                    const context = canvas.getContext('2d');
+                    context.fillStyle = '#FFFFFF';
+                    context.fillRect(0, 0, canvas.width, canvas.height);
+                    context.font = 'bold 32px Arial';
+                    context.fillStyle = '#000000';
+                    context.textAlign = 'center';
+                    context.textBaseline = 'middle';
+                    context.fillText(name, canvas.width / 2, canvas.height / 2);
+
+                    const texture = new THREE.CanvasTexture(canvas);
+                    const material = new THREE.MeshBasicMaterial({ map: texture, transparent: true });
+                    const geometry = new THREE.PlaneGeometry(20, 5);
+                    const nameMesh = new THREE.Mesh(geometry, material);
+                    nameMesh.position.set(0, 20, 0);
+                    nameMesh.lookAt(0, 100, 0);
+                    group.add(nameMesh);
+                }
+                
+                // Adicionar indicador de vento ao balão
+                if (typeof createWindIndicator === 'function') {
+                    window.windIndicator = createWindIndicator();
+                    group.add(window.windIndicator.group);
+                }
             }
         );
-
-        const loaderFont = new THREE.FontLoader();
-        loaderFont.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', function(font) {
-            const textGeometry = new THREE.TextGeometry(name || 'Jogador', {
-                font: font,
-                size: 7,
-                height: 1,
-            });
-            const textMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
-            const textMesh = new THREE.Mesh(textGeometry, textMaterial);
-            textMesh.position.set(-15, 100, 0);
-            group.add(textMesh);
-        });
-
-        group.position.set(0, altitude, 0);
-        console.log('Balão criado com modelo GLB:', group);
-
-        // Adicionar indicador de vento ao balão
-        window.windIndicator = createWindIndicator();
-        group.add(window.windIndicator.group);
 
         return group;
     };

@@ -4,7 +4,7 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-        <title>Hotair - Versão Beta 2 - Jogo Competitivo de Balão de Ar Quente</title>
+        <title>Hotair - Versão Beta - Jogo Competitivo de Balão de Ar Quente</title>
         <meta name="description" content="Hotair é um jogo competitivo de balão de ar quente em versão beta. Pilote seu balão, acerte alvos e dispute com amigos online!">
         <meta name="keywords" content="Hotair, jogo de balão, balão de ar quente, jogo competitivo, multiplayer, versão beta, jogos online">
         <meta name="author" content="JMSOUZA">
@@ -21,6 +21,8 @@
                 font-size: 1.5em;
             }
         </style>
+        <!-- Carregando o Socket.IO no head para garantir que esteja disponível antes dos outros scripts -->
+        <script src="https://hotair-backend.onrender.com/socket.io/socket.io.js"></script>
     </head>
 <body>
     <div id="loginScreen" class="screen">
@@ -156,18 +158,15 @@
         </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js" defer></script>
-    <script>
-        // Carrega o socket.io baseado no ambiente
-        const socketScript = document.createElement('script');
-        socketScript.src = 'https://hotair-backend.onrender.com/socket.io/socket.io.js';
-        socketScript.defer = true;
-        document.body.appendChild(socketScript);
-    </script>
-    <script src="/Hotair_Hot_air_balloon_game/js/game.js" type="module" defer></script>
-    <script src="/Hotair_Hot_air_balloon_game/js/socket.js" type="module" defer></script>
-    <script src="/Hotair_Hot_air_balloon_game/js/ui.js" type="module" defer></script>
-    <script src="/Hotair_Hot_air_balloon_game/js/main.js" type="module" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    
+    <!-- Removido o carregamento dinâmico do Socket.IO, pois já está no head -->
+    
+    <!-- Carregando os scripts do jogo após o Three.js e Socket.IO estarem disponíveis -->
+    <script src="/Hotair_Hot_air_balloon_game/js/game.js" type="module"></script>
+    <script src="/Hotair_Hot_air_balloon_game/js/socket.js" type="module"></script>
+    <script src="/Hotair_Hot_air_balloon_game/js/ui.js" type="module"></script>
+    <script src="/Hotair_Hot_air_balloon_game/js/main.js" type="module"></script>
 </body>
 </html>

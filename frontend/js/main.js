@@ -5,6 +5,9 @@ import { initSocket } from './socket.js';
 // Definir o caminho base para recursos estáticos
 const BASE_PATH = '/Hotair_Hot_air_balloon_game';
 
+// Expor a função initSocket globalmente para que possa ser chamada de outros lugares
+window.initSocket = initSocket;
+
 function showScreen(screenId) {
     document.querySelectorAll('.screen').forEach(screen => {
         screen.style.display = 'none';
@@ -51,6 +54,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     initSocket();
     initUI();
     initGame();
+
+    // Verifica se o socket foi inicializado corretamente
+    setTimeout(() => {
+        if (!window.socket) {
+            console.warn('Socket não foi inicializado após o carregamento inicial. Tentando novamente...');
+            initSocket();
+        } else {
+            console.log('Socket inicializado com sucesso durante o carregamento inicial.');
+        }
+    }, 1000);
 
     // Configura o botão "Começar a Jogar"
     document.getElementById('continueButton').addEventListener('click', () => {

@@ -31,23 +31,51 @@ export function initUI() {
     document.getElementById('okButton').addEventListener('click', () => {
         if (window.balloonColor) {
             document.getElementById('colorScreen').style.display = 'none';
+            
+            // Verificar se o socket está inicializado
             if (!window.socket) {
-                console.error('Socket não está inicializado.');
+                console.error('Socket não está inicializado. Tentando inicializar novamente...');
+                
+                // Verificar se a função initSocket existe
+                if (typeof window.initSocket === 'function') {
+                    console.log('Chamando initSocket novamente...');
+                    window.initSocket();
+                    
+                    // Aguardar um momento para o socket inicializar
+                    setTimeout(() => {
+                        if (window.socket) {
+                            console.log('Socket inicializado com sucesso após nova tentativa.');
+                            processarAcaoJogador();
+                        } else {
+                            console.error('Falha ao inicializar o socket mesmo após nova tentativa.');
+                            alert('Erro de conexão. Por favor, recarregue a página.');
+                        }
+                    }, 1000);
+                } else {
+                    console.error('Função initSocket não encontrada.');
+                    alert('Erro de conexão. Por favor, recarregue a página.');
+                }
                 return;
             }
-            if (window.mode === 'world') {
-                window.socket.emit('joinNow', { name: playerName, color: window.balloonColor });
-            } else if (window.mode === 'room' && window.roomName) {
-                window.socket.emit('setColor', { roomName: window.roomName, color: window.balloonColor });
-                window.socket.emit('joinRoom', { roomName: window.roomName, playerData: { name: playerName, color: window.balloonColor } });
-                document.getElementById('lobbyScreen').style.display = 'flex';
-            } else {
-                console.error('Modo ou nome da sala não definidos:', { mode: window.mode, roomName: window.roomName });
-            }
+            
+            processarAcaoJogador();
         } else {
             alert("Escolha uma cor!");
         }
     });
+    
+    // Função para processar a ação do jogador após verificar o socket
+    function processarAcaoJogador() {
+        if (window.mode === 'world') {
+            window.socket.emit('joinNow', { name: playerName, color: window.balloonColor });
+        } else if (window.mode === 'room' && window.roomName) {
+            window.socket.emit('setColor', { roomName: window.roomName, color: window.balloonColor });
+            window.socket.emit('joinRoom', { roomName: window.roomName, playerData: { name: playerName, color: window.balloonColor } });
+            document.getElementById('lobbyScreen').style.display = 'flex';
+        } else {
+            console.error('Modo ou nome da sala não definidos:', { mode: window.mode, roomName: window.roomName });
+        }
+    }
 
     document.getElementById('createRoomButton').addEventListener('click', () => {
         const inputRoomName = document.getElementById('roomName').value.trim();
