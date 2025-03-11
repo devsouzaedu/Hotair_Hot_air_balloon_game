@@ -11,10 +11,8 @@ export function initSocket() {
         console.error('Nenhum token JWT encontrado no localStorage');
     }
 
-    // Define a URL do backend baseada no ambiente
-    const backendUrl = window.location.hostname === 'localhost' 
-        ? 'http://localhost:3000' 
-        : 'https://hotair-backend.onrender.com';
+    // Define a URL do backend para produção
+    const backendUrl = 'https://hotair-backend.onrender.com';
 
     // Inicializa o socket com o token
     window.socket = io(backendUrl, {

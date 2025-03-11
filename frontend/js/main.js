@@ -58,9 +58,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             console.log('Token capturado da URL:', token);
             // Faz a requisição ao backend para pegar os dados do jogador
-            const backendUrl = window.location.hostname === 'localhost' 
-                ? 'http://localhost:3000/api/profile' 
-                : 'https://hotair-backend.onrender.com/api/profile';
+            const backendUrl = 'https://hotair-backend.onrender.com/api/profile';
                 
             const response = await fetch(backendUrl, {
                 method: 'GET',
@@ -103,9 +101,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.log('Token válido encontrado no localStorage');
             try {
                 // Faz a requisição ao backend para pegar os dados do jogador
-                const backendUrl = window.location.hostname === 'localhost' 
-                    ? 'http://localhost:3000/api/profile' 
-                    : 'https://hotair-backend.onrender.com/api/profile';
+                const backendUrl = 'https://hotair-backend.onrender.com/api/profile';
                     
                 const response = await fetch(backendUrl, {
                     method: 'GET',

@@ -12,10 +12,14 @@ const mongoose = require('mongoose');
 const app = express();
 const server = http.createServer(app);
 
+// Determina a origem do frontend com base no ambiente
+const frontendOrigin = process.env.NODE_ENV === 'production' 
+    ? 'https://devsouzaedu.github.io' 
+    : 'http://localhost:8080';
 
 const io = socketIO(server, {
     cors: {
-        origin: 'http://localhost:8080', // Ajuste para 8080
+        origin: frontendOrigin,
         methods: ['GET', 'POST'],
         credentials: false
     }
@@ -33,7 +37,7 @@ const windLayers = [
 ];
 
 app.use(cors({
-    origin: 'http://localhost:8080', // Ajuste para 8080
+    origin: frontendOrigin,
     methods: ['GET', 'POST'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: false
@@ -74,14 +78,21 @@ console.log('GOOGLE_CLIENT_SECRET:', process.env.GOOGLE_CLIENT_SECRET);
 console.log('MONGODB_URI:', process.env.MONGODB_URI);
 console.log('SESSION_SECRET:', process.env.SESSION_SECRET);
 console.log('PORT:', process.env.PORT);
+console.log('FRONTEND_URL:', process.env.FRONTEND_URL);
+console.log('NODE_ENV:', process.env.NODE_ENV);
 
 // Configurar Passport
 app.use(passport.initialize());
 
+// URL de callback baseada no ambiente
+const callbackURL = process.env.NODE_ENV === 'production'
+    ? 'https://hotair-backend.onrender.com/auth/google/callback'
+    : 'http://localhost:3000/auth/google/callback';
+
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: "http://localhost:3000/auth/google/callback"
+    callbackURL: callbackURL
 }, async (accessToken, refreshToken, profile, done) => {
     try {
         let player = await Player.findOne({ googleId: profile.id });

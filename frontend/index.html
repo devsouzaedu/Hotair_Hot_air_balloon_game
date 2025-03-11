@@ -34,9 +34,8 @@
             </button>
             <script>
                 document.getElementById('googleLoginBtn').addEventListener('click', () => {
-                    const backendUrl = window.location.hostname === 'localhost' 
-                        ? 'http://localhost:3000/auth/google' 
-                        : 'https://hotair-backend.onrender.com/auth/google';
+                    // Sempre usar a URL de produção para autenticação
+                    const backendUrl = 'https://hotair-backend.onrender.com/auth/google';
                     window.location.href = backendUrl;
                 });
             </script>
@@ -162,9 +161,7 @@
     <script>
         // Carrega o socket.io baseado no ambiente
         const socketScript = document.createElement('script');
-        socketScript.src = window.location.hostname === 'localhost' 
-            ? 'http://localhost:3000/socket.io/socket.io.js' 
-            : 'https://hotair-backend.onrender.com/socket.io/socket.io.js';
+        socketScript.src = 'https://hotair-backend.onrender.com/socket.io/socket.io.js';
         socketScript.defer = true;
         document.body.appendChild(socketScript);
     </script>
