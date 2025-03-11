@@ -23,13 +23,13 @@ const io = socketIO(server, {
 
 const PORT = process.env.PORT || 10000;
 
-// Definição das camadas de vento (velocidade reduzida em 150%)
+// Definição das camadas de vento com velocidades ajustadas
 const windLayers = [
     { minAlt: 0, maxAlt: 100, direction: { x: 0, z: 0 }, speed: 0, name: "Nenhum" },
-    { minAlt: 100, maxAlt: 200, direction: { x: 1, z: 0 }, speed: 0.432, name: "Leste" },
-    { minAlt: 200, maxAlt: 300, direction: { x: 0, z: 1 }, speed: 0.432, name: "Sul" },
-    { minAlt: 300, maxAlt: 400, direction: { x: -1, z: 0 }, speed: 0.576, name: "Oeste" },
-    { minAlt: 400, maxAlt: 500, direction: { x: 0, z: -1 }, speed: 0.72, name: "Norte" }
+    { minAlt: 100, maxAlt: 200, direction: { x: 1, z: 0 }, speed: 0.7, name: "Leste" },
+    { minAlt: 200, maxAlt: 300, direction: { x: 0, z: 1 }, speed: 0.8, name: "Sul" },
+    { minAlt: 300, maxAlt: 400, direction: { x: -1, z: 0 }, speed: 0.8, name: "Oeste" },
+    { minAlt: 400, maxAlt: 500, direction: { x: 0, z: -1 }, speed: 0.9, name: "Norte" }
 ];
 
 app.use(cors({
@@ -137,28 +137,46 @@ function generateTarget() {
     const mapSize = 2600;
     const centralArea = mapSize / 4;
     return {
+        id: `target-${Date.now()}`,
         x: Math.random() * centralArea - centralArea / 2, 
         z: Math.random() * centralArea - centralArea / 2 
     };
 }
 
 function moveTarget(state) {
-    const centralArea = 2600 / 4;
-    const moveDistance = 300;
-    const currentTarget = state.targets[0];
-
-    const angle = Math.random() * 2 * Math.PI;
-    let newX = currentTarget.x + Math.cos(angle) * moveDistance;
-    let newZ = currentTarget.z + Math.sin(angle) * moveDistance;
-
-    newX = Math.max(-centralArea / 2, Math.min(centralArea / 2, newX));
-    newZ = Math.max(-centralArea / 2, Math.min(centralArea / 2, newZ));
-
-    currentTarget.x = newX;
-    currentTarget.z = newZ;
-
+    const mapSize = 2600;
+    const newTarget = generateTarget();
+    
+    // Atualizar o alvo
+    if (state.targets.length > 0) {
+        state.targets[0] = newTarget;
+    } else {
+        state.targets.push(newTarget);
+    }
+    
+    // Notificar os clientes sobre a mudança de alvo
+    io.to('world').emit('targetMoved', newTarget);
     state.lastTargetMoveTime = Date.now();
-    console.log(`Alvo movido para: x=${newX}, z=${newZ}`);
+    
+    console.log(`Alvo movido para x=${newTarget.x}, z=${newTarget.z}`);
+    
+    // Atualizar o ID do alvo para os bots
+    const targetId = newTarget.id || `${newTarget.x},${newTarget.z}`;
+    for (const id in state.players) {
+        if (state.players[id].isBot) {
+            const bot = state.players[id];
+            
+            // Forçar os bots a tentarem soltar marcador no próximo alvo
+            if (bot.markers > 0) {
+                bot.botState.idleMode = false;
+                bot.botState.mode = 'explore';
+                bot.botState.forceDropOnNextTarget = true;
+                console.log(`[BOT] ${bot.name} vai tentar soltar marcador no novo alvo (marcadores restantes: ${bot.markers})`);
+            }
+        }
+    }
+    
+    return newTarget;
 }
 
 function initializeTargets() {
@@ -212,7 +230,7 @@ function applyWindToPlayers(state) {
         // Garantir que o jogador permaneça dentro dos limites do mapa
         player.x = Math.max(-mapSize / 2, Math.min(mapSize / 2, player.x));
         player.z = Math.max(-mapSize / 2, Math.min(mapSize / 2, player.z));
-        player.y = Math.max(110, Math.min(490, player.y)); // Garantir limites verticais atualizados
+        player.y = Math.max(110, Math.min(490, player.y)); // Garantir limites verticais também
         
         // Armazenar a informação da camada de vento atual para o jogador
         player.currentWindLayer = currentLayerIndex;
@@ -259,25 +277,40 @@ function updateMarkersGravity(state, roomName = null) {
 }
 
 function addBots() {
+    // Remover bots existentes para garantir que sempre tenhamos os 4 bots
+    for (const id in worldState.players) {
+        if (worldState.players[id].isBot) {
+            delete worldState.players[id];
+        }
+    }
+    
     // Novos bots com nomes de pilotos internacionais
     const botPilots = [
-        { id: 'nick-jonner', name: 'Nick Jonner', country: 'USA', color: '#0000FF' },
-        { id: 'flavio-bracos', name: 'Flávio Braços', country: 'BRA', color: '#00FF00' },
-        { id: 'uve-nielster', name: 'Uve Nielster', country: 'GER', color: '#FFCC00' },
-        { id: 'yasuo-fujita', name: 'Yasuo Fujita', country: 'JPN', color: '#FF0000' }
+        { id: 'nick-jonner', name: 'Nick Jonner', country: 'USA', color: '#0000FF', skill: 0.75, patience: 7, dropAccuracy: 0.7 },
+        { id: 'flavio-bracos', name: 'Flávio Braços', country: 'BRA', color: '#00FF00', skill: 0.8, patience: 5, dropAccuracy: 0.75 },
+        { id: 'uve-nielster', name: 'Uve Nielster', country: 'GER', color: '#FFCC00', skill: 0.85, patience: 4, dropAccuracy: 0.8 },
+        { id: 'yasuo-fujita', name: 'Yasuo Fujita', country: 'JPN', color: '#FF0000', skill: 0.95, patience: 3, dropAccuracy: 0.9 }
     ];
     
-    const mapSize = 2600;
+    // Obter a posição do alvo atual para spawnar próximo
+    const target = worldState.targets[0] || { x: 0, z: 0 };
+    const spawnRadius = 300; // Raio de spawn ao redor do alvo
     
     for (const pilot of botPilots) {
+        // Gerar posição aleatória próxima ao alvo
+        const angle = Math.random() * 2 * Math.PI;
+        const distance = Math.random() * spawnRadius;
+        const spawnX = target.x + Math.cos(angle) * distance;
+        const spawnZ = target.z + Math.sin(angle) * distance;
+        
         const botId = `${pilot.id}-${Date.now()}`;
         worldState.players[botId] = {
             id: botId,
             name: `${pilot.name} (${pilot.country})`,
             color: pilot.color,
-            x: Math.random() * mapSize - mapSize / 2,
+            x: spawnX,
             y: 100 + Math.random() * 400,
-            z: Math.random() * mapSize - mapSize / 2,
+            z: spawnZ,
             markers: 5,
             score: 0,
             isBot: true,
@@ -293,20 +326,33 @@ function addBots() {
                 lastTargetDistance: null,  // distância anterior até o alvo
                 approachingTarget: false,  // se está se aproximando do alvo
                 waitTime: 0,               // tempo de espera para próxima decisão
-                patience: 5 + Math.random() * 10, // paciência para mudar de estratégia (segundos)
-                skill: 0.7 + Math.random() * 0.3, // habilidade do piloto (0-1)
-                dropAccuracy: 0.6 + Math.random() * 0.4, // precisão ao soltar marcadores (0-1)
+                patience: pilot.patience,  // paciência para mudar de estratégia (segundos)
+                skill: pilot.skill,        // habilidade do piloto (0-1)
+                dropAccuracy: pilot.dropAccuracy, // precisão ao soltar marcadores (0-1)
                 lastMarkerTime: 0,         // último momento em que soltou um marcador
-                markerCooldown: 5000       // tempo mínimo entre marcadores (ms)
+                markerCooldown: 8000 + Math.random() * 4000, // tempo mínimo entre marcadores (8-12s)
+                lastWindCheck: Date.now(), // último momento em que verificou o vento
+                windCheckInterval: 1000,   // intervalo para verificar o vento (ms)
+                consecutiveApproaches: 0,  // contador de aproximações consecutivas
+                bestAltitude: null,        // melhor altitude encontrada
+                windEfficiency: {},        // eficiência de cada vento para aproximação
+                lastTargetId: null,        // ID do último alvo onde soltou marcador
+                droppedMarkers: [],        // IDs dos alvos onde já soltou marcadores
+                idleMode: false,           // se está em modo de espera entre alvos
+                lastDecisionTime: Date.now(), // último momento em que tomou uma decisão
+                dropThreshold: pilot.name.includes('Yasuo') ? 20 : 30 + Math.random() * 10, // distância mínima para soltar marcador
+                forceDropOnNextTarget: false // forçar a soltar marcador no próximo alvo
             },
             // Informações de vento
             currentWindLayer: 0,
             windDirection: "Nenhum",
             windSpeed: 0
         };
+        
+        console.log(`[BOT] ${pilot.name} (${pilot.country}) adicionado ao jogo em x=${spawnX.toFixed(2)}, z=${spawnZ.toFixed(2)}`);
     }
     
-    console.log("[BOTS] Pilotos competidores adicionados ao jogo!");
+    console.log("[BOTS] Todos os 4 pilotos competidores adicionados ao jogo!");
 }
 
 // Garantir que os bots não voem fora dos limites do mapa ou acima de 490m e abaixo de 110m
@@ -317,7 +363,7 @@ function ensureBotWithinBounds(bot) {
     bot.y = Math.max(110, Math.min(490, bot.y));
 }
 
-// Atualizar a função updateBots para garantir que os bots permaneçam dentro dos limites
+// Atualizar a função updateBots para incluir o modo idle
 function updateBots() {
     const target = worldState.targets[0];
     if (!target) return;
@@ -364,6 +410,9 @@ function updateBots() {
             case 'drop':
                 dropMarker(bot, target);
                 break;
+            case 'idle':
+                handleIdleMode(bot);
+                break;
         }
     }
 }
@@ -372,6 +421,59 @@ function updateBots() {
 function updateBotStrategy(bot, target) {
     const botState = bot.botState;
     const distanceToTarget = botState.targetDistance;
+    const now = Date.now();
+    
+    // Verificar se já soltou marcador neste alvo
+    const targetId = target.id || `${target.x},${target.z}`;
+    const alreadyDroppedOnTarget = botState.droppedMarkers.includes(targetId);
+    
+    // Se já soltou marcador neste alvo, entrar em modo de espera
+    if (alreadyDroppedOnTarget) {
+        if (!botState.idleMode) {
+            botState.idleMode = true;
+            botState.targetAltitude = 250; // Altitude média para esperar
+            console.log(`[BOT] ${bot.name} já soltou marcador neste alvo, aguardando próximo alvo`);
+        }
+        
+        // Em modo de espera, apenas voar pelo centro do mapa
+        const centerX = 0;
+        const centerZ = 0;
+        const distanceToCenter = Math.sqrt(
+            Math.pow(bot.x - centerX, 2) + 
+            Math.pow(bot.z - centerZ, 2)
+        );
+        
+        if (distanceToCenter > 300) {
+            // Se estiver longe do centro, tentar se aproximar
+            botState.mode = 'explore';
+        } else {
+            // Se estiver perto do centro, apenas manter altitude
+            botState.mode = 'idle';
+        }
+        
+        return;
+    } else {
+        // Se é um novo alvo, sair do modo de espera
+        botState.idleMode = false;
+    }
+    
+    // Tomar decisão a cada 1 segundo
+    if (now - botState.lastDecisionTime < 1000) {
+        return; // Ainda não é hora de tomar uma nova decisão
+    }
+    botState.lastDecisionTime = now;
+    
+    // Se estamos forçando a soltar marcador neste alvo e estamos relativamente perto
+    if (botState.forceDropOnNextTarget && distanceToTarget < 200 && bot.markers > 0) {
+        if (distanceToTarget < 100) {
+            botState.mode = 'position';
+            console.log(`[BOT] ${bot.name} está se posicionando para soltar marcador forçado (${distanceToTarget.toFixed(0)}m)`);
+        } else {
+            botState.mode = 'approach';
+            console.log(`[BOT] ${bot.name} está se aproximando para soltar marcador forçado (${distanceToTarget.toFixed(0)}m)`);
+        }
+        return;
+    }
     
     // Determinar o modo com base na distância e marcadores disponíveis
     if (distanceToTarget > 500) {
@@ -474,49 +576,100 @@ function updateBotStrategy(bot, target) {
 function exploreLayers(bot, target) {
     const botState = bot.botState;
     const now = Date.now();
-    const mapSize = 2600;
     
-    // Mudar de altitude periodicamente para explorar diferentes ventos
-    if (now - botState.lastAltitudeChange > 3000) {
-        // Escolher uma nova altitude aleatória, com preferência para camadas que podem ter vento favorável
-        const layerOptions = [150, 250, 350, 450]; // Altitudes médias de cada camada
-        
-        // Determinar qual camada tem o vento preferido
-        let preferredLayer = null;
-        for (let i = 0; i < windLayers.length; i++) {
-            if (windLayers[i].name === botState.preferredWind) {
-                preferredLayer = i;
-                break;
+    // Verificar se a distância está diminuindo ou aumentando mais frequentemente
+    if (now - botState.lastWindCheck > botState.windCheckInterval) {
+        if (botState.lastTargetDistance !== null) {
+            const isApproaching = botState.targetDistance < botState.lastTargetDistance;
+            
+            // Registrar a eficiência do vento atual
+            if (!botState.windEfficiency[bot.windDirection]) {
+                botState.windEfficiency[bot.windDirection] = { approaches: 0, retreats: 0 };
+            }
+            
+            if (isApproaching) {
+                botState.windEfficiency[bot.windDirection].approaches++;
+                botState.consecutiveApproaches++;
+                
+                // Se estamos nos aproximando consistentemente, registrar esta como uma boa altitude
+                if (botState.consecutiveApproaches >= 3) {
+                    botState.bestAltitude = bot.y;
+                    
+                    // Yasuo é mais persistente em manter um bom vento
+                    if (bot.name.includes('Yasuo') && botState.consecutiveApproaches >= 5) {
+                        botState.mode = 'approach';
+                        console.log(`[BOT] ${bot.name} encontrou um vento excelente e está se aproximando do alvo!`);
+                    }
+                }
+            } else {
+                botState.windEfficiency[bot.windDirection].retreats++;
+                botState.consecutiveApproaches = 0;
+                
+                // Se o vento atual não está ajudando, mudar de altitude mais rapidamente
+                if (now - botState.lastAltitudeChange > 1500) {
+                    // Escolher uma nova altitude, evitando a atual
+                    const currentLayer = getCurrentWindLayer(bot.y);
+                    let newLayer;
+                    
+                    // Yasuo é mais inteligente na escolha da próxima camada
+                    if (bot.name.includes('Yasuo')) {
+                        // Analisar qual vento tem sido mais eficiente
+                        let bestWind = null;
+                        let bestRatio = 0;
+                        
+                        for (const wind in botState.windEfficiency) {
+                            const stats = botState.windEfficiency[wind];
+                            if (stats.approaches > 0) {
+                                const ratio = stats.approaches / (stats.approaches + stats.retreats);
+                                if (ratio > bestRatio) {
+                                    bestRatio = ratio;
+                                    bestWind = wind;
+                                }
+                            }
+                        }
+                        
+                        // Encontrar a camada com o melhor vento
+                        if (bestWind) {
+                            for (let i = 0; i < windLayers.length; i++) {
+                                if (windLayers[i].name === bestWind) {
+                                    newLayer = i;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Se não encontrou um melhor vento ou não é Yasuo, escolher aleatoriamente
+                    if (newLayer === undefined) {
+                        do {
+                            newLayer = Math.floor(Math.random() * 4) + 1; // Camadas 1-4 (excluindo "Nenhum")
+                        } while (newLayer === currentLayer);
+                    }
+                    
+                    // Definir a altitude alvo como o meio da camada
+                    botState.targetAltitude = (windLayers[newLayer].minAlt + windLayers[newLayer].maxAlt) / 2;
+                    botState.lastAltitudeChange = now;
+                    console.log(`[BOT] ${bot.name} está mudando para altitude ${botState.targetAltitude}m para buscar vento melhor`);
+                }
             }
         }
-        
-        // 70% de chance de escolher a camada com vento preferido, se conhecida
-        if (preferredLayer !== null && Math.random() < 0.7) {
-            botState.targetAltitude = layerOptions[preferredLayer];
-        } else {
-            // Caso contrário, escolher uma camada aleatória
-            botState.targetAltitude = layerOptions[Math.floor(Math.random() * layerOptions.length)];
-        }
-        
-        botState.lastAltitudeChange = now;
-        console.log(`[BOT] ${bot.name} está explorando a altitude ${botState.targetAltitude}m`);
+        botState.lastWindCheck = now;
     }
     
     // Mover-se para a altitude alvo
     if (botState.targetAltitude !== null) {
+        // Yasuo se move mais rapidamente entre camadas
+        const speedMultiplier = bot.name.includes('Yasuo') ? 1.5 : 1.0;
+        
         if (bot.y < botState.targetAltitude - 5) {
-            bot.y += 2; // Subir
+            bot.y += 2 * speedMultiplier; // Subir
         } else if (bot.y > botState.targetAltitude + 5) {
-            bot.y -= 2; // Descer
+            bot.y -= 2 * speedMultiplier; // Descer
         }
     }
     
-    // Garantir que o bot permaneça dentro dos limites de altitude
-    bot.y = Math.max(110, Math.min(490, bot.y));
-    
-    // Garantir que o bot permaneça dentro dos limites do mapa
-    bot.x = Math.max(-mapSize / 2, Math.min(mapSize / 2, bot.x));
-    bot.z = Math.max(-mapSize / 2, Math.min(mapSize / 2, bot.z));
+    // Garantir que o bot permaneça dentro dos limites
+    ensureBotWithinBounds(bot);
     
     // Se estiver se aproximando do alvo com o vento atual, mudar para modo de aproximação
     if (botState.approachingTarget && botState.targetDistance < 500) {
@@ -528,44 +681,61 @@ function exploreLayers(bot, target) {
 function approachTarget(bot, target) {
     const botState = bot.botState;
     const now = Date.now();
-    const mapSize = 2600;
     
-    // Se não estiver se aproximando do alvo, voltar a explorar
-    if (!botState.approachingTarget && now - botState.lastDirectionChange > 5000) {
-        botState.mode = 'explore';
-        botState.lastDirectionChange = now;
-        return;
+    // Verificar se ainda estamos nos aproximando do alvo
+    if (now - botState.lastWindCheck > botState.windCheckInterval) {
+        if (botState.lastTargetDistance !== null) {
+            const isApproaching = botState.targetDistance < botState.lastTargetDistance;
+            
+            if (!isApproaching && now - botState.lastDirectionChange > 2000) {
+                // Se não estamos nos aproximando, voltar a explorar
+                botState.mode = 'explore';
+                botState.lastDirectionChange = now;
+                console.log(`[BOT] ${bot.name} não está mais se aproximando, voltando a explorar`);
+                return;
+            }
+        }
+        botState.lastWindCheck = now;
     }
     
     // Manter a altitude atual se estiver se aproximando do alvo
-    // Pequenos ajustes para otimizar a aproximação
     if (botState.approachingTarget) {
-        // Ajustes finos de altitude para otimizar a aproximação
+        // Pequenos ajustes para otimizar a aproximação
         if (now - botState.lastAltitudeChange > 2000) {
-            // 50% de chance de fazer um pequeno ajuste
-            if (Math.random() < 0.5) {
-                const adjustment = (Math.random() < 0.5) ? 10 : -10;
-                botState.targetAltitude = Math.max(110, Math.min(490, bot.y + adjustment));
-                botState.lastAltitudeChange = now;
+            // Yasuo faz ajustes mais precisos
+            if (bot.name.includes('Yasuo')) {
+                // Testar pequenos ajustes para otimizar ainda mais
+                const testAltitude = bot.y + (Math.random() < 0.5 ? 5 : -5);
+                if (testAltitude >= 110 && testAltitude <= 490) {
+                    botState.targetAltitude = testAltitude;
+                    botState.lastAltitudeChange = now;
+                }
+            } else {
+                // Outros bots fazem ajustes maiores e menos frequentes
+                if (Math.random() < 0.3) {
+                    const adjustment = (Math.random() < 0.5) ? 10 : -10;
+                    botState.targetAltitude = Math.max(110, Math.min(490, bot.y + adjustment));
+                    botState.lastAltitudeChange = now;
+                }
             }
         }
     }
     
     // Mover-se para a altitude alvo
     if (botState.targetAltitude !== null) {
-        if (bot.y < botState.targetAltitude - 5) {
-            bot.y += 2; // Subir
-        } else if (bot.y > botState.targetAltitude + 5) {
-            bot.y -= 2; // Descer
+        // Yasuo se move mais precisamente
+        const precision = bot.name.includes('Yasuo') ? 2 : 5;
+        const speed = bot.name.includes('Yasuo') ? 1.5 : 1.0;
+        
+        if (bot.y < botState.targetAltitude - precision) {
+            bot.y += 2 * speed; // Subir
+        } else if (bot.y > botState.targetAltitude + precision) {
+            bot.y -= 2 * speed; // Descer
         }
     }
     
-    // Garantir que o bot permaneça dentro dos limites de altitude
-    bot.y = Math.max(110, Math.min(490, bot.y));
-    
-    // Garantir que o bot permaneça dentro dos limites do mapa
-    bot.x = Math.max(-mapSize / 2, Math.min(mapSize / 2, bot.x));
-    bot.z = Math.max(-mapSize / 2, Math.min(mapSize / 2, bot.z));
+    // Garantir que o bot permaneça dentro dos limites
+    ensureBotWithinBounds(bot);
     
     // Se estiver muito perto do alvo, mudar para modo de posicionamento
     if (botState.targetDistance < 100) {
@@ -577,10 +747,9 @@ function approachTarget(bot, target) {
 function positionForDrop(bot, target) {
     const botState = bot.botState;
     const now = Date.now();
-    const mapSize = 2600;
     
     // Ajustes mais frequentes e precisos de altitude
-    if (now - botState.lastAltitudeChange > 1000) {
+    if (now - botState.lastAltitudeChange > (bot.name.includes('Yasuo') ? 500 : 1000)) {
         // Testar diferentes altitudes para encontrar a melhor direção
         const currentLayer = getCurrentWindLayer(bot.y);
         const currentWind = windLayers[currentLayer];
@@ -588,15 +757,63 @@ function positionForDrop(bot, target) {
         // Calcular se o vento atual está levando em direção ao alvo
         const dx = target.x - bot.x;
         const dz = target.z - bot.z;
-        const windHelpful = (dx * currentWind.direction.x > 0 || dz * currentWind.direction.z > 0);
         
-        if (windHelpful) {
-            // Manter a altitude atual
-            botState.targetAltitude = bot.y;
+        // Yasuo calcula com mais precisão a eficiência do vento
+        if (bot.name.includes('Yasuo')) {
+            // Calcular o ângulo entre a direção do vento e a direção para o alvo
+            const windAngle = Math.atan2(currentWind.direction.z, currentWind.direction.x);
+            const targetAngle = Math.atan2(dz, dx);
+            
+            // Diferença de ângulo (em radianos)
+            let angleDiff = Math.abs(windAngle - targetAngle);
+            if (angleDiff > Math.PI) angleDiff = 2 * Math.PI - angleDiff;
+            
+            // Se o ângulo for menor que 90 graus, o vento está ajudando
+            const windHelpful = angleDiff < Math.PI / 2;
+            
+            if (windHelpful) {
+                // Calcular a altitude ideal dentro da camada atual para maximizar a aproximação
+                const layerRange = currentWind.maxAlt - currentWind.minAlt;
+                const optimalPosition = currentWind.minAlt + (layerRange * 0.5); // Meio da camada
+                botState.targetAltitude = optimalPosition;
+                console.log(`[BOT] ${bot.name} está otimizando a posição na camada de vento ${currentWind.name}`);
+            } else {
+                // Procurar uma camada melhor com base na direção para o alvo
+                let bestLayer = 0;
+                let bestScore = -1;
+                
+                for (let i = 1; i < windLayers.length; i++) { // Começar de 1 para pular "Nenhum"
+                    const layerWind = windLayers[i];
+                    const layerWindAngle = Math.atan2(layerWind.direction.z, layerWind.direction.x);
+                    let layerAngleDiff = Math.abs(layerWindAngle - targetAngle);
+                    if (layerAngleDiff > Math.PI) layerAngleDiff = 2 * Math.PI - layerAngleDiff;
+                    
+                    // Pontuação baseada no ângulo e velocidade
+                    const angleScore = (Math.PI - layerAngleDiff) / Math.PI; // 0-1, maior é melhor
+                    const score = angleScore * layerWind.speed;
+                    
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestLayer = i;
+                    }
+                }
+                
+                // Ir para a melhor camada encontrada
+                botState.targetAltitude = (windLayers[bestLayer].minAlt + windLayers[bestLayer].maxAlt) / 2;
+                console.log(`[BOT] ${bot.name} está mudando para a camada de vento ${windLayers[bestLayer].name} para melhor aproximação`);
+            }
         } else {
-            // Tentar outra camada
-            const newLayer = (currentLayer + 1) % windLayers.length;
-            botState.targetAltitude = Math.max(110, Math.min(490, (windLayers[newLayer].minAlt + windLayers[newLayer].maxAlt) / 2));
+            // Outros bots usam uma lógica mais simples
+            const windHelpful = (dx * currentWind.direction.x > 0 || dz * currentWind.direction.z > 0);
+            
+            if (windHelpful) {
+                // Manter a altitude atual
+                botState.targetAltitude = bot.y;
+            } else {
+                // Tentar outra camada
+                const newLayer = (currentLayer + 1) % windLayers.length;
+                botState.targetAltitude = (windLayers[newLayer].minAlt + windLayers[newLayer].maxAlt) / 2;
+            }
         }
         
         botState.lastAltitudeChange = now;
@@ -604,22 +821,25 @@ function positionForDrop(bot, target) {
     
     // Mover-se para a altitude alvo
     if (botState.targetAltitude !== null) {
-        if (bot.y < botState.targetAltitude - 2) {
-            bot.y += 1; // Subir lentamente
-        } else if (bot.y > botState.targetAltitude + 2) {
-            bot.y -= 1; // Descer lentamente
+        // Yasuo se move com mais precisão
+        const precision = bot.name.includes('Yasuo') ? 1 : 2;
+        const speed = bot.name.includes('Yasuo') ? 1.2 : 1.0;
+        
+        if (bot.y < botState.targetAltitude - precision) {
+            bot.y += 1 * speed; // Subir lentamente
+        } else if (bot.y > botState.targetAltitude + precision) {
+            bot.y -= 1 * speed; // Descer lentamente
         }
     }
     
-    // Garantir que o bot permaneça dentro dos limites de altitude
-    bot.y = Math.max(110, Math.min(490, bot.y));
+    // Garantir que o bot permaneça dentro dos limites
+    ensureBotWithinBounds(bot);
     
-    // Garantir que o bot permaneça dentro dos limites do mapa
-    bot.x = Math.max(-mapSize / 2, Math.min(mapSize / 2, bot.x));
-    bot.z = Math.max(-mapSize / 2, Math.min(mapSize / 2, bot.z));
+    // Usar o threshold personalizado para cada bot
+    const dropThreshold = botState.dropThreshold || (bot.name.includes('Yasuo') ? 20 : 30);
     
     // Se estiver muito perto do alvo e se aproximando, mudar para modo de soltar marcador
-    if (botState.targetDistance < 30 && botState.approachingTarget) {
+    if (botState.targetDistance < dropThreshold && botState.approachingTarget) {
         botState.mode = 'drop';
     } else if (botState.targetDistance > 150) {
         // Se afastou muito, voltar para modo de aproximação
@@ -631,19 +851,34 @@ function positionForDrop(bot, target) {
 function dropMarker(bot, target) {
     const botState = bot.botState;
     const now = Date.now();
-    const mapSize = 2600;
+    
+    // Verificar se já soltou marcador neste alvo
+    const targetId = target.id || `${target.x},${target.z}`;
+    if (botState.droppedMarkers.includes(targetId)) {
+        // Já soltou marcador neste alvo, mudar para modo de espera
+        botState.mode = 'idle';
+        botState.idleMode = true;
+        botState.targetAltitude = 250; // Altitude média para esperar
+        console.log(`[BOT] ${bot.name} já soltou marcador neste alvo, aguardando próximo alvo`);
+        return;
+    }
     
     // Verificar se pode soltar marcador (cooldown e tem marcadores)
     if (bot.markers > 0 && now - botState.lastMarkerTime > botState.markerCooldown) {
         // Calcular posição do marcador com base na habilidade do piloto
         const accuracy = botState.dropAccuracy;
-        const randomOffset = (1 - accuracy) * 20; // Máximo de 20 unidades de erro
         
-        // Calcular posição do marcador e garantir que esteja dentro dos limites do mapa
+        // Yasuo tem precisão quase perfeita
+        const randomOffset = bot.name.includes('Yasuo') ? 
+            (1 - accuracy) * 10 : // Máximo de 10 unidades de erro para Yasuo
+            (1 - accuracy) * 20;  // Máximo de 20 unidades de erro para outros
+        
+        // Calcular posição do marcador
+        const mapSize = 2600;
         let markerX = bot.x + (Math.random() * randomOffset * 2 - randomOffset);
         let markerZ = bot.z + (Math.random() * randomOffset * 2 - randomOffset);
         
-        // Garantir que o marcador permaneça dentro dos limites do mapa
+        // Garantir que o marcador esteja dentro dos limites do mapa
         markerX = Math.max(-mapSize / 2, Math.min(mapSize / 2, markerX));
         markerZ = Math.max(-mapSize / 2, Math.min(mapSize / 2, markerZ));
         
@@ -678,13 +913,69 @@ function dropMarker(bot, target) {
         console.log(`[BOT] ${bot.name} soltou marcador: ${markerId}, restantes: ${bot.markers}, distância: ${botState.targetDistance.toFixed(1)}m`);
         
         botState.lastMarkerTime = now;
+        botState.lastTargetId = targetId;
+        botState.droppedMarkers.push(targetId);
+        botState.forceDropOnNextTarget = false; // Resetar o forçar soltar marcador
         
-        // Após soltar marcador, voltar a explorar
-        botState.mode = 'explore';
+        // Após soltar marcador, entrar em modo de espera
+        botState.mode = 'idle';
+        botState.idleMode = true;
+        
+        // Yasuo é mais estratégico após soltar um marcador
+        if (bot.name.includes('Yasuo') && botState.bestAltitude !== null) {
+            // Voltar para a melhor altitude encontrada anteriormente
+            botState.targetAltitude = botState.bestAltitude;
+            console.log(`[BOT] ${bot.name} está voltando para sua altitude ideal de ${botState.bestAltitude.toFixed(1)}m`);
+        }
     } else if (botState.targetDistance > 40 || !botState.approachingTarget) {
         // Se afastou muito ou não está se aproximando, voltar para posicionamento
         botState.mode = 'position';
     }
+    
+    // Garantir que o bot permaneça dentro dos limites
+    ensureBotWithinBounds(bot);
+}
+
+// Função para o modo de espera (idle)
+function handleIdleMode(bot) {
+    const botState = bot.botState;
+    const now = Date.now();
+    
+    // Manter uma altitude média
+    if (botState.targetAltitude === null) {
+        botState.targetAltitude = 250;
+    }
+    
+    // Mover-se para a altitude alvo
+    if (bot.y < botState.targetAltitude - 5) {
+        bot.y += 1; // Subir lentamente
+    } else if (bot.y > botState.targetAltitude + 5) {
+        bot.y -= 1; // Descer lentamente
+    }
+    
+    // Verificar se o alvo mudou a cada 1 segundo
+    if (now - botState.lastDecisionTime > 1000) {
+        const target = worldState.targets[0];
+        if (target) {
+            const targetId = target.id || `${target.x},${target.z}`;
+            
+            // Se o alvo atual é diferente do último onde soltou marcador
+            if (targetId !== botState.lastTargetId) {
+                // Verificar se já soltou marcador neste alvo
+                if (!botState.droppedMarkers.includes(targetId)) {
+                    // Novo alvo onde ainda não soltou marcador, voltar a explorar
+                    botState.idleMode = false;
+                    botState.mode = 'explore';
+                    botState.forceDropOnNextTarget = true; // Forçar a soltar marcador neste novo alvo
+                    console.log(`[BOT] ${bot.name} detectou novo alvo, voltando a explorar`);
+                }
+            }
+        }
+        botState.lastDecisionTime = now;
+    }
+    
+    // Garantir que o bot permaneça dentro dos limites
+    ensureBotWithinBounds(bot);
 }
 
 io.on('connection', (socket) => {
@@ -704,20 +995,33 @@ io.on('connection', (socket) => {
         } else {
             console.warn('Nenhum token fornecido no handshake, usando socket.id como fallback');
         }
+        
+        // Obter a posição do alvo atual para spawnar próximo
+        const target = worldState.targets[0] || { x: 0, z: 0 };
+        const spawnRadius = 300; // Raio de spawn ao redor do alvo
+        
+        // Gerar posição aleatória próxima ao alvo
+        const angle = Math.random() * 2 * Math.PI;
+        const distance = Math.random() * spawnRadius;
+        const spawnX = target.x + Math.cos(angle) * distance;
+        const spawnZ = target.z + Math.sin(angle) * distance;
+        
         worldState.players[socket.id] = {
             id: playerId, // Usa o _id do MongoDB ou socket.id
             name: playerData.name,
             color: playerData.color,
-            x: 0,
-            z: 0,
-            y: 100,
+            x: spawnX,
+            y: 200,
+            z: spawnZ,
             markers: 5,
             score: 0,
-            isBot: false,
             currentWindLayer: 0,
             windDirection: "Nenhum",
             windSpeed: 0
         };
+        
+        console.log(`Jogador ${playerData.name} entrou no mundo em x=${spawnX.toFixed(2)}, z=${spawnZ.toFixed(2)}`);
+        
         socket.join('world');
         socket.emit('gameState', { mode: 'world', state: worldState });
         console.log(`Jogador ${playerData.name} entrou no mundo global`);
