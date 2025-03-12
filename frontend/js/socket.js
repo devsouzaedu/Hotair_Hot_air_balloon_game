@@ -408,6 +408,19 @@ export function initSocket() {
                 // Atualizar o número de alvos acertados no localStorage
                 const currentTargetsHit = parseInt(localStorage.getItem('profileTargets') || '0');
                 localStorage.setItem('profileTargets', (currentTargetsHit + 1).toString());
+                
+                // Forçar atualização da tag do nome para mostrar o novo número de alvos
+                if (window.balloon) {
+                    window.balloon.traverse((child) => {
+                        if (child.userData && child.userData.isPlayerTag) {
+                            window.balloon.remove(child);
+                        }
+                    });
+                    const playerName = localStorage.getItem('playerName') || 'Jogador';
+                    if (typeof window.createPlayerNameTag === 'function') {
+                        window.createPlayerNameTag(playerName, window.balloon, { x: 0, y: 150, z: 0 });
+                    }
+                }
             }
             if (targetIndex < 1) {
                 const targetToRemove = window.scene.children.find(obj => 

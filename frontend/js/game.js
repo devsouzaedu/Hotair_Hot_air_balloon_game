@@ -1337,7 +1337,7 @@ export function initGame() {
         renderer.render(scene, camera);
     }
 
-    // Função para criar um nome de jogador no estilo COD MW3 (versão ultra simplificada)
+    // Função para criar um nome de jogador no estilo COD MW3 (versão otimizada com texto)
     function createPlayerNameTag(name, parent, position = { x: 0, y: 150, z: 0 }) {
         // Verificar se o parent existe
         if (!parent) {
@@ -1364,12 +1364,29 @@ export function initGame() {
             nameObj.position.set(position.x, position.y, position.z);
             nameObj.userData = { 
                 isPlayerTag: true,
-                name: name
+                name: name,
+                rank: rankPosition
             };
+            
+            // Obter dados do jogador
+            const targetsHit = localStorage.getItem('profileTargets') || '0';
+            
+            // Determinar a posição no ranking (simplificado)
+            let rankPosition = 1;
+            const currentState = window.mode === 'world' ? window.worldState : window.roomState;
+            if (currentState && currentState.players) {
+                const players = Object.values(currentState.players);
+                const sortedPlayers = players.sort((a, b) => b.score - a.score);
+                const socketId = window.socket ? window.socket.id : null;
+                const playerIndex = sortedPlayers.findIndex(player => player.id === socketId);
+                if (playerIndex >= 0) {
+                    rankPosition = playerIndex + 1;
+                }
+            }
             
             // Criar um retângulo preto para o fundo do nome
             const nameBackground = new THREE.Mesh(
-                new THREE.PlaneGeometry(20, 5),
+                new THREE.PlaneGeometry(30, 8),
                 new THREE.MeshBasicMaterial({ 
                     color: 0x000000, 
                     transparent: true, 
@@ -1381,7 +1398,7 @@ export function initGame() {
             
             // Criar um quadrado colorido para o ranking
             const rankBackground = new THREE.Mesh(
-                new THREE.PlaneGeometry(5, 5),
+                new THREE.PlaneGeometry(8, 8),
                 new THREE.MeshBasicMaterial({ 
                     color: window.balloonColor === 'rainbow' ? 0xFF4500 : new THREE.Color(window.balloonColor), 
                     transparent: true, 
@@ -1393,11 +1410,76 @@ export function initGame() {
             
             // Posicionar os elementos
             nameBackground.position.set(0, 0, 0);
-            rankBackground.position.set(12.5, 0, 0);
+            rankBackground.position.set(19, 0, 0);
             
             // Adicionar ao objeto principal
             nameObj.add(nameBackground);
             nameObj.add(rankBackground);
+            
+            // Criar o texto do nome usando canvas (método mais leve)
+            const nameCanvas = document.createElement('canvas');
+            nameCanvas.width = 256;
+            nameCanvas.height = 64;
+            const nameCtx = nameCanvas.getContext('2d');
+            
+            // Configurar o texto do nome
+            nameCtx.font = 'bold 32px Arial';
+            nameCtx.fillStyle = 'white';
+            nameCtx.textAlign = 'center';
+            nameCtx.textBaseline = 'middle';
+            nameCtx.fillText(name, 128, 24); // Ajustado para cima para dar espaço ao número de alvos
+            
+            // Adicionar o número de alvos acertados
+            nameCtx.font = '20px Arial';
+            nameCtx.fillStyle = '#FF6666'; // Vermelho claro para o número de alvos
+            nameCtx.fillText(`Alvos: ${targetsHit}`, 128, 48); // Abaixo do nome
+            
+            // Criar textura para o nome
+            const nameTexture = new THREE.CanvasTexture(nameCanvas);
+            const nameMaterial = new THREE.MeshBasicMaterial({
+                map: nameTexture,
+                transparent: true,
+                depthTest: false,
+                side: THREE.DoubleSide
+            });
+            
+            // Criar plano para o texto do nome
+            const nameTextPlane = new THREE.Mesh(
+                new THREE.PlaneGeometry(28, 6),
+                nameMaterial
+            );
+            nameTextPlane.position.set(0, 0, 0.1);
+            nameBackground.add(nameTextPlane);
+            
+            // Criar o texto do ranking usando canvas
+            const rankCanvas = document.createElement('canvas');
+            rankCanvas.width = 64;
+            rankCanvas.height = 64;
+            const rankCtx = rankCanvas.getContext('2d');
+            
+            // Configurar o texto do ranking
+            rankCtx.font = 'bold 40px Arial';
+            rankCtx.fillStyle = 'white';
+            rankCtx.textAlign = 'center';
+            rankCtx.textBaseline = 'middle';
+            rankCtx.fillText(rankPosition.toString(), 32, 32);
+            
+            // Criar textura para o ranking
+            const rankTexture = new THREE.CanvasTexture(rankCanvas);
+            const rankMaterial = new THREE.MeshBasicMaterial({
+                map: rankTexture,
+                transparent: true,
+                depthTest: false,
+                side: THREE.DoubleSide
+            });
+            
+            // Criar plano para o texto do ranking
+            const rankTextPlane = new THREE.Mesh(
+                new THREE.PlaneGeometry(6, 6),
+                rankMaterial
+            );
+            rankTextPlane.position.set(0, 0, 0.1);
+            rankBackground.add(rankTextPlane);
             
             // Rotacionar para ficar virado para o sul (fixo)
             nameObj.rotation.y = Math.PI;
@@ -1415,21 +1497,48 @@ export function initGame() {
     // Expor a função globalmente
     window.createPlayerNameTag = createPlayerNameTag;
     
-    // Função para atualizar as tags dos nomes (simplificada)
+    // Função para atualizar as tags dos nomes (com atualização de ranking)
     function updatePlayerTags() {
         // Atualizar a tag do jogador principal
         if (balloon) {
             let hasNameTag = false;
+            let currentRank = 0;
+            
+            // Determinar a posição atual no ranking
+            const currentState = window.mode === 'world' ? window.worldState : window.roomState;
+            if (currentState && currentState.players) {
+                const players = Object.values(currentState.players);
+                const sortedPlayers = players.sort((a, b) => b.score - a.score);
+                const socketId = window.socket ? window.socket.id : null;
+                const playerIndex = sortedPlayers.findIndex(player => player.id === socketId);
+                if (playerIndex >= 0) {
+                    currentRank = playerIndex + 1;
+                }
+            }
+            
+            // Verificar se a tag existe e se a posição no ranking mudou
             balloon.traverse((child) => {
                 if (child.userData && child.userData.isPlayerTag) {
                     hasNameTag = true;
-                    // Não precisamos recriar a tag a cada frame
+                    
+                    // Se a posição no ranking mudou, recriar a tag
+                    if (child.userData.rank !== currentRank) {
+                        const playerName = child.userData.name;
+                        balloon.remove(child);
+                        const newTag = createPlayerNameTag(playerName, balloon, { x: 0, y: 150, z: 0 });
+                        if (newTag) {
+                            newTag.userData.rank = currentRank;
+                        }
+                    }
                 }
             });
             
             if (!hasNameTag) {
                 const playerName = localStorage.getItem('playerName') || 'Jogador';
-                createPlayerNameTag(playerName, balloon, { x: 0, y: 150, z: 0 });
+                const newTag = createPlayerNameTag(playerName, balloon, { x: 0, y: 150, z: 0 });
+                if (newTag) {
+                    newTag.userData.rank = currentRank;
+                }
             }
         }
         
@@ -1440,7 +1549,6 @@ export function initGame() {
                 window.otherPlayers[id].traverse((child) => {
                     if (child.userData && child.userData.isPlayerTag) {
                         hasNameTag = true;
-                        // Não precisamos recriar a tag a cada frame
                     }
                 });
                 
