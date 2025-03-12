@@ -765,14 +765,8 @@ export function initGame() {
 
                 // Adiciona o nome do jogador
                 if (name) {
-                    // Criar o billboard com o nome do jogador após um atraso para garantir que o modelo esteja carregado
-                    setTimeout(() => {
-                        if (group) {
-                            createPlayerNameTag(name, group);
-                        } else {
-                            console.error('Grupo não definido ao tentar criar tag para', name);
-                        }
-                    }, 500);
+                    // Criar a tag com o nome do jogador imediatamente
+                    createPlayerNameTag(name, group);
                 }
                 
                 // Adicionar indicador de vento ao balão
@@ -944,14 +938,8 @@ export function initGame() {
                 
                 // Adiciona o nome do jogador
                 if (name) {
-                    // Criar o billboard com o nome do jogador após um atraso para garantir que o modelo esteja carregado
-                    setTimeout(() => {
-                        if (group) {
-                            createPlayerNameTag(name, group);
-                        } else {
-                            console.error('Grupo não definido ao tentar criar tag para', name);
-                        }
-                    }, 500);
+                    // Criar a tag com o nome do jogador imediatamente
+                    createPlayerNameTag(name, group);
                 }
                 
                 // Adicionar indicador de vento ao balão
@@ -1172,6 +1160,9 @@ export function initGame() {
         }
     }
 
+    // Variável para controlar quando atualizar as tags
+    let lastTagUpdateTime = 0;
+
     function animate() {
         requestAnimationFrame(animate);
 
@@ -1228,15 +1219,27 @@ export function initGame() {
 
         balloon.rotation.y += 0.001;
         
-        // Garantir que os nomes dos jogadores não girem com o balão
-        balloon.traverse((child) => {
-            if (child.userData && child.userData.isPlayerName) {
-                // Resetar a rotação do nome para que não gire com o balão
-                child.rotation.y = -balloon.rotation.y;
-                // Fazer o nome olhar para a câmera
-                child.lookAt(camera.position);
-            }
-        });
+        // Fazer com que os nomes dos jogadores sempre olhem para a câmera
+        // Atualizar o nome do jogador principal para olhar para a câmera
+        if (balloon) {
+            balloon.traverse((child) => {
+                if (child.userData && child.userData.isPlayerName && !child.userData.isPlayerTag) {
+                    // Garantir que o nome sempre olhe para a câmera
+                    child.lookAt(camera.position);
+                    
+                    // Garantir que o nome esteja sempre visível (não rotacione com o balão)
+                    child.rotation.y = Math.atan2(
+                        camera.position.x - balloon.position.x,
+                        camera.position.z - balloon.position.z
+                    );
+                    
+                    // Adicionar um pequeno movimento para cima e para baixo
+                    const time = performance.now() * 0.001;
+                    const floatOffset = Math.sin(time) * 1; // Movimento suave de 1 unidade
+                    child.position.y = 80 + floatOffset;
+                }
+            });
+        }
 
         // Enviar apenas a altitude para o backend
         window.socket.emit('updatePosition', { 
@@ -1288,31 +1291,12 @@ export function initGame() {
 
         updateMarkers();
 
-        // Fazer com que os nomes dos jogadores sempre olhem para a câmera
-        // Atualizar o nome do jogador principal para olhar para a câmera
-        if (balloon) {
-            balloon.traverse((child) => {
-                if (child.userData && child.userData.isPlayerName) {
-                    // Garantir que o nome sempre olhe para a câmera
-                    child.lookAt(camera.position);
-                    
-                    // Garantir que o nome esteja sempre visível (não rotacione com o balão)
-                    child.rotation.y = Math.atan2(
-                        camera.position.x - balloon.position.x,
-                        camera.position.z - balloon.position.z
-                    );
-                    
-                    // Adicionar um pequeno movimento para cima e para baixo
-                    const time = performance.now() * 0.001;
-                    const floatOffset = Math.sin(time) * 1; // Movimento suave de 1 unidade
-                    child.position.y = 80 + floatOffset;
-                }
-            });
+        // Atualizar as tags dos nomes apenas a cada 5 segundos para evitar lag
+        if (currentTime - lastTagUpdateTime > 5000) {
+            updatePlayerTags();
+            lastTagUpdateTime = currentTime;
         }
-        
-        // Atualizar as tags dos nomes dos jogadores
-        updatePlayerTags();
-        
+
         // Atualizar o GPS
         camera.position.x = balloon.position.x;
         camera.position.z = balloon.position.z + 200;
@@ -1353,7 +1337,7 @@ export function initGame() {
         renderer.render(scene, camera);
     }
 
-    // Função para criar um nome de jogador no estilo COD MW3
+    // Função para criar um nome de jogador no estilo COD MW3 (versão ultra simplificada)
     function createPlayerNameTag(name, parent, position = { x: 0, y: 150, z: 0 }) {
         // Verificar se o parent existe
         if (!parent) {
@@ -1375,131 +1359,53 @@ export function initGame() {
                 }
             });
             
-            // Grupo para conter todos os elementos do nome
-            const tagGroup = new THREE.Group();
-            tagGroup.position.set(position.x, position.y, position.z);
-            tagGroup.userData = { 
+            // Criar um objeto 3D simples para o nome
+            const nameObj = new THREE.Object3D();
+            nameObj.position.set(position.x, position.y, position.z);
+            nameObj.userData = { 
                 isPlayerTag: true,
                 name: name
             };
             
-            // Obter dados do jogador
-            const targetsHit = localStorage.getItem('profileTargets') || '0';
+            // Criar um retângulo preto para o fundo do nome
+            const nameBackground = new THREE.Mesh(
+                new THREE.PlaneGeometry(20, 5),
+                new THREE.MeshBasicMaterial({ 
+                    color: 0x000000, 
+                    transparent: true, 
+                    opacity: 0.7,
+                    depthTest: false,
+                    side: THREE.DoubleSide
+                })
+            );
             
-            // Determinar a posição no ranking
-            let rankPosition = 0;
-            const currentState = window.mode === 'world' ? window.worldState : window.roomState;
-            if (currentState && currentState.players) {
-                const players = Object.values(currentState.players);
-                const sortedPlayers = players.sort((a, b) => b.score - a.score);
-                const socketId = window.socket ? window.socket.id : null;
-                rankPosition = sortedPlayers.findIndex(player => player.id === socketId) + 1;
-                if (rankPosition <= 0) rankPosition = players.length; // Fallback
-            }
+            // Criar um quadrado colorido para o ranking
+            const rankBackground = new THREE.Mesh(
+                new THREE.PlaneGeometry(5, 5),
+                new THREE.MeshBasicMaterial({ 
+                    color: window.balloonColor === 'rainbow' ? 0xFF4500 : new THREE.Color(window.balloonColor), 
+                    transparent: true, 
+                    opacity: 0.9,
+                    depthTest: false,
+                    side: THREE.DoubleSide
+                })
+            );
             
-            // Criar o canvas para o nome e alvos
-            const canvas1 = document.createElement('canvas');
-            canvas1.width = 256;
-            canvas1.height = 64;
-            const ctx1 = canvas1.getContext('2d');
+            // Posicionar os elementos
+            nameBackground.position.set(0, 0, 0);
+            rankBackground.position.set(12.5, 0, 0);
             
-            // Fundo do retângulo principal
-            ctx1.fillStyle = 'rgba(0, 0, 0, 0.7)';
-            ctx1.fillRect(0, 0, canvas1.width, canvas1.height);
+            // Adicionar ao objeto principal
+            nameObj.add(nameBackground);
+            nameObj.add(rankBackground);
             
-            // Borda do retângulo principal
-            ctx1.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-            ctx1.lineWidth = 2;
-            ctx1.strokeRect(1, 1, canvas1.width - 2, canvas1.height - 2);
-            
-            // Nome do jogador
-            ctx1.font = 'bold 24px Arial, Helvetica, sans-serif';
-            ctx1.fillStyle = 'white';
-            ctx1.textAlign = 'left';
-            ctx1.textBaseline = 'middle';
-            ctx1.fillText(name, 10, 20);
-            
-            // Ícone de alvo (X vermelho simplificado)
-            ctx1.strokeStyle = 'red';
-            ctx1.lineWidth = 2;
-            ctx1.beginPath();
-            ctx1.moveTo(10, 40);
-            ctx1.lineTo(20, 50);
-            ctx1.moveTo(20, 40);
-            ctx1.lineTo(10, 50);
-            ctx1.stroke();
-            
-            // Número de alvos acertados
-            ctx1.font = '18px Arial, Helvetica, sans-serif';
-            ctx1.fillStyle = 'white';
-            ctx1.textAlign = 'left';
-            ctx1.fillText(targetsHit, 25, 45);
-            
-            // Criar o canvas para a posição no ranking
-            const canvas2 = document.createElement('canvas');
-            canvas2.width = 40;
-            canvas2.height = 40;
-            const ctx2 = canvas2.getContext('2d');
-            
-            // Cor do balão para o fundo do ranking
-            const balloonColor = window.balloonColor === 'rainbow' ? '#FF4500' : window.balloonColor;
-            ctx2.fillStyle = balloonColor;
-            ctx2.fillRect(0, 0, canvas2.width, canvas2.height);
-            
-            // Borda do retângulo de ranking
-            ctx2.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-            ctx2.lineWidth = 2;
-            ctx2.strokeRect(1, 1, canvas2.width - 2, canvas2.height - 2);
-            
-            // Número da posição
-            ctx2.font = 'bold 24px Arial, Helvetica, sans-serif';
-            ctx2.fillStyle = 'white';
-            ctx2.textAlign = 'center';
-            ctx2.textBaseline = 'middle';
-            ctx2.fillText(rankPosition.toString(), canvas2.width / 2, canvas2.height / 2);
-            
-            // Criar texturas a partir dos canvas
-            const texture1 = new THREE.CanvasTexture(canvas1);
-            const texture2 = new THREE.CanvasTexture(canvas2);
-            
-            // Criar materiais
-            const material1 = new THREE.MeshBasicMaterial({ 
-                map: texture1, 
-                transparent: true,
-                depthTest: false
-            });
-            
-            const material2 = new THREE.MeshBasicMaterial({ 
-                map: texture2, 
-                transparent: true,
-                depthTest: false
-            });
-            
-            // Criar geometrias
-            const geometry1 = new THREE.PlaneGeometry(64, 16);
-            const geometry2 = new THREE.PlaneGeometry(10, 10);
-            
-            // Criar meshes
-            const nameMesh = new THREE.Mesh(geometry1, material1);
-            const rankMesh = new THREE.Mesh(geometry2, material2);
-            
-            // Posicionar o rank à direita do nome
-            nameMesh.position.set(0, 0, 0);
-            rankMesh.position.set(37, 0, 0);
-            
-            // Adicionar ao grupo
-            tagGroup.add(nameMesh);
-            tagGroup.add(rankMesh);
-            
-            // Rotacionar para ficar virado para o sul
-            tagGroup.rotation.y = Math.PI;
+            // Rotacionar para ficar virado para o sul (fixo)
+            nameObj.rotation.y = Math.PI;
             
             // Adicionar ao pai
-            parent.add(tagGroup);
+            parent.add(nameObj);
             
-            console.log(`Tag com nome "${name}" criada e adicionada na posição y=${position.y}`);
-            
-            return tagGroup;
+            return nameObj;
         } catch (error) {
             console.error('Erro ao criar tag para', name, error);
             return null;
@@ -1509,7 +1415,7 @@ export function initGame() {
     // Expor a função globalmente
     window.createPlayerNameTag = createPlayerNameTag;
     
-    // Função para atualizar as tags dos nomes
+    // Função para atualizar as tags dos nomes (simplificada)
     function updatePlayerTags() {
         // Atualizar a tag do jogador principal
         if (balloon) {
@@ -1517,14 +1423,7 @@ export function initGame() {
             balloon.traverse((child) => {
                 if (child.userData && child.userData.isPlayerTag) {
                     hasNameTag = true;
-                    
-                    // Atualizar a posição no ranking se necessário
-                    if (window.worldState || window.roomState) {
-                        // Remover a tag antiga e criar uma nova atualizada
-                        const playerName = child.userData.name;
-                        balloon.remove(child);
-                        createPlayerNameTag(playerName, balloon, { x: 0, y: 150, z: 0 });
-                    }
+                    // Não precisamos recriar a tag a cada frame
                 }
             });
             
@@ -1541,14 +1440,7 @@ export function initGame() {
                 window.otherPlayers[id].traverse((child) => {
                     if (child.userData && child.userData.isPlayerTag) {
                         hasNameTag = true;
-                        
-                        // Atualizar a posição no ranking se necessário
-                        if (window.worldState || window.roomState) {
-                            // Remover a tag antiga e criar uma nova atualizada
-                            const playerName = child.userData.name;
-                            window.otherPlayers[id].remove(child);
-                            createPlayerNameTag(playerName, window.otherPlayers[id], { x: 0, y: 150, z: 0 });
-                        }
+                        // Não precisamos recriar a tag a cada frame
                     }
                 });
                 
