@@ -1321,9 +1321,9 @@ setInterval(() => {
     // Enviar atualizações para todos os clientes
     io.to('world').emit('gameUpdate', { state: worldState, timeLeft });
 
-    if (elapsedWorld >= 300 && elapsedWorld < 307) {
+    if (elapsedWorld >= 300 && elapsedWorld < 315) {
         io.to('world').emit('showLeaderboard', { players: worldState.players });
-    } else if (elapsedWorld >= 307) {
+    } else if (elapsedWorld >= 315) {
         io.to('world').emit('gameReset', { state: resetWorldState() });
         console.log('Novo jogo iniciado no mundo aberto');
     }
@@ -1344,9 +1344,9 @@ setInterval(() => {
             applyWindToPlayers(room);
             io.to(roomName).emit('gameUpdate', { state: room, timeLeft: roomTimeLeft });
 
-            if (elapsed >= 300 && elapsed < 307) {
+            if (elapsed >= 300 && elapsed < 315) {
                 io.to(roomName).emit('showLeaderboard', { players: room.players });
-            } else if (elapsed >= 307) {
+            } else if (elapsed >= 315) {
                 io.to(roomName).emit('gameReset', { state: resetRoomState(roomName) });
                 console.log(`Novo jogo iniciado na sala ${roomName}`);
             }
@@ -1358,11 +1358,15 @@ function resetWorldState() {
     const mapSize = 2600;
     worldState = {
         players: Object.keys(worldState.players).reduce((acc, id) => {
+            // Gerar posição aleatória próxima ao centro da arena (entre 115m e 490m)
+            const randomOffset = () => 115 + Math.random() * 375; // Entre 115 e 490
+            const randomSign = () => Math.random() > 0.5 ? 1 : -1;
+            
             acc[id] = { 
                 ...worldState.players[id], 
-                x: Math.random() * mapSize - mapSize / 2, 
+                x: randomOffset() * randomSign(), 
                 y: 100 + Math.random() * 400, 
-                z: Math.random() * mapSize - mapSize / 2, 
+                z: randomOffset() * randomSign(), 
                 markers: 5, 
                 score: 0,
                 currentWindLayer: 0,
@@ -1386,11 +1390,15 @@ function resetRoomState(roomName) {
     const mapSize = 2600;
     const room = rooms[roomName];
     room.players = Object.keys(room.players).reduce((acc, id) => {
+        // Gerar posição aleatória próxima ao centro da arena (entre 115m e 490m)
+        const randomOffset = () => 115 + Math.random() * 375; // Entre 115 e 490
+        const randomSign = () => Math.random() > 0.5 ? 1 : -1;
+        
         acc[id] = { 
             ...room.players[id], 
-            x: Math.random() * mapSize - mapSize / 2, 
+            x: randomOffset() * randomSign(), 
             y: 100 + Math.random() * 400, 
-            z: Math.random() * mapSize - mapSize / 2, 
+            z: randomOffset() * randomSign(), 
             markers: 5, 
             score: 0,
             currentWindLayer: 0,

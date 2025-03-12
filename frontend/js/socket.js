@@ -494,15 +494,27 @@ export function initSocket() {
             countdownDiv.style.fontSize = '1.5em';
             leaderboardList.appendChild(countdownDiv);
 
-            let countdown = 7;
-            countdownDiv.textContent = `Novo jogo em ${countdown} segundos`;
+            // Alterar para 15 segundos conforme solicitado
+            let countdown = 15;
+            countdownDiv.textContent = `Próx Partida ${countdown} segs`;
             const countdownInterval = setInterval(() => {
                 countdown--;
-                countdownDiv.textContent = `Novo jogo em ${countdown} segundos`;
+                countdownDiv.textContent = `Próx Partida ${countdown} segs`;
                 if (countdown <= 0) {
                     clearInterval(countdownInterval);
+                    // Reiniciar o jogo automaticamente após a contagem regressiva
+                    location.reload();
                 }
             }, 1000);
+            
+            // Adicionar evento de clique ao botão "Voltar para perfil"
+            const backToProfileButton = document.getElementById('backToProfileButton');
+            if (backToProfileButton) {
+                backToProfileButton.addEventListener('click', () => {
+                    // Redirecionar para a página de perfil
+                    window.location.href = '/Hotair_Hot_air_balloon_game/';
+                });
+            }
         });
 
         // Evento de reset do jogo
