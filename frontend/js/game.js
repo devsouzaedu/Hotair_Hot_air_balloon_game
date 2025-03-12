@@ -1063,6 +1063,37 @@ export function initGame() {
         setTimeout(() => message.remove(), 3000);
     }
 
+    function showMarkerScoreMessage(distance, score) {
+        const message = document.createElement('div');
+        message.textContent = `${Math.round(distance)}mts, ${score} pontos`;
+        message.style.position = 'absolute';
+        message.style.top = '60%';
+        message.style.left = '50%';
+        message.style.transform = 'translate(-50%, -50%)';
+        message.style.color = 'white';
+        message.style.fontSize = '1.4em'; // 30% menor que 2em
+        message.style.background = 'rgba(0, 0, 0, 0.7)';
+        message.style.padding = '7px 14px'; // 30% menor que 10px 20px
+        message.style.borderRadius = '5px';
+        message.style.zIndex = '1001';
+        message.style.animation = 'fadeOut 3s forwards';
+        document.getElementById('gameScreen').appendChild(message);
+
+        // Não precisamos adicionar a regra de animação novamente se já existe
+        if (!document.styleSheets[0].cssRules.toString().includes('fadeOut')) {
+            const styleSheet = document.styleSheets[0];
+            styleSheet.insertRule(`
+                @keyframes fadeOut {
+                    0% { opacity: 1; }
+                    80% { opacity: 1; }
+                    100% { opacity: 0; }
+                }
+            `, styleSheet.cssRules.length);
+        }
+
+        setTimeout(() => message.remove(), 3000);
+    }
+
     function onWindowResize() {
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
@@ -1707,6 +1738,7 @@ export function initGame() {
     window.setOtherPlayers = (op) => window.otherPlayers = op;
     window.setMarkers = (m) => window.markers = m;
     window.showNoMarkersMessage = showNoMarkersMessage;
+    window.showMarkerScoreMessage = showMarkerScoreMessage;
     window.scene = scene;
     
     // Função para inicializar o estado do jogo

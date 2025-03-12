@@ -346,13 +346,21 @@ export function initSocket() {
         });
 
         // Evento de marcador solto
-        socket.on('markerDropped', ({ playerId, x, y, z, markers, score, markerId }) => {
+        socket.on('markerDropped', ({ playerId, x, y, z, markers, score, markerId, distance }) => {
             console.log('Marcador solto por:', playerId, 'Restantes:', markers);
             if (playerId === socket.id) {
                 window.markersLeft = markers;
                 document.getElementById('markersLeft').textContent = markers;
                 document.getElementById('points').textContent = score;
                 window.markerDropped = false;
+                
+                // Mostrar mensagem de distância e pontuação se disponíveis
+                if (distance !== undefined && score !== undefined) {
+                    if (typeof window.showMarkerScoreMessage === 'function') {
+                        window.showMarkerScoreMessage(distance, score);
+                    }
+                }
+                
                 if (markers === 0) {
                     window.showNoMarkersMessage();
                 }
@@ -373,7 +381,7 @@ export function initSocket() {
         });
 
         // Evento de marcador no chão
-        socket.on('markerLanded', ({ x, y, z, playerId, markerId }) => {
+        socket.on('markerLanded', ({ x, y, z, playerId, markerId, distance, score }) => {
             console.log('Marcador pousou em:', { x, y, z }, 'por:', playerId);
             let markerEntry = window.markers.find(m => m.marker.userData.markerId === markerId);
             
@@ -397,6 +405,13 @@ export function initSocket() {
                 markerEntry.tail.position.set(x, y, z);
             } else {
                 console.error(`Marcador ou cauda não encontrados para markerId: ${markerId}`);
+            }
+            
+            // Mostrar mensagem de distância e pontuação se for o marcador do jogador atual
+            if (playerId === socket.id && distance !== undefined && score !== undefined) {
+                if (typeof window.showMarkerScoreMessage === 'function') {
+                    window.showMarkerScoreMessage(distance, score);
+                }
             }
         });
 

@@ -275,12 +275,22 @@ function updateMarkersGravity(state, roomName = null) {
             if (marker.y <= 0) {
                 marker.y = 0;
                 console.log(`Marcador ${markerId} atingiu o chão em x=${marker.x}, z=${marker.z}`);
+                
+                // Calcular distância e pontuação
+                const targets = state.targets;
+                const dx = marker.x - targets[0].x;
+                const dz = marker.z - targets[0].z;
+                const distance = Math.sqrt(dx * dx + dz * dz);
+                const score = calculateScore(distance);
+                
                 io.to(roomName || 'world').emit('markerLanded', { 
                     x: marker.x, 
                     y: marker.y, 
                     z: marker.z, 
                     playerId: marker.playerId, 
-                    markerId 
+                    markerId,
+                    distance,
+                    score
                 });
             }
         }
@@ -862,20 +872,29 @@ function positionForDrop(bot, target) {
 function dropMarker(bot, target) {
     const botState = bot.botState;
     const now = Date.now();
+    const targetId = target.id;
     
-    // Verificar se já soltou marcador neste alvo
-    const targetId = target.id || `${target.x},${target.z}`;
-    if (botState.droppedMarkers.includes(targetId)) {
-        // Já soltou marcador neste alvo, mudar para modo de espera
+    // Verificar se o bot ainda tem marcadores
+    if (bot.markers <= 0) {
+        console.log(`[BOT] ${bot.name} não tem mais marcadores disponíveis`);
         botState.mode = 'idle';
-        botState.idleMode = true;
-        botState.targetAltitude = 250; // Altitude média para esperar
-        console.log(`[BOT] ${bot.name} já soltou marcador neste alvo, aguardando próximo alvo`);
         return;
     }
     
-    // Verificar se pode soltar marcador (cooldown e tem marcadores)
-    if (bot.markers > 0 && now - botState.lastMarkerTime > botState.markerCooldown) {
+    // Verificar se o bot já soltou marcador para este alvo
+    if (botState.droppedMarkers.includes(targetId) && !botState.forceDropOnNextTarget) {
+        console.log(`[BOT] ${bot.name} já soltou marcador para este alvo`);
+        botState.mode = 'idle';
+        return;
+    }
+    
+    // Verificar se o bot está próximo o suficiente do alvo
+    const dx = bot.x - target.x;
+    const dz = bot.z - target.z;
+    botState.targetDistance = Math.sqrt(dx * dx + dz * dz);
+    
+    // Verificar se o bot está em uma posição boa para soltar o marcador
+    if (botState.targetDistance < 30 || botState.forceDropOnNextTarget) {
         // Calcular posição do marcador com base na habilidade do piloto
         const accuracy = botState.dropAccuracy;
         
@@ -904,7 +923,6 @@ function dropMarker(bot, target) {
         
         bot.markers--;
         worldState.markers[markerId] = markerData;
-        io.to('world').emit('markerDropped', { ...markerData, markers: bot.markers, score: bot.score, markerId });
         
         // Calcular a pontuação para o marcador
         const target = worldState.targets[0];
@@ -914,11 +932,27 @@ function dropMarker(bot, target) {
             const distance = Math.sqrt(dx * dx + dz * dz);
             const points = calculateScore(distance);
             
+            io.to('world').emit('markerDropped', { 
+                ...markerData, 
+                markers: bot.markers, 
+                score: bot.score, 
+                markerId,
+                distance,
+                score: points
+            });
+            
             if (points > 0) {
                 bot.score += points;
                 io.to('world').emit('scoreUpdate', { playerId: bot.id, score: bot.score, points });
                 console.log(`[BOT] ${bot.name} marcou ${points} pontos! Distância: ${distance.toFixed(1)}m, Score total: ${bot.score}`);
             }
+        } else {
+            io.to('world').emit('markerDropped', { 
+                ...markerData, 
+                markers: bot.markers, 
+                score: bot.score, 
+                markerId 
+            });
         }
         
         console.log(`[BOT] ${bot.name} soltou marcador: ${markerId}, restantes: ${bot.markers}, distância: ${botState.targetDistance.toFixed(1)}m`);
@@ -1168,7 +1202,6 @@ io.on('connection', (socket) => {
                 worldState.markers[markerId].x = x;
                 worldState.markers[markerId].y = y;
                 worldState.markers[markerId].z = z;
-                io.to('world').emit('markerLanded', { x, y, z, playerId: worldState.markers[markerId].playerId, markerId });
                 
                 const targets = worldState.targets;
                 const dx = x - targets[0].x;
@@ -1181,8 +1214,22 @@ io.on('connection', (socket) => {
                     console.error(`Jogador com ID ${worldState.markers[markerId].playerId} não encontrado no worldState.players`);
                     return;
                 }
+                
+                // Calcular pontuação com base na distância
+                const score = calculateScore(distance);
+                
+                // Enviar informações de marcador com distância e pontuação
+                io.to('world').emit('markerLanded', { 
+                    x, 
+                    y, 
+                    z, 
+                    playerId: worldState.markers[markerId].playerId, 
+                    markerId,
+                    distance,
+                    score
+                });
+                
                 if (distance < 40) {
-                    const score = calculateScore(distance);
                     player.score = (player.score || 0) + score;
                     io.to('world').emit('targetHitUpdate', { targetIndex: worldState.currentTargetIndex, playerId: player.id, score: player.score });
                     worldState.currentTargetIndex++;
@@ -1218,7 +1265,6 @@ io.on('connection', (socket) => {
             state.markers[markerId].x = x;
             state.markers[markerId].y = y;
             state.markers[markerId].z = z;
-            io.to(roomName || 'world').emit('markerLanded', { x, y, z, playerId: state.markers[markerId].playerId, markerId });
             
             const targets = state.targets;
             const dx = x - targets[0].x;
@@ -1231,8 +1277,22 @@ io.on('connection', (socket) => {
                 console.error(`Jogador com ID ${state.markers[markerId].playerId} não encontrado em state.players`);
                 return;
             }
+            
+            // Calcular pontuação com base na distância
+            const score = calculateScore(distance);
+            
+            // Enviar informações de marcador com distância e pontuação
+            io.to(roomName || 'world').emit('markerLanded', { 
+                x, 
+                y, 
+                z, 
+                playerId: state.markers[markerId].playerId, 
+                markerId,
+                distance,
+                score
+            });
+            
             if (distance < 40) {
-                const score = calculateScore(distance);
                 player.score = (player.score || 0) + score;
                 io.to(roomName || 'world').emit('targetHitUpdate', { targetIndex: state.currentTargetIndex, playerId: player.id, score: player.score });
                 state.currentTargetIndex++;
