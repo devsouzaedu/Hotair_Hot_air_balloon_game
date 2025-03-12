@@ -627,10 +627,16 @@ export function initGame() {
                 
                 model.scale.set(4, 4, 4);
                 model.position.y = 0;
+                
+                // Garantir que o modelo não gire
+                model.rotation.set(0, 0, 0);
 
                 if (typeof model.traverse === 'function') {
                     model.traverse((child) => {
                         if (child.isMesh) {
+                            // Garantir que cada mesh não gire
+                            child.rotation.set(0, 0, 0);
+                            
                             if (child.name === 'Balloon') {
                                 let balloonMaterial;
                                 
@@ -767,6 +773,9 @@ export function initGame() {
 
                 group.add(model);
                 
+                // Garantir que o grupo não gire
+                group.rotation.set(0, 0, 0);
+                
                 // Adiciona o nome do jogador
                 if (name) {
                     // Criar a tag com o nome do jogador imediatamente
@@ -895,6 +904,8 @@ export function initGame() {
                 
                 const balloon = new THREE.Mesh(balloonGeometry, balloonMaterial);
                 balloon.position.y = 0;
+                // Garantir que o balão fallback não gire
+                balloon.rotation.set(0, 0, 0);
                 group.add(balloon);
                 
                 // Adiciona a cesta
@@ -902,6 +913,8 @@ export function initGame() {
                 const basketMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
                 const basket = new THREE.Mesh(basketGeometry, basketMaterial);
                 basket.position.y = -7;
+                // Garantir que a cesta não gire
+                basket.rotation.set(0, 0, 0);
                 group.add(basket);
                 
                 // Adiciona cordas
@@ -910,19 +923,30 @@ export function initGame() {
                 
                 const rope1 = new THREE.Mesh(ropeGeometry, ropeMaterial);
                 rope1.position.set(2, -4.5, 2);
+                // Garantir que a corda não gire
+                rope1.rotation.set(0, 0, 0);
                 group.add(rope1);
                 
                 const rope2 = new THREE.Mesh(ropeGeometry, ropeMaterial);
                 rope2.position.set(-2, -4.5, 2);
+                // Garantir que a corda não gire
+                rope2.rotation.set(0, 0, 0);
                 group.add(rope2);
                 
                 const rope3 = new THREE.Mesh(ropeGeometry, ropeMaterial);
                 rope3.position.set(2, -4.5, -2);
+                // Garantir que a corda não gire
+                rope3.rotation.set(0, 0, 0);
                 group.add(rope3);
                 
                 const rope4 = new THREE.Mesh(ropeGeometry, ropeMaterial);
                 rope4.position.set(-2, -4.5, -2);
+                // Garantir que a corda não gire
+                rope4.rotation.set(0, 0, 0);
                 group.add(rope4);
+                
+                // Garantir que o grupo não gire
+                group.rotation.set(0, 0, 0);
                 
                 // Adiciona o nome do jogador
                 if (name) {
@@ -1148,6 +1172,37 @@ export function initGame() {
     // Variável para controlar quando atualizar as tags
     let lastTagUpdateTime = 0;
 
+    // Função para garantir que os balões não girem
+    function ensureNoRotation() {
+        // Garantir que o balão do jogador não gire
+        if (balloon) {
+            balloon.rotation.set(0, 0, 0);
+            
+            if (typeof balloon.traverse === 'function') {
+                balloon.traverse((child) => {
+                    if (child.isMesh) {
+                        child.rotation.set(0, 0, 0);
+                    }
+                });
+            }
+        }
+        
+        // Garantir que os balões dos outros jogadores não girem
+        for (const id in window.otherPlayers) {
+            if (window.otherPlayers[id]) {
+                window.otherPlayers[id].rotation.set(0, 0, 0);
+                
+                if (typeof window.otherPlayers[id].traverse === 'function') {
+                    window.otherPlayers[id].traverse((child) => {
+                        if (child.isMesh) {
+                            child.rotation.set(0, 0, 0);
+                        }
+                    });
+                }
+            }
+        }
+    }
+
     function animate() {
         requestAnimationFrame(animate);
 
@@ -1202,8 +1257,11 @@ export function initGame() {
         const deltaX = balloon.position.x - prevBalloonX;
         const deltaZ = balloon.position.z - prevBalloonZ;
 
-        // Rotacionar apenas o balão, não os nomes
-        balloon.rotation.y += 0.001;
+        // Remover a rotação automática do balão
+        // balloon.rotation.y += 0.001; // Esta linha foi removida para evitar a rotação do balão
+        
+        // Garantir que nenhum balão gire
+        ensureNoRotation();
         
         // Garantir que os nomes dos jogadores não girem com o balão
         if (balloon && typeof balloon.traverse === 'function') {
