@@ -185,7 +185,7 @@ export function initSocket() {
                 
                 // Garantir que o nome do jogador seja adicionado
                 if (typeof window.createPlayerNameTag === 'function') {
-                    window.createPlayerNameTag(playerName, window.balloon, { x: 0, y: 130, z: 0 });
+                    window.createPlayerNameTag(playerName, window.balloon, { x: 0, y: 110, z: 0 });
                 }
             } else {
                 console.error('Falha ao criar balão do jogador');
@@ -242,7 +242,7 @@ export function initSocket() {
                     
                     // Garantir que o nome do jogador seja adicionado
                     if (typeof window.createPlayerNameTag === 'function') {
-                        window.createPlayerNameTag(playerName, window.balloon, { x: 0, y: 130, z: 0 });
+                        window.createPlayerNameTag(playerName, window.balloon, { x: 0, y: 110, z: 0 });
                     }
                 } else {
                     console.error('Falha ao criar balão do jogador em gameState');
@@ -418,7 +418,7 @@ export function initSocket() {
                     });
                     const playerName = localStorage.getItem('playerName') || 'Jogador';
                     if (typeof window.createPlayerNameTag === 'function') {
-                        window.createPlayerNameTag(playerName, window.balloon, { x: 0, y: 130, z: 0 });
+                        window.createPlayerNameTag(playerName, window.balloon, { x: 0, y: 110, z: 0 });
                     }
                 }
             }

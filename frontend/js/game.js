@@ -192,7 +192,7 @@ export function initGame() {
                     // Remover o carregamento do nome com TextGeometry e usar nossa função otimizada
                     // Adicionar o nome do jogador usando nossa função otimizada
                     const playerName = localStorage.getItem('playerName') || 'Jogador';
-                    createPlayerNameTag(playerName, group, { x: 0, y: 130, z: 0 });
+                    createPlayerNameTag(playerName, group, { x: 0, y: 110, z: 0 });
 
                     group.position.set(0, altitude, 0);
                     console.log('Balão inicial criado com modelo GLB:', group);
@@ -758,7 +758,7 @@ export function initGame() {
                 // Adiciona o nome do jogador
                 if (name) {
                     // Criar a tag com o nome do jogador imediatamente
-                    createPlayerNameTag(name, group, { x: 0, y: 130, z: 0 });
+                    createPlayerNameTag(name, group, { x: 0, y: 110, z: 0 });
                 }
                 
                 // Adicionar indicador de vento ao balão
@@ -931,7 +931,7 @@ export function initGame() {
                 // Adiciona o nome do jogador
                 if (name) {
                     // Criar a tag com o nome do jogador imediatamente
-                    createPlayerNameTag(name, group, { x: 0, y: 130, z: 0 });
+                    createPlayerNameTag(name, group, { x: 0, y: 110, z: 0 });
                 }
                 
                 // Adicionar indicador de vento ao balão
@@ -1116,7 +1116,7 @@ export function initGame() {
         scene.add(window.balloon);
         
         // Garantir que o nome do jogador seja adicionado com a posição correta
-        createPlayerNameTag(playerName, window.balloon, { x: 0, y: 130, z: 0 });
+        createPlayerNameTag(playerName, window.balloon, { x: 0, y: 110, z: 0 });
         
         // Atualizar as tags de todos os outros jogadores também
         updatePlayerTags();
@@ -1225,11 +1225,11 @@ export function initGame() {
                     if (isCurrentPlayer) {
                         child.rotation.y = Math.PI; // Virado para o sul (jogador principal)
                     } else {
-                        child.rotation.y = 0; // Virado para o norte (bots e outros jogadores)
+                        child.rotation.y = Math.PI; // Virado para o sul (bots e outros jogadores) - INVERTIDO
                     }
                     
                     // Manter a posição Y fixa
-                    child.position.y = 130;
+                    child.position.y = 110;
                 }
             });
         }
@@ -1240,10 +1240,10 @@ export function initGame() {
                 window.otherPlayers[id].traverse((child) => {
                     if (child.userData && child.userData.isPlayerTag && child.userData.noRotate) {
                         // Resetar a rotação para manter a orientação fixa
-                        child.rotation.y = 0; // Virado para o norte (outros jogadores)
+                        child.rotation.y = Math.PI; // Virado para o sul (outros jogadores) - INVERTIDO
                         
                         // Manter a posição Y fixa
-                        child.position.y = 130;
+                        child.position.y = 110;
                     }
                 });
             }
@@ -1346,7 +1346,7 @@ export function initGame() {
     }
 
     // Função para criar um nome de jogador no estilo COD MW3 (versão otimizada e robusta)
-    function createPlayerNameTag(name, parent, position = { x: 0, y: 130, z: 0 }) {
+    function createPlayerNameTag(name, parent, position = { x: 0, y: 110, z: 0 }) {
         // Verificar se o parent existe
         if (!parent) {
             console.error('Erro: parent não definido ao criar tag para', name);
@@ -1524,7 +1524,7 @@ export function initGame() {
             if (isCurrentPlayer) {
                 nameObj.rotation.y = Math.PI; // Virado para o sul (jogador principal)
             } else {
-                nameObj.rotation.y = 0; // Virado para o norte (bots e outros jogadores)
+                nameObj.rotation.y = Math.PI; // Virado para o sul (bots e outros jogadores) - INVERTIDO
             }
             
             // Adicionar ao pai
@@ -1575,7 +1575,7 @@ export function initGame() {
                             if (child.userData.rank !== currentRank) {
                                 const playerName = child.userData.name;
                                 balloon.remove(child);
-                                const newTag = createPlayerNameTag(playerName, balloon, { x: 0, y: 130, z: 0 });
+                                const newTag = createPlayerNameTag(playerName, balloon, { x: 0, y: 110, z: 0 });
                                 if (newTag) {
                                     newTag.userData.rank = currentRank;
                                 }
@@ -1590,7 +1590,7 @@ export function initGame() {
                 if (!hasNameTag) {
                     try {
                         const playerName = localStorage.getItem('playerName') || 'Jogador';
-                        const newTag = createPlayerNameTag(playerName, balloon, { x: 0, y: 130, z: 0 });
+                        const newTag = createPlayerNameTag(playerName, balloon, { x: 0, y: 110, z: 0 });
                         if (newTag) {
                             newTag.userData.rank = currentRank;
                         }
@@ -1620,7 +1620,7 @@ export function initGame() {
                             try {
                                 const player = window.worldState?.players[id] || window.roomState?.players[id];
                                 if (player && player.name) {
-                                    createPlayerNameTag(player.name, window.otherPlayers[id], { x: 0, y: 130, z: 0 });
+                                    createPlayerNameTag(player.name, window.otherPlayers[id], { x: 0, y: 110, z: 0 });
                                 }
                             } catch (e) {
                                 console.error(`Erro ao criar tag para jogador ${id}:`, e);
@@ -1639,7 +1639,7 @@ export function initGame() {
     // Função para criar um billboard com o nome do jogador (mantida para compatibilidade)
     function createPlayerNameBillboard(name, parent, position = { x: 0, y: 120, z: 0 }) {
         // Agora apenas chama a nova função
-        return createPlayerNameTag(name, parent, { x: 0, y: 130, z: 0 });
+        return createPlayerNameTag(name, parent, { x: 0, y: 110, z: 0 });
     }
     
     // Expor a função globalmente para compatibilidade
