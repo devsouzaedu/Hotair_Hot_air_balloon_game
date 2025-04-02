@@ -139,6 +139,29 @@
     background: #1e3c72;
 }
 
+.sales-btn {
+    background: #25D366;
+    color: white;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: block;
+    margin-top: 15px;
+    text-decoration: none;
+    text-align: center;
+    font-weight: bold;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.sales-btn:hover {
+    background: #128C7E;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
 body { 
     margin: 0; 
     overflow: hidden; 
